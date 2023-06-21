@@ -1,0 +1,434 @@
+From dfc5c9503494e3608a0147b19cb8731af7c2f382 Mon Sep 17 00:00:00 2001
+From: Kaiyu Yang <kaiyuy@caltech.edu>
+Date: Tue, 21 Feb 2023 23:54:16 -0800
+Subject: [PATCH 1/1] Modify Lean for proof recording
+
+---
+ Dockerfile                                 | 15 +++++
+ src/frontends/lean/parser.cpp              | 23 ++++++-
+ src/frontends/lean/parser.h                |  7 ++-
+ src/frontends/lean/tactic_notation.cpp     | 12 +++-
+ src/library/ast_exporter.cpp               | 70 +++++++++++++++-------
+ src/library/tactic/CMakeLists.txt          |  2 +-
+ src/library/tactic/name_resolution_log.cpp | 33 ++++++++++
+ src/library/tactic/name_resolution_log.h   | 41 +++++++++++++
+ 8 files changed, 176 insertions(+), 27 deletions(-)
+ create mode 100644 Dockerfile
+ create mode 100644 src/library/tactic/name_resolution_log.cpp
+ create mode 100644 src/library/tactic/name_resolution_log.h
+
+diff --git a/Dockerfile b/Dockerfile
+new file mode 100644
+index 000000000..a9c268902
+--- /dev/null
++++ b/Dockerfile
+@@ -0,0 +1,15 @@
++FROM kitware/cmake:ci-clang_cxx_modules-x86_64-2023-02-15
++
++WORKDIR /lean
++COPY . .
++
++RUN yum -y install gmp-devel python38
++
++RUN mkdir -p build/debug
++
++WORKDIR build/debug
++RUN cmake -D CMAKE_BUILD_TYPE=DEBUG ../../src
++RUN make -j8
++RUN make install
++
++WORKDIR /
+diff --git a/src/frontends/lean/parser.cpp b/src/frontends/lean/parser.cpp
+index 8c7e23f29..5c2408351 100644
+--- a/src/frontends/lean/parser.cpp
++++ b/src/frontends/lean/parser.cpp
+@@ -176,6 +176,7 @@ parser::parser(environment const & env, io_state const & ios,
+ 
+ parser::~parser() {
+     if (m_tactic_log) m_tactic_log->detach();
++    if (m_name_resolution_log) m_name_resolution_log->detach();
+     for (auto p : m_ast) delete p;
+ }
+ 
+@@ -289,9 +290,24 @@ void parser::finalize_ast(ast_id id, expr const & e) {
+     auto t = get_tag(e);
+     // if (!m_tag_ast_table.contains(t))
+     m_tag_ast_table.insert(t, id);
++
++    if (is_constant(e) || is_local(e)) {
++        local_context_adapter adapter = mk_local_context_adapter();
++        local_context lctx = adapter.lctx();
++        try {
++            expr r = resolve_names(m_env, lctx, e);
++            if (is_constant(r))
++            {
++                auto n = const_name(r);
++                auto lean_path = get_decl_olean(m_env, n);
++                auto def_pos = get_decl_pos_info(m_env, n);
++                log_name_resolution(e, r, lean_path, def_pos);
++            }
++        } catch (elaborator_exception &) {}
++    }
+ }
+ 
+-void parser::set_ast_expr(ast_id id, expr e) {
++void parser::set_ast_expr(ast_id id, expr e) const {
+     if (id) m_ast[id]->m_expr.emplace(mk_pure_task(std::move(e)));
+ }
+ 
+@@ -404,6 +420,11 @@ std::shared_ptr<tactic_log> parser::get_tactic_log() {
+     return m_tactic_log;
+ }
+ 
++std::shared_ptr<name_resolution_log> parser::get_name_resolution_log() {
++    if (!m_name_resolution_log) m_name_resolution_log = std::make_shared<name_resolution_log>();
++    return m_name_resolution_log;
++}
++
+ bool parser::curr_is_token(name const & tk) const {
+     return
+         (curr() == token_kind::Keyword || curr() == token_kind::CommandKeyword) &&
+diff --git a/src/frontends/lean/parser.h b/src/frontends/lean/parser.h
+index 895121d11..ea57c8a7c 100644
+--- a/src/frontends/lean/parser.h
++++ b/src/frontends/lean/parser.h
+@@ -20,6 +20,7 @@ Author: Leonardo de Moura
+ #include "library/io_state.h"
+ #include "library/io_state_stream.h"
+ #include "library/message_builder.h"
++#include "library/tactic/name_resolution_log.h"
+ #include "library/tactic/tactic_log.h"
+ #include "library/tactic/tactic_state.h"
+ #include "frontends/lean/parser_state.h"
+@@ -147,6 +148,7 @@ public:
+     virtual optional<pos_info> const & get_break_at_pos() const = 0;
+     virtual parser_pos_provider get_parser_pos_provider(pos_info const & some_pos) const = 0;
+     virtual std::shared_ptr<tactic_log> get_tactic_log() { return nullptr; }
++    virtual std::shared_ptr<name_resolution_log> get_name_resolution_log() { return nullptr; }
+     expr mk_sorry(pos_info const & p, bool synthetic = false);
+     bool has_error_recovery() const { return m_error_recovery; }
+ };
+@@ -172,6 +174,7 @@ class parser : public abstract_parser, public parser_info {
+     bool                    m_ast_invalid = false;
+     ast_id                  m_commands = 0;
+     std::shared_ptr<tactic_log> m_tactic_log;
++    std::shared_ptr<name_resolution_log> m_name_resolution_log;
+     // By default, when the parser finds a unknown identifier, it signs an error.
+     // When the following flag is true, it creates a constant.
+     // This flag is when we are trying to parse mutually recursive declarations.
+@@ -312,7 +315,7 @@ public:
+     ast_data & new_ast(name type, pos_info start, name value = {});
+     void finalize_ast(ast_id id, expr const & e);
+     bool is_ast_invalid() { return m_ast_invalid; }
+-    void set_ast_expr(ast_id id, expr e);
++    void set_ast_expr(ast_id id, expr e) const;
+     ast_data & get_ast(ast_id id) { return *m_ast[id]; }
+     ast_id get_id(expr const & e) const;
+     ast_data & expr_ast(expr const & e) { return get_ast(get_id(e)); }
+@@ -326,6 +329,7 @@ public:
+         return old;
+     }
+     ast_data & new_modifiers(cmd_meta & meta);
++    friend class ast_exporter;
+     friend void export_ast(parser const &);
+ 
+     void from_snapshot(snapshot const & snap);
+@@ -387,6 +391,7 @@ public:
+     }
+ 
+     std::shared_ptr<tactic_log> get_tactic_log() override;
++    std::shared_ptr<name_resolution_log> get_name_resolution_log() override;
+ 
+     expr mk_app(expr fn, expr arg, pos_info const & p);
+     expr mk_app(expr fn, buffer<expr> const & args, pos_info const & p);
+diff --git a/src/frontends/lean/tactic_notation.cpp b/src/frontends/lean/tactic_notation.cpp
+index 111f14b36..24696c809 100644
+--- a/src/frontends/lean/tactic_notation.cpp
++++ b/src/frontends/lean/tactic_notation.cpp
+@@ -458,7 +458,7 @@ static pair<ast_id, name> parse_tactic_class(parser & p, name tac_class) {
+             [monad m] [interactive.executor m],
+         m unit → tactic unit
+ */
+-static expr mk_tactic_execute(expr tac, name tac_class) {
++static expr mk_tacticexecute(expr tac, name tac_class) {
+     return mk_app({
+         mk_constant(name(get_interactive_executor_name(), "execute_explicit")),
+         mk_constant(tac_class),
+@@ -579,7 +579,7 @@ struct parse_begin_end_block_fn {
+             if (cfg) {
+                 r = copy_tag(r, mk_tactic_execute_with(r, *cfg, m_tac_class));
+             } else {
+-                r = copy_tag(r, mk_tactic_execute(r, m_tac_class));
++                r = copy_tag(r, mk_tacticexecute(r, m_tac_class));
+             }
+         }
+         m_p.finalize_ast(group.m_id, r);
+@@ -609,10 +609,16 @@ expr parse_curly_begin_end_expr(parser & p, pos_info const & pos) {
+ }
+ 
+ expr parse_begin_end(parser & p, unsigned, expr const *, pos_info const & pos) {
++    auto log = p.get_name_resolution_log();
++    scope_name_resolution_log scope(log.get());
++
+     return parse_begin_end_expr(p, pos);
+ }
+ 
+ expr parse_by(parser & p, unsigned, expr const *, pos_info const & pos) {
++    auto log = p.get_name_resolution_log();
++    scope_name_resolution_log scope(log.get());
++
+     p.next();
+     parser::local_scope scope1(p);
+     meta_definition_scope scope2;
+@@ -622,7 +628,7 @@ expr parse_by(parser & p, unsigned, expr const *, pos_info const & pos) {
+         bool use_istep    = true;
+         expr tac  = parse_tactic(p, get_tactic_name(), use_istep);
+         ast_id id = p.new_ast(get_by_tk(), pos).push(p.get_id(tac)).m_id;
+-        tac = mk_tactic_execute(tac, get_tactic_name());
++        tac = mk_tacticexecute(tac, get_tactic_name());
+         expr type = mk_tactic_unit(get_tactic_name());
+         expr r    = p.save_pos(mk_typed_expr(type, tac), tac_pos);
+         r = p.save_pos(mk_by(r), pos);
+diff --git a/src/library/ast_exporter.cpp b/src/library/ast_exporter.cpp
+index 86a4792b7..6bfdb62e9 100644
+--- a/src/library/ast_exporter.cpp
++++ b/src/library/ast_exporter.cpp
+@@ -6,21 +6,20 @@ Author: Mario Carneiro
+ */
+ #include <string>
+ #include <vector>
++#include <algorithm>
+ #include "library/ast_exporter.h"
+ #include "frontends/lean/json.h"
+ #include "frontends/lean/parser.h"
+ #include "util/file_lock.h"
+ #include "kernel/expr.h"
++#include "library/tactic/tactic_log.h"
+ 
+ namespace lean {
+ 
+ #ifdef LEAN_JSON
+ 
+ struct ast_exporter : abstract_ast_exporter {
+-    std::vector<ast_data*> const & m_ast;
+-    tag_ast_table const & m_tag_ast_table;
+-    tactic_log const * m_tactic_log;
+-    std::vector<ast_comment> const & m_comments;
++    parser const & m_parser;
+     std::vector<bool> m_reachable;
+     json m_levels;
+     json m_exprs = {nullptr};
+@@ -30,14 +29,12 @@ struct ast_exporter : abstract_ast_exporter {
+     void mark(ast_id id) {
+         if (!m_reachable[id]) {
+             m_reachable[id] = true;
+-            for (ast_id i : m_ast[id]->m_children) mark(i);
++            for (ast_id i :  m_parser.m_ast[id]->m_children) mark(i);
+         }
+     }
+ 
+-    ast_exporter(std::vector<ast_data*> const & ast, tag_ast_table const & tag_ast_table, tactic_log const * log,
+-            std::vector<ast_comment> const & comments):
+-        m_ast(ast), m_tag_ast_table(tag_ast_table), m_tactic_log(log), m_comments(comments),
+-        m_reachable(ast.size(), false) {
++    ast_exporter(parser const & p):
++        m_parser(p), m_reachable(p.m_ast.size(), false) {
+         m_levels.push_back("0");
+         m_level2idx.emplace(mk_level_zero(), 0);
+         m_reachable[0] = true;
+@@ -129,13 +126,42 @@ struct ast_exporter : abstract_ast_exporter {
+     }
+ 
+     void write_ast(std::ostream & out) {
++        json constants = json::array();
++        if (m_parser.m_name_resolution_log) {
++            lean_assert(!m_parser.m_name_resolution_log->m_detached);
++            m_parser.m_name_resolution_log->m_exported.store(true);
++            lock_guard<mutex> l(m_parser.m_name_resolution_log->m_mutex);
++            auto& invocs = m_parser.m_name_resolution_log->get_invocs(l);
++            std::vector<unsigned> exported_consts;
++            for (auto& invoc : invocs) {
++                m_parser.set_ast_expr(m_parser.get_id(invoc.m_pe), invoc.m_e);
++                m_parser.set_ast_expr(m_parser.get_id(invoc.m_e), invoc.m_e);
++                lean_assert(invoc.m_pos.has_value() || !invoc.m_lean_path.has_value());
++                if (invoc.m_pos.has_value()) {
++                    pos_info pos = invoc.m_pos.value();
++                    unsigned expr_id = export_expr(invoc.m_e);
++                    if (!std::count(exported_consts.begin(), exported_consts.end(), expr_id)) {
++                        json c;
++                        if (invoc.m_lean_path.has_value()) {
++                            std::string lean_path = invoc.m_lean_path.value();
++                            c = {{"expr", expr_id}, {"lean_path", lean_path}, {"pos", {pos.first, pos.second}}};
++                        } else {
++                            c = {{"expr", expr_id}, {"pos", {pos.first, pos.second}}};
++                        }
++                        constants.push_back(c);
++                        exported_consts.push_back(expr_id);
++                    }
++                }
++            }
++        }
++
+         json asts = json::array({nullptr});
+-        for (unsigned i = 1; i < m_ast.size(); i++) {
+-            if (!m_reachable[i] || !m_ast[i]) {
++        for (unsigned i = 1; i < m_parser.m_ast.size(); i++) {
++            if (!m_reachable[i] || !m_parser.m_ast[i]) {
+                 asts.push_back(nullptr);
+                 continue;
+             }
+-            auto& data = *m_ast[i];
++            auto& data = *m_parser.m_ast[i];
+             lean_assert(data.m_type.is_atomic());
+             json j {
+                 // {"id", data.m_id},
+@@ -156,23 +182,24 @@ struct ast_exporter : abstract_ast_exporter {
+             asts.push_back(j);
+         }
+         json comments = json::array();
+-        for (auto & c : m_comments) {
++        for (auto & c : m_parser.get_comments()) {
+             comments.push_back({
+                 {"start", {c.m_start.first, c.m_start.second}},
+                 {"end", {c.m_end.first, c.m_end.second}},
+                 {"text", c.m_text}
+             });
+         }
+-        json r = {{"ast", asts}, {"comments", comments}, {"file", AST_TOP_ID}};
+-        if (m_tactic_log) {
+-            lean_assert(!m_tactic_log->m_detached);
+-            m_tactic_log->m_exported.store(true);
+-            lock_guard<mutex> l(m_tactic_log->m_mutex);
+-            auto& invocs = m_tactic_log->get_invocs(l);
++        json r = {{"ast", asts}, {"comments", comments}, {"file", AST_TOP_ID}, {"constants", constants}};
++        
++        if (m_parser.m_tactic_log) {
++            lean_assert(!m_parser.m_tactic_log->m_detached);
++            m_parser.m_tactic_log->m_exported.store(true);
++            lock_guard<mutex> l(m_parser.m_tactic_log->m_mutex);
++            auto& invocs = m_parser.m_tactic_log->get_invocs(l);
+             if (!invocs.empty()) {
+                 r["tactics"] = invocs;
+                 auto& ss = r["states"] = json::array();
+-                for (auto& s : m_tactic_log->get_states(l)) {
++                for (auto& s : m_parser.m_tactic_log->get_states(l)) {
+                     auto gs = json::array();
+                     for (auto& g : s.goals()) {
+                         auto hs = json::array();
+@@ -193,6 +220,7 @@ struct ast_exporter : abstract_ast_exporter {
+                 }
+             }
+         }
++        
+         r["level"] = std::move(m_levels);
+         r["expr"] = std::move(m_exprs);
+         out << r;
+@@ -212,7 +240,7 @@ void export_ast(parser const & p) {
+     auto ast_fn = json_of_lean(p.m_file_name);
+     exclusive_file_lock output_lock(ast_fn);
+     std::ofstream out(ast_fn);
+-    ast_exporter(p.m_ast, p.m_tag_ast_table, p.m_tactic_log.get(), p.get_comments()).write_ast(out);
++    ast_exporter(p).write_ast(out);
+     out.close();
+     if (!out) throw exception(sstream() << "failed to write ast file: " << ast_fn);
+ }
+diff --git a/src/library/tactic/CMakeLists.txt b/src/library/tactic/CMakeLists.txt
+index eec5fdd87..2c10b7d91 100644
+--- a/src/library/tactic/CMakeLists.txt
++++ b/src/library/tactic/CMakeLists.txt
+@@ -1,5 +1,5 @@
+ add_library(tactic OBJECT occurrences.cpp kabstract.cpp tactic_state.cpp
+-  tactic_log.cpp intro_tactic.cpp revert_tactic.cpp clear_tactic.cpp
++  tactic_log.cpp name_resolution_log.cpp intro_tactic.cpp revert_tactic.cpp clear_tactic.cpp
+   app_builder_tactics.cpp subst_tactic.cpp exact_tactic.cpp
+   change_tactic.cpp assert_tactic.cpp apply_tactic.cpp
+   fun_info_tactics.cpp congr_lemma_tactics.cpp match_tactic.cpp
+diff --git a/src/library/tactic/name_resolution_log.cpp b/src/library/tactic/name_resolution_log.cpp
+new file mode 100644
+index 000000000..01a05ff2a
+--- /dev/null
++++ b/src/library/tactic/name_resolution_log.cpp
+@@ -0,0 +1,33 @@
++#include "library/module_mgr.h"
++#include "library/tactic/name_resolution_log.h"
++
++
++namespace lean {
++
++void name_resolution_log::detach() const {
++    if (!m_detached.exchange(true)) {
++        lock_guard<mutex> l(m_mutex);
++        // reclaim memory
++        m_invocs = std::vector<name_resolution_invocation>();
++    }
++}
++
++
++LEAN_THREAD_PTR(name_resolution_log, g_p);
++
++scope_name_resolution_log::scope_name_resolution_log(name_resolution_log * p):m_old_p(g_p) { g_p = p; }
++scope_name_resolution_log::~scope_name_resolution_log() { g_p = m_old_p; }
++
++name_resolution_log * get_name_resolution_log() { return g_p && !g_p->m_detached ? g_p : nullptr; }
++
++void log_name_resolution(expr const & pe, expr const & e, optional<std::string> const & lean_path, optional<pos_info> const & def_pos) {
++    if (!get_global_module_mgr()->get_export_tsast()) return;  // TODO: Add a separate flag.
++    if (auto log = get_name_resolution_log()) {
++        lean_assert(!log->m_exported);
++        lock_guard<mutex> l(log->m_mutex);
++        auto & invocs = log->get_invocs(l);
++        invocs.emplace_back(pe, e, lean_path, def_pos);
++    }
++}
++
++}
+diff --git a/src/library/tactic/name_resolution_log.h b/src/library/tactic/name_resolution_log.h
+new file mode 100644
+index 000000000..3ddd5dd7b
+--- /dev/null
++++ b/src/library/tactic/name_resolution_log.h
+@@ -0,0 +1,41 @@
++#pragma once
++#include <atomic>
++#include <vector>
++#include "kernel/expr.h"
++#include "util/message_definitions.h"
++#include "util/optional.h"
++
++namespace lean {
++
++struct name_resolution_invocation {
++    expr m_pe;
++    expr m_e;
++    optional<std::string> m_lean_path;
++    optional<pos_info> m_pos;
++
++    name_resolution_invocation(expr const & pe, expr const & e, optional<std::string> const & lean_path, optional<pos_info> const & pos):
++        m_pe(pe), m_e(e), m_lean_path(lean_path), m_pos(pos) { lean_assert(is_constant(pe) || is_local(pe)); }
++};
++
++class name_resolution_log {
++    mutable std::vector<name_resolution_invocation> m_invocs;
++
++public:
++    mutable mutex m_mutex;
++    mutable std::atomic_bool m_detached{false};
++    mutable std::atomic_bool m_exported{false};
++    inline std::vector<name_resolution_invocation> & get_invocs(lock_guard<mutex> &) const { return m_invocs; }
++    void detach() const;
++};
++
++class scope_name_resolution_log {
++    name_resolution_log * m_old_p;
++public:
++    scope_name_resolution_log(name_resolution_log * p);
++    ~scope_name_resolution_log();
++};
++
++name_resolution_log * get_name_resolution_log();
++void log_name_resolution(expr const & pe, expr const & e, optional<std::string> const & lean_path, optional<pos_info> const & def_pos);
++
++}
+-- 
+2.25.1
+

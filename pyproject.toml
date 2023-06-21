@@ -1,0 +1,77 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  "/.github",
+  "/docker",
+  "/docs",
+  "/images",
+  "/scripts",
+]
+
+[project]
+name = "lean-dojo"
+version = "1.1.0"
+authors = [
+  { name="Kaiyu Yang", email="kaiyuy@caltech.edu" },
+]
+description = "LeanDojo: Machine Learning for Theorem Proving in Lean"
+keywords = ["theorem proving", "machine learning", "Lean"]
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9,<3.11"  # https://docs.ray.io/en/latest/ray-overview/installation.html#daily-releases-nightlies
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+]
+dependencies = [
+  "loguru",
+  "filelock",
+  "tqdm",
+  "toml",
+  "types-toml",
+  "networkx",
+  "lxml",
+  "ray[default] >= 1.5",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ipython",
+  "notebook",
+  "hatch"
+]
+test = [
+  "pytest",
+]
+docs = [
+  "sphinx",
+  "sphinx-rtd-theme",
+]
+lint = [
+  "mypy",
+  "black[jupyter]",
+]
+all = [
+  "ipython",
+  "notebook",
+  "hatch",
+  "pytest",
+  "sphinx",
+  "sphinx-rtd-theme",
+  "mypy",
+  "black[jupyter]",
+]
+
+[project.urls]
+"Homepage" = "https://leandojo.org/"
+"Bug Tracker" = "https://github.com/lean-dojo/LeanDojo/issues"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
