@@ -50,7 +50,7 @@ class Cache:
 
     def __post_init__(self):
         if not os.path.exists(self.cache_dir):
-            self.cache_dir.mkdir()
+            self.cache_dir.mkdir(parents=True)
         lock_path = self.cache_dir.with_suffix(".lock")
         object.__setattr__(self, "lock", FileLock(lock_path))
 
