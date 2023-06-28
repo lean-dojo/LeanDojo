@@ -213,7 +213,7 @@ Traced repos in the cache are read-only, which prevents accidental modifications
 You need :code:`chmod` if you want to, e.g., clean the cache. However, **refrain from manually modifying the cache while LeanDojo is running.**
 It may lead to unpredicable behaviors, e.g., LeanDojo may attempt to refill the cache.
 
-Traced repos in the cache are portable across machines. We host a number of them on [AWS S3](https://lean-dojo.s3.amazonaws.com), 
+Traced repos in the cache are portable across machines. We host a number of them on `AWS S3 <https://lean-dojo.s3.amazonaws.com>`_, 
 and LeanDojo will automatically download them if they are not in the local cache. To disable this behavior and 
 buid all repos locally, set the :code:`DISABLE_REMOTE_CACHE` environment variable to any value.
 
