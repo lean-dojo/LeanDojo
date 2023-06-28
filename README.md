@@ -67,7 +67,7 @@ Under review, NeurIPS (Datasets and Benchmarks Track), 2023
 @article{yang2023leandojo,
   title={{LeanDojo}: Theorem Proving with Retrieval-Augmented Language Models},
   author={Yang, Kaiyu and Swope, Aidan and Gu, Alex and Chalamala, Rahul and Song, Peiyang and Yu, Shixing and Godil, Saad and Prenger, Ryan and Anandkumar, Anima},
-  journal={arXiv preprint arXiv:xxxx.xxxxx},
+  journal={arXiv preprint arXiv:2306.15626},
   year={2023}
 }
 ```
