@@ -259,5 +259,5 @@ There are two steps to run LeanDojo without Docker:
 Questions and Bugs
 ******************
 
-* For general questions and discussions, please use [GitHub Discussions](https://github.com/lean-dojo/LeanDojo/discussions).  
+* For general questions and discussions, please use `GitHub Discussions <https://github.com/lean-dojo/LeanDojo/discussions>`_.  
 * To report a potential bug, please open an issue.
