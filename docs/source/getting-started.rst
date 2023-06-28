@@ -175,7 +175,7 @@ theorem in the previous example. Note that the `lean-example <https://github.com
 has to be traced before interacting with any theorem in it. So the code below will first take some time 
 to trace the repo if you haven't followed the steps in :ref:`extracting-data-from-lean3`. The tracing has to be done 
 only once, and the traced repo will be cached for future use. Some repos do not need to be traced locally and 
-can be downloaded from [our AWS S3](https://lean-dojo.s3.amazonaws.com) (see :ref:`caching` for details).
+can be downloaded from `our AWS S3 <https://lean-dojo.s3.amazonaws.com>`_ (see :ref:`caching` for details).
 
 .. code-block:: python
 
@@ -433,7 +433,7 @@ theorem in the previous example. Note that the `lean4-example <https://github.co
 has to be traced before interacting with any theorem in it. So the code below will first take some time 
 to trace the repo if you haven't followed the steps in :ref:`extracting-data-from-lean4`.  The tracing has to be done 
 only once, and the traced repo will be cached for future use. Some repos do not need to be traced locally and 
-can be downloaded from [our AWS S3](https://lean-dojo.s3.amazonaws.com) (see :ref:`caching` for details).
+can be downloaded from `our AWS S3 <https://lean-dojo.s3.amazonaws.com>`_ (see :ref:`caching` for details).
 
 .. code-block:: python
 
