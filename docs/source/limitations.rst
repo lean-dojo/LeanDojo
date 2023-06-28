@@ -15,7 +15,7 @@ We are actively addressing the following limitations:
 
 We have no plans for the following limitations in the near future but welcome contributions:
 
-* You cannot use LeanDojo to interact with theorems in the [lean4](https://github.com/leanprover/lean4) repo itself.
+* You cannot use LeanDojo to interact with theorems in the `lean4 <https://github.com/leanprover/lean4>`_ repo itself.
 * Lean 4 currently does not support interrupting a tactic after timeout. 
 * LeanDojo only supports interacting with Lean using tactics. Currently, it does not support term-based proofs or mixing tactics and terms.
 * Entering all tactic-style proofs in mathlib 3 to LeanDojo, we found ~1.4% of them are misjudged as incorrect. The errors fall into a few categories documented in `test_unexpected_errors.py <https://github.com/lean-dojo/LeanDojo/blob/main/tests/interaction/test_unexpected_errors.py>`_. We didn't perform this analysis on Lean 4.
