@@ -40,7 +40,7 @@ private def addLine (s : String) : String :=
   if s.isEmpty then s else s ++ "\n"
 
 
--- Similar to `Meta.ppGoal` but use String instead of Format to make sure local declarations are separted by "\n".
+-- Similar to `Meta.ppGoal` but use String instead of Format to make sure local declarations are separated by "\n".
 private def ppGoal (mvarId : MVarId) : MetaM String := do
   match (← getMCtx).findDecl? mvarId with
   | none          => return "unknown goal"
