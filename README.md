@@ -23,6 +23,8 @@ ______________________________________________________________________
 
 ## Installation
 
+**Announcement: If you encounter errors related to `ray` and `pydantic`, see this temporary workaround: https://github.com/ray-project/ray/issues/37019. The error will be fixed when Ray 2.6 is released.**
+
 LeanDojo is available on [PyPI](https://pypi.org/project/lean-dojo/) and can be installed via pip:
 ```bash
 pip install lean-dojo
