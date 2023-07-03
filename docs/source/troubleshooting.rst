@@ -5,6 +5,15 @@ Troubleshooting
 
 Below are some common errors when using LeanDojo:
 
+Installation
+************
+
+* I run into errors related to :code:`lxml` and :code:`grpcio` when running :code:`pip install lean-dojo` on a Mac with Apple silicon.
+
+This is a known issue with these two packages on Apple silicon. You should install them using whatever way that works for you. See these `two <https://stackoverflow.com/questions/19548011/cannot-install-lxml-on-mac-os-x-10-9>`_ `posts <https://stackoverflow.com/questions/66640705/how-can-i-install-grpcio-on-an-apple-m1-silicon-laptop>`_ on Stack Overflow.
+
+Tracing Repos
+*************
 
 * The process is killed when tracing a repo.
 
