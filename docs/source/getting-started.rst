@@ -221,7 +221,7 @@ We use LeanDojo to trace the repo by specifying its URL and a commit hash:
 
    from lean_dojo import LeanGitRepo, trace
 
-   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "805b3ad26fd1e6c8ba507f41ab289ec19c0efe2c")
+   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "7d711f6da4584ecb7d4f057715e1f72ba175c910")
    trace(repo, dst_dir="traced_lean4-example")
 
 After ~10 minutes, it generates a :file:`traced_lean4-example` directory with the subdirectories below.
@@ -439,7 +439,7 @@ can be downloaded from `our AWS S3 <https://lean-dojo.s3.amazonaws.com>`_ (see :
 
    from lean_dojo import *
 
-   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "805b3ad26fd1e6c8ba507f41ab289ec19c0efe2c")
+   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "7d711f6da4584ecb7d4f057715e1f72ba175c910")
    theorem = Theorem(repo, "Lean4Example.lean", "hello_world")
 
    with Dojo(theorem) as (dojo, init_state):
