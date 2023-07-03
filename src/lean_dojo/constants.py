@@ -73,7 +73,7 @@ DOCKER_TAG = "yangky11/lean-dojo"
 if CONTAINER == "docker":
     assert (
         DOCKER_AVAILABLE
-    ), "Failed to access Docker. Please make sure Docker is running and you have access. Alternatively, you can try to run without Docker by setting the `CONTAINER` environment variable to `native`."
+    ), "Failed to access Docker. Please make sure Docker is running and you have access. Alternatively, you can try to run without Docker by setting the `CONTAINER` environment variable to `native` (see https://leandojo.readthedocs.io/en/latest/user-guide.html#advanced-running-without-docker)."
     os.system(f"docker pull {DOCKER_TAG} 1>/dev/null 2>/dev/null")
 
 MIN_LEAN3_VERSION = "v3.42.1"
