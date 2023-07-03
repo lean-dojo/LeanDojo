@@ -224,7 +224,7 @@ We use LeanDojo to trace the repo by specifying its URL and a commit hash:
    repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "7d711f6da4584ecb7d4f057715e1f72ba175c910")
    trace(repo, dst_dir="traced_lean4-example")
 
-After ~10 minutes, it generates a :file:`traced_lean4-example` directory with the subdirectories below.
+After a few minutes or ~1 hour (depending on #CPUs), it generates a :file:`traced_lean4-example` directory with the subdirectories below.
 The directory structure is different from that of Lean 3 because Lean 4 uses a different build system.
 Please check out :ref:`troubleshooting` if you encounter any issue.
 
