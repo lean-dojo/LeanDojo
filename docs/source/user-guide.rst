@@ -252,7 +252,7 @@ avoid the troubles caused by `running Docker within Docker <https://stackoverflo
 
 There are two steps to run LeanDojo without Docker:
 
-* See you can follow the CMake instructions to `build Lean from source <https://github.com/leanprover-community/lean/blob/master/doc/make/index.md#generic-build-instructions>`_. Resolve any dependency issues.
+* See you can follow the CMake instructions to build `Lean 3 <https://github.com/leanprover-community/lean/blob/master/doc/make/index.md#generic-build-instructions>`_ or `Lean 4 <https://leanprover.github.io/lean4/doc/make/index.html>`_ from source. Resolve any dependency issues.
 * When running LeanDojo, always set the :code:`CONTAINER` environment variable to :code:`native`.
 
 
