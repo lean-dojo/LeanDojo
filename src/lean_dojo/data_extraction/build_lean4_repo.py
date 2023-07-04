@@ -129,7 +129,7 @@ def main() -> None:
 
         # Run ExtractData.lean to extract ASTs and tactic states.
         logger.info(f"Tracing {repo_name}")
-        launch_progressbar(["build"])
+        launch_progressbar(["build", "lake-packages"])
         run_cmd(
             f"lake env lean --threads {num_procs} --run ExtractData.lean",
             capture_output=True,
