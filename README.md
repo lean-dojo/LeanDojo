@@ -15,15 +15,13 @@ ______________________________________________________________________
 
 ## Requirements
 
-* Linux or macOS
+* Linux or macOS (:warning: experimental for Apple silicon)
 * Git >= 2.25
 * Python >= 3.9
 * Docker strongly recommended
 
 
 ## Installation
-
-:warning: **Known issue**: If you encounter errors related to `ray` and `pydantic`, see this temporary workaround: https://github.com/ray-project/ray/issues/37019. The error will be fixed when Ray 2.6 is released.
 
 LeanDojo is available on [PyPI](https://pypi.org/project/lean-dojo/) and can be installed via pip:
 ```bash
@@ -35,6 +33,7 @@ It can also be installed locally from the Git repo:
 pip install .
 ```
 
+:warning: **Known issue**: If you encounter errors related to `ray` and `pydantic`, see this temporary workaround: https://github.com/ray-project/ray/issues/37019. The error will be fixed when Ray 2.6 is released.
 
 ## Documentation
 
