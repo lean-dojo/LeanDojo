@@ -229,12 +229,12 @@ LeanDojo's behavior can be configured through the following environment variable
 
 * :code:`CACHE_DIR`: Cache directory (see :ref:`caching`). Default to :file:`~/.cache/lean_dojo`.
 * :code:`DISABLE_REMOTE_CACHE`: Whether to disable remote caching and build all repos locally. Not set by default.
-* :code:`TMP_DIR`: Temporary directory used by LeanDo for storing intermediate files. Defaut to the systems' global temporary directory.
+* :code:`TMP_DIR`: Temporary directory used by LeanDojo for storing intermediate files. Default to the systems' global temporary directory.
 * :code:`NUM_PROCS`: Number of parallel processes for data extraction. Default to 32 or the number of CPUs (whichever is smaller).
 * :code:`TACTIC_TIMEOUT`: Maximum time (in milliseconds) before interrupting a tactic when interacting with Lean (only applicable to Lean 3). Default to 5000.
 * :code:`CONTAINER`: The container used for running LeanDojo. Default to :code:`docker` but also supports :code:`native`, i.e., running without any container. See :ref:`running-without-docker`.
 * :code:`TACTIC_CPU_LIMIT`: Number of CPUs for executing tactics (see the `--cpus` flag of `docker run <https://docs.docker.com/engine/reference/commandline/run/#memory>`_) when interacting with Lean (only applicable when :code:`CONTAINER=docker`). Default to 1.
-* :code:`TACTIC_MEMORY_LIMIT`: Maxium memory when interacting with Lean (see the `--memory` flag of `docker run <https://docs.docker.com/engine/reference/commandline/run/#memory>`_) (only applicable when :code:`CONTAINER=docker`). Default to 16 GB.
+* :code:`TACTIC_MEMORY_LIMIT`: Maximum memory when interacting with Lean (see the `--memory` flag of `docker run <https://docs.docker.com/engine/reference/commandline/run/#memory>`_) (only applicable when :code:`CONTAINER=docker`). Default to 16 GB.
 * :code:`VERBOSE` or :code:`DEBUG`: Setting either of them to any value will cause LeanDojo to print debug information. Not set by default.
 
 
