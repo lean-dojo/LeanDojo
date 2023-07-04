@@ -10,7 +10,7 @@ LeanDojo supports both Lean 3 and Lean 4.
 Requirements
 ************
 
-* Linux or macOS
+* Linux or macOS (experimental for Apple silicon)
 * Git >= 2.25
 * Python >= 3.9
 * `Docker <https://www.docker.com/>`_ strongly recommended. See :ref:`running-without-docker` if it is not an option for you.
