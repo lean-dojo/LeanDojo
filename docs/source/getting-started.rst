@@ -27,7 +27,7 @@ Or you can install the most recent version by running :code:`pip install .` loca
 
 Extracting Data from Lean 3
 ***************************
-LeanDo enables extracting data from any repo in any recent version of Lean 3 (at least :code:`v3.42.1`). 
+LeanDojo enables extracting data from any repo in any recent version of Lean 3 (at least :code:`v3.42.1`). 
 We'll use `lean-example <https://github.com/yangky11/lean-example>`_ as a simple example,
 which has a single Lean file with the theorem:
 
@@ -201,7 +201,7 @@ can be downloaded from `our AWS S3 <https://lean-dojo.s3.amazonaws.com>`_ (see :
 
 Extracting Data from Lean 4
 ***************************
-LeanDo can also extract data from Lean 4 repos. We use `lean4-example <https://github.com/yangky11/lean4-example>`_ as a simple example,
+LeanDojo can also extract data from Lean 4 repos. We use `lean4-example <https://github.com/yangky11/lean4-example>`_ as a simple example,
 which has a single Lean file with the theorem:
 
 .. code-block:: lean
