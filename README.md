@@ -17,7 +17,7 @@ ______________________________________________________________________
 
 * Linux or macOS (:warning: experimental for Apple silicon)
 * Git >= 2.25
-* Python >= 3.9
+* 3.9 <= Python <= 3.10
 * Docker strongly recommended
 
 
