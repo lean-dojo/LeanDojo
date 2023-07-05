@@ -12,7 +12,8 @@ from loguru import logger
 from time import sleep, monotonic
 from pathlib import Path, PurePath
 from multiprocessing import Process
-from typing import Union, List, Optional
+from contextlib import contextmanager
+from typing import Union, List, Optional, Generator
 
 
 def run_cmd(cmd: Union[str, List[str]], capture_output: bool = False) -> Optional[str]:
@@ -78,13 +79,16 @@ def _monitor(paths: List[Path], num_total: int) -> None:
     print("")
 
 
-def launch_progressbar(paths: List[Union[str, Path]]) -> None:
+@contextmanager
+def launch_progressbar(paths: List[Union[str, Path]]) -> Generator[None, None, None]:
     """Launch an async progressbar to monitor the progress of tracing the repo."""
     paths = [Path(p) for p in paths]
     lean_files = list(itertools.chain.from_iterable(p.glob("**/*.lean") for p in paths))
     num_total = len(lean_files)
     p = Process(target=_monitor, args=(paths, num_total), daemon=True)
     p.start()
+    yield
+    p.kill()
 
 
 def main() -> None:
@@ -145,12 +149,12 @@ def main() -> None:
     modified_lean = f"{modifed_lean_bin} --ast --tsast --tspp --recursive --make --threads={num_procs}"
     io_path = modifed_lean_lib / "system/io.lean"
     run_cmd(f"{modified_lean} {io_path}", capture_output=True)
-    launch_progressbar(["_target/deps", src_dir])
-    try:
-        run_cmd(f"{modified_lean} {src_dir}", capture_output=True)
-    except subprocess.CalledProcessError as ex:
-        logger.error(ex)
-        logger.error("Please check if the repo can be built with `leanpkg build`.")
+    with launch_progressbar(["_target/deps", src_dir]):
+        try:
+            run_cmd(f"{modified_lean} {src_dir}", capture_output=True)
+        except subprocess.CalledProcessError as ex:
+            logger.error(ex)
+            logger.error("Please check if the repo can be built with `leanpkg build`.")
     record_paths(src_dir, traced_repo_root, modifed_lean_bin)
     os.chdir("..")
 
