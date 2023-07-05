@@ -149,7 +149,11 @@ class NativeContainer(Container):
                         shutil.move(dst, src)
 
             for path in dst.parents:
-                if path.is_relative_to(cwd) and len(list(path.glob("**/*"))) == 0:
+                if (
+                    path.exists()
+                    and path.is_relative_to(cwd)
+                    and len(list(path.glob("**/*"))) == 0
+                ):
                     path.rmdir()
 
     def _build_native_command(self, command: str, envs: Dict[str, str]) -> str:
