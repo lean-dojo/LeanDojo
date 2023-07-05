@@ -146,7 +146,7 @@ private def trim (path : FilePath) : FilePath :=
   | _ => path
 
 
-def toBuildDir (subDir: String) (path : FilePath) (ext : String) : Option FilePath :=
+def toBuildDir (subDir : String) (path : FilePath) (ext : String) : Option FilePath :=
   let path' := (trim path).withExtension ext
   match relativeTo path' "lake-packages/lean4/src" with
   | some p => some $ "lake-packages/lean4/lib" / p
@@ -177,6 +177,12 @@ def toSrcDir (path : FilePath) (ext : String) : Option FilePath :=
       match comps with
       | _ :: _ :: tl => mkFilePath tl
       | _ => "invalid path"
+
+
+-- Create all parent directories of `p` if they don't exist.
+def makeParentDirs (p : FilePath) : IO Unit := do
+  let some parent := p.parent | throw $ IO.userError s!"Unable to get the parent of {p}"
+  IO.FS.createDirAll parent
 
 
 end Path
@@ -285,6 +291,7 @@ unsafe def processFile (path : FilePath) : IO Unit := do
     else
       (Path.toBuildDir "ir" relativePath "ast.json").get!
   )
+  Path.makeParentDirs json_path
   IO.FS.writeFile json_path (toJson trace).pretty
 
   -- Print imports, similar to `lean --deps` in Lean 3.
@@ -313,6 +320,7 @@ unsafe def processFile (path : FilePath) : IO Unit := do
     else
       (Path.toBuildDir "ir" relativePath "dep_paths").get!
   )
+  Path.makeParentDirs dep_path
   IO.FS.writeFile dep_path s.trim
 
 
