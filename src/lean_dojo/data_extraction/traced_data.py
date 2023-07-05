@@ -703,10 +703,20 @@ class TracedFile:
         comments: List[Comment],
     ) -> None:
         pos2tactics = {}
+        # Note: during elaboration the AST can be modified and InfoTree isn't necessarily has the same nodes.
+        #
+        # Therefore a separate case for tactics like `rw [add_comm b, add_comm c] at h` which are macros through
+        # `rewrite`` tactic in InfoTree and the InfoTree elaboration diverges from the initial AST
+        # For example InfoTree will attribute a single rewrite step to `add_comm b,` whether initial
+        # (pre-elaboration) AST which we annotate here has a tactic node on `add_comm b` with no comma. To
+        # reconcile that we look up tactic by the start position only as it's guaranteed to be unique and
+        # find the relevant tactic for rewrite.
+        rw_pos2tactics = {}
         for t in tactics_data:
             start = lean_file.convert_pos(t["pos"])
             end = lean_file.convert_pos(t["endPos"])
             pos2tactics[(start, end)] = t
+            rw_pos2tactics[start] = t
 
         inside_sections_namespaces = []
 
@@ -744,7 +754,12 @@ class TracedFile:
                 TacticTacticseqbracketedNode4,
             ):
                 for tac_node in node.get_tactic_nodes():
-                    assert type(tac_node) in (OtherNode4, TacticTacticseqbracketedNode4)
+                    assert type(tac_node) in (
+                        OtherNode4,
+                        TacticRwseqNode4,
+                        TacticRewriteseqNode4,
+                        TacticTacticseqbracketedNode4,
+                    )
                     if (tac_node.start, tac_node.end) not in pos2tactics:
                         continue
                     t = pos2tactics[(tac_node.start, tac_node.end)]
@@ -755,6 +770,20 @@ class TracedFile:
                     object.__setattr__(tac_node, "state_before", t["stateBefore"])
                     object.__setattr__(tac_node, "state_after", t["stateAfter"])
                     object.__setattr__(tac_node, "tactic", tac)
+            elif isinstance(node, TacticRewriteBaseNode4):
+                for tac_node in node.get_tactic_nodes():
+                    assert type(tac_node) in (OtherNode4,)
+                    if tac_node.start not in rw_pos2tactics:
+                        continue
+                    t = rw_pos2tactics[tac_node.start]
+
+                    def get_code(start, end):
+                        return get_code_without_comments(lean_file, start, end, comments)
+
+                    object.__setattr__(tac_node, "state_before", t["stateBefore"])
+                    object.__setattr__(tac_node, "state_after", t["stateAfter"])
+                    object.__setattr__(tac_node, "tactic", node.extract_rewrite_step(get_code, tac_node))
+    
 
         ast.traverse_preorder(_callback, node_cls=None)
 

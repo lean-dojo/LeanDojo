@@ -193,15 +193,15 @@ namespace Traversal
 
 private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : InfoTree) : TraceM Unit := do
   match ti.stx.getKind with
-  | `Lean.Parser.Term.byTactic =>
+  | ``Lean.Parser.Term.byTactic =>
     match ti.stx with
-    | .node _ _ #[.atom _ "by", .node _ `Lean.Parser.Tactic.tacticSeq _] => pure ()
+    | .node _ _ #[.atom _ "by", .node _ ``Lean.Parser.Tactic.tacticSeq _] => pure ()
     | _ => assert! false
 
-  | `Lean.Parser.Tactic.tacticSeq =>
+  | ``Lean.Parser.Tactic.tacticSeq =>
     match ti.stx with
-    | .node _ _ #[.node _ `Lean.Parser.Tactic.tacticSeq1Indented _] => pure ()
-    | .node _ _ #[.node _ `Lean.Parser.Tactic.tacticSeqBracketed _] => pure ()
+    | .node _ _ #[.node _ ``Lean.Parser.Tactic.tacticSeq1Indented _] => pure ()
+    | .node _ _ #[.node _ ``Lean.Parser.Tactic.tacticSeqBracketed _] => pure ()
     | _ => assert! false
 
   | _ => pure ()
@@ -209,7 +209,7 @@ private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : Info
   match parent with
   | .node (Info.ofTacticInfo i) _ =>
     match i.stx.getKind with
-    | `Lean.Parser.Tactic.tacticSeq1Indented | `Lean.Parser.Tactic.tacticSeqBracketed =>
+    | ``Lean.Parser.Tactic.tacticSeq1Indented | ``Lean.Parser.Tactic.tacticSeqBracketed | ``Lean.Parser.Tactic.rewriteSeq =>
       let ctxBefore := { ctx with mctx := ti.mctxBefore }
       let ctxAfter := { ctx with mctx := ti.mctxAfter }
       let stateBefore ← Pp.ppGoals ctxBefore ti.goalsBefore
