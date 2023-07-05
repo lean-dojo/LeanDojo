@@ -13,7 +13,8 @@ from loguru import logger
 from time import sleep, monotonic
 from pathlib import Path, PurePath
 from multiprocessing import Process
-from typing import Union, List, Optional
+from contextlib import contextmanager
+from typing import Union, List, Optional, Generator
 
 
 def run_cmd(cmd: Union[str, List[str]], capture_output: bool = False) -> Optional[str]:
@@ -79,7 +80,8 @@ def _monitor(paths: List[Path], num_total: int) -> None:
     print("")
 
 
-def launch_progressbar(paths: List[Union[str, Path]]) -> None:
+@contextmanager
+def launch_progressbar(paths: List[Union[str, Path]]) -> Generator[None, None, None]:
     """Launch an async progressbar to monitor the progress of tracing the repo."""
     paths = [Path(p) for p in paths]
     olean_files = list(
@@ -88,6 +90,8 @@ def launch_progressbar(paths: List[Union[str, Path]]) -> None:
     num_total = len(olean_files)
     p = Process(target=_monitor, args=(paths, num_total), daemon=True)
     p.start()
+    yield
+    p.kill()
 
 
 def main() -> None:
@@ -113,11 +117,11 @@ def main() -> None:
         )
 
         logger.info(f"Tracing {repo_name}")
-        launch_progressbar(["lib"])
-        run_cmd(
-            f"./build/release/stage1/bin/lean --threads {num_procs} --run ExtractData.lean",
-            capture_output=True,
-        )
+        with launch_progressbar(["lib"]):
+            run_cmd(
+                f"./build/release/stage1/bin/lean --threads {num_procs} --run ExtractData.lean",
+                capture_output=True,
+            )
 
     else:
         # Build the repo using lake.
@@ -129,11 +133,11 @@ def main() -> None:
 
         # Run ExtractData.lean to extract ASTs and tactic states.
         logger.info(f"Tracing {repo_name}")
-        launch_progressbar(["build", "lake-packages"])
-        run_cmd(
-            f"lake env lean --threads {num_procs} --run ExtractData.lean",
-            capture_output=True,
-        )
+        with launch_progressbar(["build", "lake-packages"]):
+            run_cmd(
+                f"lake env lean --threads {num_procs} --run ExtractData.lean",
+                capture_output=True,
+            )
 
         num_json = len(glob("build/ir/**/*.ast.json", recursive=True))
         num_dep = len(glob("build/ir/**/*.dep_paths", recursive=True))
