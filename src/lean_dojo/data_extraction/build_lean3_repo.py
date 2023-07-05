@@ -88,7 +88,7 @@ def launch_progressbar(paths: List[Union[str, Path]]) -> Generator[None, None, N
     p = Process(target=_monitor, args=(paths, num_total), daemon=True)
     p.start()
     yield
-    p.join()
+    p.kill()
 
 
 def main() -> None:
