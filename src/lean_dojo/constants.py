@@ -6,7 +6,7 @@ import multiprocessing
 from pathlib import Path
 
 
-__version__ = "1.1.1"
+__version__ = "1.1.2"
 
 CACHE_DIR = (
     Path(os.environ["CACHE_DIR"])
