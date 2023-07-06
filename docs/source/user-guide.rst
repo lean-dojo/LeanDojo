@@ -7,7 +7,7 @@ User Guide
 Overview
 ********
 
-Below is a high-level overview of LeanDo. A Lean project is a Git repo 
+Below is a high-level overview of LeanDojo. A Lean project is a Git repo 
 consisting of multiple source files (:file:`*.lean`). Each file has
 multiple theorems (and their proofs). Given a Lean repo, LeanDojo first traces it. 
 The results are traced repo, files, and theorems with rich syntactic/semantic information not readily available in source code but useful
