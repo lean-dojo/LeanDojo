@@ -11,7 +11,6 @@ instance : ToJson String.Pos where
 deriving instance ToJson for SourceInfo
 deriving instance ToJson for Syntax.Preresolved
 deriving instance ToJson for Syntax
-deriving instance ToJson for Position
 
 
 namespace LeanDojo
@@ -25,24 +24,13 @@ structure TacticTrace where
 deriving ToJson
 
 
-structure PremiseTrace where
-  fullName: String
-  termPos: Option Position
-  termEndPos: Option Position
-  modName: Option String
-  pos: Option Position
-  endPos: Option Position
-deriving ToJson
-
-
 structure Trace where
   commandASTs : Array Syntax
   tactics: Array TacticTrace
-  premises: Array PremiseTrace
 deriving ToJson
 
 
-abbrev TraceM := StateT Trace MetaM
+abbrev TraceM := StateT Trace IO
 
 
 namespace Pp
@@ -238,63 +226,31 @@ private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : Info
   | _ => pure ()
 
 
-private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := do
-  let fullName := ti.expr.constName!
-
-  let posBeforeUgly := ti.toElabInfo.stx.getPos?
-  let mut posBefore := none
-  match posBeforeUgly with
-    | some posInfo => posBefore := (← getFileMap).toPosition posInfo
-    | none => posBefore := none
-
-  let posAfterUgly := ti.toElabInfo.stx.getTailPos?
-  let mut posAfter := none
-  match posAfterUgly with
-    | some posInfo => posAfter := (← getFileMap).toPosition posInfo
-    | none => posAfter := none
-
-  let modIdx := env.const2ModIdx.find? fullName
-
-  let modName := env.header.moduleNames[modIdx.get!.toNat]!
-
-  let decRanges ← findDeclarationRanges? fullName
-  let pos := decRanges.bind fun (decR : DeclarationRanges) => decR.selectionRange.pos
-  let endPos := decRanges.bind fun (decR : DeclarationRanges) => decR.selectionRange.endPos
-
-  modifyGet fun trace => ((),
-    { trace with premises := trace.premises.push { fullName := toString fullName, termPos := posBefore, termEndPos := posAfter, modName := toString modName, pos := pos, endPos := endPos } }
-  )
-
-
-private def visitInfo (ctx : ContextInfo) (i : Info) (parent : InfoTree) (env : Environment) : TraceM Unit := do
+private def visitInfo (ctx : ContextInfo) (i : Info) (parent : InfoTree) : TraceM Unit := do
   match i with
   | .ofTacticInfo ti => visitTacticInfo ctx ti parent
-  | .ofTermInfo ti => visitTermInfo ti env
   | _ => pure ()
 
 
-private partial def traverseTree (ctx: ContextInfo) (tree : InfoTree) (parent : InfoTree) (env : Environment) : TraceM Unit := do
+private partial def traverseTree (ctx: ContextInfo) (tree : InfoTree) (parent : InfoTree) : TraceM Unit := do
   match tree with
-  | .context ctx' t => traverseTree ctx' t tree env
+  | .context ctx' t => traverseTree ctx' t tree
   | .node i children =>
-    visitInfo ctx i parent env
+    visitInfo ctx i parent
     for x in children do
-      traverseTree ctx x tree env
+      traverseTree ctx x tree
   | _ => pure ()
 
 
-def ErrorIOHandling : IO Unit := throw $ IO.userError "Errors in traverseTopLevelTree; aborting"
-
-
-def traverseTopLevelTree (tree : InfoTree) (env : Environment) : TraceM Unit := do
+private def traverseTopLevelTree (tree : InfoTree) : TraceM Unit := do
   match tree with
-  | .context ctx t => traverseTree ctx t tree env
-  | _ => ErrorIOHandling
+  | .context ctx t => traverseTree ctx t tree
+  | _ => throw $ IO.userError "Errors in traverseTopLevelTree; aborting"
 
 
-def traverseForest (trees : Array InfoTree) (env : Environment) : TraceM Trace := do
+def traverseForest (trees : Array InfoTree) : TraceM Trace := do
   for t in trees do
-    traverseTopLevelTree t env
+    traverseTopLevelTree t
   get
 
 
@@ -323,9 +279,7 @@ unsafe def processFile (path : FilePath) : IO Unit := do
   let s ← IO.processCommands inputCtx parserState commandState
   let commands := s.commands.pop -- Remove EOI command.
   let trees := s.commandState.infoState.trees.toArray
-  let trace := (Traversal.traverseForest trees env).run' ⟨#[header] ++ commands, #[], #[]⟩
-  let finalTrace ← Prod.fst <$> trace.run'.toIO {fileName := s!"{path}", fileMap := FileMap.ofString input}
-                                                {env := env}
+  let trace ← (Traversal.traverseForest trees).run' ⟨#[header] ++ commands, #[]⟩
 
   let cwd ← IO.currentDir
   let is_lean := cwd.fileName == "lean4"
@@ -338,7 +292,7 @@ unsafe def processFile (path : FilePath) : IO Unit := do
       (Path.toBuildDir "ir" relativePath "ast.json").get!
   )
   Path.makeParentDirs json_path
-  IO.FS.writeFile json_path (toJson finalTrace).pretty
+  IO.FS.writeFile json_path (toJson trace).pretty
 
   -- Print imports, similar to `lean --deps` in Lean 3.
   let mut s := ""
