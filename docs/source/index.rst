@@ -25,7 +25,7 @@ Related Links
 Citation
 ********
 
-.. code-block:: lean
+.. code-block:: bibtex
 
    @article{yang2023leandojo,
       title={{LeanDojo}: Theorem Proving with Retrieval-Augmented Language Models},
