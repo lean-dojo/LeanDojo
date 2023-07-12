@@ -63,13 +63,16 @@ def _monitor(paths: List[Path], num_total: int) -> None:
     with tqdm(total=num_total) as pbar:
         while True:
             time_start = monotonic()
-            num_done = len(
-                list(
-                    itertools.chain.from_iterable(
-                        p.glob(f"**/*.ast.json") for p in paths
+            try:
+                num_done = len(
+                    list(
+                        itertools.chain.from_iterable(
+                            p.glob(f"**/*.ast.json") for p in paths
+                        )
                     )
                 )
-            )
+            except Exception:
+                continue
             time_elapsed = monotonic() - time_start
             if time_elapsed < _PROGRESSBAR_UPDATE_INTERNAL:
                 sleep(_PROGRESSBAR_UPDATE_INTERNAL - time_elapsed)
