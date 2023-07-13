@@ -743,7 +743,7 @@ class TracedFile:
                 TacticTacticseqbracketedNode4,
             ):
                 for tac_node in node.get_tactic_nodes():
-                    assert type(tac_node) in (OtherNode4, TacticTacticseqbracketedNode4)
+                    assert type(tac_node) in (TacticNode4, TacticTacticseqbracketedNode4)
                     if (tac_node.start, tac_node.end) not in pos2tactics:
                         continue
                     t = pos2tactics[(tac_node.start, tac_node.end)]

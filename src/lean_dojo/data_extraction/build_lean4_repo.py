@@ -1,4 +1,4 @@
-"""Build Lean 3 projects in Docker.
+"""Build Lean 4 projects in Docker.
 
 Only this file runs in Docker. So it must be self-contained.
 """
