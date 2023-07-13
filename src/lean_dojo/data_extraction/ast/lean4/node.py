@@ -37,7 +37,7 @@ class Node4:
             return gbs[cls_name]  # type: ignore
         else:
             # logger.warning(kind)
-            return OtherNode4
+            return TacticNode4
 
     def traverse_preorder(
         self,
@@ -471,7 +471,7 @@ class CommandTheoremNode4(Node4):
             name = ident_node.val
         else:
             assert (
-                isinstance(ident_node, OtherNode4)
+                isinstance(ident_node, TacticNode4)
                 and ident_node.kind == "ident.antiquot"
             )
             name = "".join(gc.val for gc in ident_node.children if is_leaf(gc))
@@ -801,14 +801,14 @@ class CommandEndNode4(Node4):
 
 
 @dataclass(frozen=True)
-class OtherNode4(Node4):
+class TacticNode4(Node4):
     kind: str  # type: ignore
     state_before: Optional[str] = None
     state_after: Optional[str] = None
     tactic: Optional[str] = None
 
     @classmethod
-    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "OtherNode4":
+    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "TacticNode4":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
