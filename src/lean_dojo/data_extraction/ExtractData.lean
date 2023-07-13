@@ -27,8 +27,8 @@ deriving ToJson
 
 structure PremiseTrace where
   fullName: String
-  termPos: Option Position
-  termEndPos: Option Position
+  defPos: Option Position
+  defEndPos: Option Position
   modName: Option String
   pos: Option Position
   endPos: Option Position
@@ -258,11 +258,11 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
   let modName := env.header.moduleNames[modIdx.get!.toNat]!
 
   let decRanges ← findDeclarationRanges? fullName
-  let pos := decRanges.bind fun (decR : DeclarationRanges) => decR.selectionRange.pos
-  let endPos := decRanges.bind fun (decR : DeclarationRanges) => decR.selectionRange.endPos
+  let defPos := decRanges.bind fun (decR : DeclarationRanges) => decR.selectionRange.pos
+  let defEndPos := decRanges.bind fun (decR : DeclarationRanges) => decR.selectionRange.endPos
 
   modifyGet fun trace => ((),
-    { trace with premises := trace.premises.push { fullName := toString fullName, termPos := posBefore, termEndPos := posAfter, modName := toString modName, pos := pos, endPos := endPos } }
+    { trace with premises := trace.premises.push { fullName := toString fullName, defPos := defPos, defEndPos := defEndPos, pos := posBefore, endPos := posAfter, modName := toString modName} }
   )
 
 
@@ -283,13 +283,10 @@ private partial def traverseTree (ctx: ContextInfo) (tree : InfoTree) (parent : 
   | _ => pure ()
 
 
-def ErrorIOHandling : IO Unit := throw $ IO.userError "Errors in traverseTopLevelTree; aborting"
-
-
 def traverseTopLevelTree (tree : InfoTree) (env : Environment) : TraceM Unit := do
   match tree with
   | .context ctx t => traverseTree ctx t tree env
-  | _ => ErrorIOHandling
+  | _ => pure ()
 
 
 def traverseForest (trees : Array InfoTree) (env : Environment) : TraceM Trace := do
@@ -301,6 +298,7 @@ def traverseForest (trees : Array InfoTree) (env : Environment) : TraceM Trace :
 end Traversal
 
 
+-- Trace a *.lean file.
 unsafe def processFile (path : FilePath) : IO Unit := do
   println! path
   let input ← IO.FS.readFile path
@@ -308,7 +306,6 @@ unsafe def processFile (path : FilePath) : IO Unit := do
   enableInitializersExecution
   let inputCtx := Parser.mkInputContext input path.toString
   let (header, parserState, messages) ← Parser.parseHeader inputCtx
-
   let (env, messages) ← processHeader header opts messages inputCtx
 
   if messages.hasErrors then
@@ -323,9 +320,8 @@ unsafe def processFile (path : FilePath) : IO Unit := do
   let s ← IO.processCommands inputCtx parserState commandState
   let commands := s.commands.pop -- Remove EOI command.
   let trees := s.commandState.infoState.trees.toArray
-  let trace := (Traversal.traverseForest trees env).run' ⟨#[header] ++ commands, #[], #[]⟩
-  let finalTrace ← Prod.fst <$> trace.run'.toIO {fileName := s!"{path}", fileMap := FileMap.ofString input}
-                                                {env := env}
+  let traceM := (Traversal.traverseForest trees env).run' ⟨#[header] ++ commands, #[], #[]⟩
+  let (trace, _) ← traceM.run'.toIO {fileName := s!"{path}", fileMap := FileMap.ofString input} {env := env}
 
   let cwd ← IO.currentDir
   let is_lean := cwd.fileName == "lean4"
@@ -338,7 +334,7 @@ unsafe def processFile (path : FilePath) : IO Unit := do
       (Path.toBuildDir "ir" relativePath "ast.json").get!
   )
   Path.makeParentDirs json_path
-  IO.FS.writeFile json_path (toJson finalTrace).pretty
+  IO.FS.writeFile json_path (toJson trace).pretty
 
   -- Print imports, similar to `lean --deps` in Lean 3.
   let mut s := ""
@@ -372,13 +368,17 @@ unsafe def processFile (path : FilePath) : IO Unit := do
 
 end LeanDojo
 
+
 open LeanDojo
 
-
+-- Whether a *.lean file should be traced.
 def shouldProcess (path : FilePath) : IO Bool := do
-  if path.extension != "lean" then return false
+  if path.extension != "lean" then 
+    return false
+
   let cwd ← IO.currentDir
   let some relativePath := Path.relativeTo path cwd | throw $ IO.userError s!"Invalid path: {path}"
+  
   if cwd.fileName == "lean4" then
     let oleanPath := mkFilePath $ "lib" :: (relativePath.withExtension "olean").components.tail!
     return ← oleanPath.pathExists
@@ -390,6 +390,7 @@ def shouldProcess (path : FilePath) : IO Bool := do
 unsafe def main (args : List String) : IO Unit := do
   match args with
   | [] =>
+    -- Trace all *.lean files in the current directory whose corresponding *.olean file exists.
     let cwd ← IO.currentDir
     println! "Extracting data at {cwd}"
     let _ ← System.FilePath.walkDir cwd fun dir => do
@@ -403,4 +404,5 @@ unsafe def main (args : List String) : IO Unit := do
           println! p.path
       pure true
   | path :: _ =>
+    -- Trace a given file.
     processFile (← Path.toAbsolute ⟨path⟩)
