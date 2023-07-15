@@ -23,3 +23,7 @@ versions of mathlib, you need at least 32 GB memory. If getting more memory is n
 you can trace a smaller repo. If your machine has enough memory but the process still gets killed, please check
 whether your Docker has access to all resources of host machine (see `here <https://docs.docker.com/desktop/settings/mac/#resources>`_).
 
+Interacting with Lean 3
+*************
+* EOFError in `_read_next_line`.
+If you encounter while interacting with Lean 3, make sure Docker Desktop has access to the `/tmp` directory in Resources > Filesharing.
