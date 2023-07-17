@@ -3,6 +3,7 @@
 Troubleshooting
 ===============
 
+When troubleshooting, set the environment variable :code:`VERBOSE` to :code:`1` to get debug logs. 
 Below are some common errors when using LeanDojo:
 
 Installation
@@ -23,7 +24,8 @@ versions of mathlib, you need at least 32 GB memory. If getting more memory is n
 you can trace a smaller repo. If your machine has enough memory but the process still gets killed, please check
 whether your Docker has access to all resources of host machine (see `here <https://docs.docker.com/desktop/settings/mac/#resources>`_).
 
-Interacting with Lean 3
-*************
-* EOFError in `_read_next_line`.
-If you encounter while interacting with Lean 3, make sure Docker Desktop has access to the `/tmp` directory in Resources > Filesharing.
+Interacting with Lean
+*********************
+
+* :code:`docker: Error response from daemon: invalid mount config for type "bind": bind source path does not exist`
+Make sure Docker has access to the `/tmp` directory. If you're using Docker Desktop, go to Settings -> Resources -> File sharing.
