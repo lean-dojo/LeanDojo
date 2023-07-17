@@ -28,4 +28,5 @@ Interacting with Lean
 *********************
 
 * :code:`docker: Error response from daemon: invalid mount config for type "bind": bind source path does not exist`
-Make sure Docker has access to the `/tmp` directory. If you're using Docker Desktop, go to Settings -> Resources -> File sharing.
+
+Make sure Docker has access to the :code:`/tmp` directory. If you're using Docker Desktop, go to Settings -> Resources -> File sharing.
