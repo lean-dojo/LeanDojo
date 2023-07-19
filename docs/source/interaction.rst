@@ -6,3 +6,4 @@ lean_dojo.interaction
    :maxdepth: 2
 
    dojo
+   parse_goals

@@ -13,6 +13,7 @@ from subprocess import TimeoutExpired
 from dataclasses import dataclass, field
 from typing import Union, Tuple, List, Dict, Any, Optional
 
+from .parse_goals import parse_goals, Goal
 from ..utils import execute, to_json_path
 from ..container import get_container, Mount
 from ..data_extraction.traced_data import TracedFile
@@ -29,38 +30,6 @@ from ..constants import (
 
 
 _REPL_PROMPT = "REPL>"
-_DECL_REGEX = re.compile(
-    r"(?<=\n)(?P<idents>.+?)\s+\:(?P<lean_type>.+?)\n(?=\S)", re.DOTALL
-)
-
-
-@dataclass(frozen=True)
-class Declaration:
-    ident: str
-    lean_type: str
-
-
-def _parse_local_context(goal_pp: str) -> List[Declaration]:
-    decls = []
-    for m in _DECL_REGEX.finditer("\n" + goal_pp):
-        lean_type = m["lean_type"].strip()
-        if lean_type.endswith(","):
-            lean_type = lean_type[:-1].strip()
-        for ident in m["idents"].strip().split():
-            decls.append(Declaration(ident.strip(), lean_type))
-    return decls
-
-
-@dataclass(frozen=True)
-class Goal:
-    assumptions: List[Declaration]
-    conclusion: str
-
-    @classmethod
-    def from_pp(cls, pp) -> "Goal":
-        _, concl = pp.split("⊢")
-        assumptions = _parse_local_context(pp)
-        return cls(assumptions, concl.strip())
 
 
 @dataclass(frozen=True)
@@ -71,7 +40,7 @@ class TacticState:
     goals: List[Goal] = field(init=False, compare=False, repr=False)
 
     def __post_init__(self):
-        goals = [Goal.from_pp(_) for _ in self.pp.split("\n\n")]
+        goals = parse_goals(self.pp)
         assert len(goals) == self.pp.count("⊢")
         object.__setattr__(self, "goals", goals)
 
