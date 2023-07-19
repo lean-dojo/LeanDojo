@@ -1,4 +1,3 @@
-# TODO: Add a hard timeout for Lean 4.
 import re
 import os
 import sys

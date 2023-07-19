@@ -118,7 +118,6 @@ class Node:
                 assert isinstance(v, str)
                 v = unescape(v, entities={"&quot;": '"'})
             if is_optional_type(field.type):
-                # TODO: Make it less ad-hoc.
                 tp = remove_optional_type(field.type)
                 if tp is Pos and v is not None:
                     kwargs[field.name] = Pos.from_str(v)
