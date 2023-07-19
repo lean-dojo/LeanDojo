@@ -147,7 +147,7 @@ def _get_all_dependencies(
 
 @dataclass
 class Dojo:
-    """Gym-like environment for programmatic interaction with a given theorem in Lean 3."""
+    """Gym-like environment for programmatic interaction with a given theorem in Lean."""
 
     theorem: Theorem
     hard_timeout: Optional[float] = None
