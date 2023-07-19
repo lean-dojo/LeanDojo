@@ -249,8 +249,7 @@ class TracedTheorem:
     """The corresponding :class:`Theorem` object.
     """
 
-    # TODO: Add something like TheoremNode4
-    ast: TheoremNode = field(repr=False, compare=False)
+    ast: Union[TheoremNode, CommandTheoremNode4] = field(repr=False, compare=False)
     """AST of the theorem.
     """
 
