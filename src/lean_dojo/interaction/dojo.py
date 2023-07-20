@@ -1,3 +1,4 @@
+# TODO: Remove everything after lean_dojo_repl to speed up the exit process.
 import re
 import os
 import sys
