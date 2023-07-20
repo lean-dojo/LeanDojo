@@ -216,7 +216,7 @@ def convert_tag_to_commit_hash(url: str, tag: str) -> str:
         execute(f"git clone -n {url}", capture_output=True)
         repo_name = url.split("/")[-1]
         with working_directory(repo_name):
-            output, _ = execute(f"git rev-list -n 1 {tag}", capture_output=True)
+            output, _ = execute(f"git rev-list -n 1 origin/{tag}", capture_output=True)
             commit = output.strip()
             return commit
 

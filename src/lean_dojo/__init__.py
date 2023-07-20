@@ -20,6 +20,7 @@ from .interaction.dojo import (
     ProofFinished,
     ProofGivenUp,
 )
+from .interaction.parse_goals import Declaration, Goal, parse_goals
 from .data_extraction.lean import LeanGitRepo, LeanFile, Theorem, Pos
 from .constants import __version__
 
