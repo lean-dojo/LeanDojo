@@ -9,7 +9,7 @@ def test_example_1(lean_repo: LeanGitRepo) -> None:
         "library/init/data/int/basic.lean",
         "int.sub_nat_nat_of_sub_eq_zero",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "unfold sub_nat_nat")
         assert isinstance(s1, TacticState)
         s2 = dojo.run_tac(s1, "rw h, unfold sub_nat_nat._match_1")
@@ -23,7 +23,7 @@ def test_example_2(lean4_example_repo: LeanGitRepo) -> None:
         "Lean4Example.lean",
         "hello_world",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "rw [add_assoc, add_comm b, ←add_assoc]")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -35,7 +35,7 @@ def test_example_3(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/NumberTheory/Multiplicity.lean",
         "pow_two_pow_sub_pow_two_pow",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "induction' n with d hd")
         s2 = dojo.run_tac(
             s1,
@@ -56,7 +56,7 @@ def test_example_4(lean4_repo: LeanGitRepo) -> None:
         "src/Init/Data/Nat/Gcd.lean",
         "Nat.gcd_self",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "cases n <;> simp [gcd_succ]")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -68,7 +68,7 @@ def test_example_5(std4_repo: LeanGitRepo) -> None:
         "Std/Data/List/Lemmas.lean",
         "List.mem_nil_iff",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "simp")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -80,7 +80,7 @@ def test_example_6(aesop_repo: LeanGitRepo) -> None:
         "Aesop/BuiltinRules.lean",
         "Aesop.BuiltinRules.not_intro",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact h")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -92,7 +92,7 @@ def test_example_7(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Algebra/GroupPower/Basic.lean",
         "nsmul_zero",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact nsmul_zero n")
         assert isinstance(s1, TacticError)
         assert not dojo.is_proved
@@ -104,7 +104,7 @@ def test_example_8(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Data/Complex/Basic.lean",
         "Complex.div_im",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(
             s0, "simp [div_eq_mul_inv, mul_assoc, sub_eq_add_neg, add_comm]"
         )
@@ -118,7 +118,7 @@ def test_example_9(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Algebra/IndicatorFunction.lean",
         "Set.mulIndicator_inv'",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact (mulIndicatorHom G s).map_inv f")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -130,7 +130,7 @@ def test_example_10(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Data/Set/Intervals/Basic.lean",
         "Set.Iio_def",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "rfl")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -142,7 +142,7 @@ def test_example_11(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Analysis/BoxIntegral/Partition/Basic.lean",
         "BoxIntegral.Prepartition.sum_biUnion_boxes",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(
             s0,
             "refine' Finset.sum_biUnion fun J₁ h₁ J₂ h₂ hne => Finset.disjoint_left.2 fun J' h₁' h₂' => _",
@@ -161,7 +161,7 @@ def test_example_12(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Algebra/Hom/Ring.lean",
         "RingHom.coe_monoidHom_mk",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "rfl")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -173,7 +173,7 @@ def test_example_13(std4_repo: LeanGitRepo) -> None:
         "Std/Data/List/Lemmas.lean",
         "List.isSuffix.length_le",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact h.sublist.length_le")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -185,7 +185,7 @@ def test_example_14(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Order/PrimeIdeal.lean",
         "Order.Ideal.PrimePair.compl_F_eq_I",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact IF.isCompl_I_F.eq_compl.symm")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -197,7 +197,7 @@ def test_example_15(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Algebra/GCDMonoid/Multiset.lean",
         "Multiset.gcd_singleton",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact (fold_singleton _ _ _).trans <| gcd_zero_right _")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -209,7 +209,7 @@ def test_example_16(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/SetTheory/Ordinal/Basic.lean",
         "Ordinal.typein.principalSeg_coe",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact rfl")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -221,7 +221,7 @@ def test_example_17(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Analysis/Calculus/FDeriv/Equiv.lean",
         "ContinuousLinearEquiv.comp_hasFDerivAt_iff'",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(
             s0, "simp_rw [← hasFDerivWithinAt_univ, iso.comp_hasFDerivWithinAt_iff']"
         )
@@ -235,7 +235,7 @@ def test_example_18(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Algebra/Hom/Group.lean",
         "MonoidHom.map_inv",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(
             s0, "exact eq_inv_of_mul_eq_one_left <| map_mul_eq_one f <| inv_mul_self _"
         )
@@ -249,7 +249,7 @@ def test_example_19(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Data/Finsupp/Defs.lean",
         "Finsupp.equivFunOnFinite_single",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "ext")
         s2 = dojo.run_tac(s1, "simp [Finsupp.single_eq_pi_single, equivFunOnFinite]")
         assert isinstance(s2, ProofFinished)
@@ -262,7 +262,7 @@ def test_example_20(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Combinatorics/SimpleGraph/Hasse.lean",
         "SimpleGraph.hasse_preconnected_of_succ",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "intros a b")
         s2 = dojo.run_tac(s1, "rw [reachable_iff_reflTransGen]")
         s3 = dojo.run_tac(
@@ -279,7 +279,7 @@ def test_example_21(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Data/Finset/Card.lean",
         "Finset.card_erase_le",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact Multiset.card_erase_le")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -291,7 +291,7 @@ def test_example_22(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Logic/Function/Basic.lean",
         "Function.sometimes_eq",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact dif_pos ⟨a⟩")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -303,7 +303,7 @@ def test_example_23(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/MeasureTheory/Group/Arithmetic.lean",
         "List.measurable_prod'",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "induction' l with f l ihl")
         s2 = dojo.run_tac(s1, "exact measurable_one")
         s3 = dojo.run_tac(s2, "rw [List.forall_mem_cons] at hl")
@@ -319,7 +319,7 @@ def test_example_24(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/LinearAlgebra/Basic.lean",
         "LinearMap.mem_eqLocus",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact Iff.rfl")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_proved
@@ -331,7 +331,7 @@ def test_example_25(std4_repo: LeanGitRepo) -> None:
         "Std/Data/Int/Lemmas.lean",
         "Int.neg_lt_sub_right_of_lt_add",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(
             s0, "exact Int.lt_sub_left_of_add_lt (Int.sub_right_lt_of_lt_add h)"
         )
@@ -345,7 +345,7 @@ def test_example_26(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Algebra/CharP/Basic.lean",
         "CharP.eq",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(
             s0,
             "exact Nat.dvd_antisymm ((CharP.cast_eq_zero_iff R p q).1 (CharP.cast_eq_zero _ _)) ((CharP.cast_eq_zero_iff R q p).1 (CharP.cast_eq_zero _ _))",
@@ -360,7 +360,7 @@ def test_example_27(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/Topology/MetricSpace/Basic.lean",
         "Metric.nonempty_iInter_of_nonempty_biInter",
     )
-    with TheoremProvingDojo(thm) as (dojo, s0):
+    with TacticDojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(
             s0,
             "exact (hs 0).isComplete.nonempty_iInter_of_nonempty_biInter hs h's h h'",

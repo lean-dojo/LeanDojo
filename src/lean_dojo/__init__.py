@@ -16,7 +16,7 @@ from .interaction.dojo import (
     DojoCrashError,
     DojoHardTimeoutError,
     DojoInitError,
-    TheoremProvingDojo,
+    TacticDojo,
     ProofFinished,
     ProofGivenUp,
 )

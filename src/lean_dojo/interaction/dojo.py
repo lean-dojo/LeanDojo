@@ -118,7 +118,7 @@ def _get_all_dependencies(
 @dataclass
 class Dojo:
     """Gym-like environment for programmatic interaction with a given theorem in Lean."""
-    
+
     hard_timeout: Optional[float] = None
     origin_dir: Path = field(init=False, repr=False)
     tmp_dir: Path = field(init=False)
@@ -169,10 +169,11 @@ class Dojo:
 
 
 @dataclass
-class TheoremProvingDojo(Dojo):
-    theorem: Theorem
-    
+class TacticDojo(Dojo):
+    theorem: Optional[Theorem] = None
+
     def __post_init__(self):
+        assert self.theorem is not None
         if (
             self.theorem.repo.name == "lean4"
             and self.theorem.file_path.parts[0] == "src"
@@ -181,16 +182,14 @@ class TheoremProvingDojo(Dojo):
             object.__setattr__(self.theorem, "file_path", file_path)
 
         if self.uses_lean4 and self.hard_timeout is None:
-            logger.warning(
-                "Using Lean 4 without a hard timeout may hang indefinitely."
-            )
+            logger.warning("Using Lean 4 without a hard timeout may hang indefinitely.")
 
     @property
     def uses_lean4(self) -> bool:
         return self.theorem.repo.uses_lean4
 
-    def __enter__(self) -> Tuple["TheoremProvingDojo", TacticState]:
-        """Initialize TheoremProvingDojo.
+    def __enter__(self) -> Tuple["TacticDojo", TacticState]:
+        """Initialize TacticDojo.
 
         Raises:
             DojoInitError: _description_
@@ -198,7 +197,7 @@ class TheoremProvingDojo(Dojo):
         Returns:
             _type_: _description_
         """
-        logger.debug(f"Initializing TheoremProvingDojo for {self.theorem}")
+        logger.debug(f"Initializing TacticDojo for {self.theorem}")
 
         # Work in a temporary directory.
         self.origin_dir = Path.cwd()
@@ -310,7 +309,7 @@ class TheoremProvingDojo(Dojo):
             raise ex
 
     def __exit__(self, exc_type: None, exc_val: None, exc_tb: None) -> None:
-        """Exit TheoremProvingDojo.
+        """Exit TacticDojo.
 
         Args:
             exc_type (None): _description_

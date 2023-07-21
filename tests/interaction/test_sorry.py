@@ -7,7 +7,7 @@ def test_sorry_1(mathlib_repo: LeanGitRepo) -> None:
         "src/ring_theory/subring/basic.lean",
         "subring.mem_supr_of_directed",
     )
-    with TheoremProvingDojo(thm) as (dojo, init_state):
+    with TacticDojo(thm) as (dojo, init_state):
         res = dojo.run_tac(init_state, "sorry")
         assert isinstance(res, ProofGivenUp)
         assert not dojo.is_proved
@@ -19,7 +19,7 @@ def test_sorry_2(mathlib4_repo: LeanGitRepo) -> None:
         "Mathlib/CategoryTheory/Arrow.lean",
         "CategoryTheory.Arrow.id_left",
     )
-    with TheoremProvingDojo(thm) as (dojo, init_state):
+    with TacticDojo(thm) as (dojo, init_state):
         res = dojo.run_tac(init_state, "sorry")
         assert isinstance(res, ProofGivenUp)
         assert not dojo.is_proved

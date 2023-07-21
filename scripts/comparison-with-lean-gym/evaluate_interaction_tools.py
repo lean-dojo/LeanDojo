@@ -38,7 +38,7 @@ def _validate_ground_truth(thm) -> Tuple[bool, bool]:
     init_ctx = None
 
     try:
-        with TheoremProvingDojo(theorem) as (dojo, init_state):
+        with TacticDojo(theorem) as (dojo, init_state):
             assert init_state.num_goals == 1
             init_ctx = [decl.ident for decl in init_state.goals[0].assumptions]
 

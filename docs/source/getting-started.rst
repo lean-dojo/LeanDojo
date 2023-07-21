@@ -185,7 +185,7 @@ can be downloaded from `our AWS S3 <https://lean-dojo.s3.amazonaws.com>`_ (see :
    repo = LeanGitRepo("https://github.com/yangky11/lean-example", "5a0360e49946815cb53132638ccdd46fb1859e2a")
    theorem = Theorem(repo, "src/example.lean", "hello_world")
 
-   with TheoremProvingDojo(theorem) as (dojo, init_state):
+   with TacticDojo(theorem) as (dojo, init_state):
      print(init_state)
      result = dojo.run_tac(init_state, "rw [add_assoc, add_comm b, ←add_assoc]")
      assert isinstance(result, ProofFinished)
@@ -443,7 +443,7 @@ can be downloaded from `our AWS S3 <https://lean-dojo.s3.amazonaws.com>`_ (see :
    repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "7d711f6da4584ecb7d4f057715e1f72ba175c910")
    theorem = Theorem(repo, "Lean4Example.lean", "hello_world")
 
-   with TheoremProvingDojo(theorem) as (dojo, init_state):
+   with TacticDojo(theorem) as (dojo, init_state):
      print(init_state)
      result = dojo.run_tac(init_state, "rw [add_assoc, add_comm b, ←add_assoc]")
      assert isinstance(result, ProofFinished)
