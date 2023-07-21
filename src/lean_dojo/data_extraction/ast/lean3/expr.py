@@ -102,7 +102,6 @@ class Expr:
                     i += 1
                 kwargs[field.name] = child_exprs
             elif is_optional_type(field.type):
-                # TODO: Make it less ad-hoc.
                 tp = remove_optional_type(field.type)
                 v = tree.attrib.get(field.name, None)
                 if tp is Pos and v is not None:

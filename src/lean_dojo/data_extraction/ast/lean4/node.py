@@ -93,7 +93,6 @@ class Node4:
                 assert isinstance(v, str)
                 v = unescape(v, entities={"&quot;": '"'})
             if is_optional_type(field.type):
-                # TODO: Make it less ad-hoc.
                 tp = remove_optional_type(field.type)
                 if tp is Pos and v is not None:
                     kwargs[field.name] = Pos.from_str(v)
@@ -289,7 +288,6 @@ class CommandDeclarationNode4(Node4):
         ):
             for child in children:
                 if isinstance(child, CommandTheoremNode4):
-                    # TODO: Check if is_private is properly set.
                     object.__setattr__(child, "_is_private_decl", True)
         return cls(lean_file, start, end, children)
 

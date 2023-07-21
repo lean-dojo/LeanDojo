@@ -1,4 +1,4 @@
-# TODO: Add a hard timeout for Lean 4.
+# TODO: Remove everything after lean_dojo_repl to speed up the exit process.
 import re
 import os
 import sys
@@ -14,6 +14,7 @@ from subprocess import TimeoutExpired
 from dataclasses import dataclass, field
 from typing import Union, Tuple, List, Dict, Any, Optional
 
+from .parse_goals import parse_goals, Goal
 from ..utils import execute, to_json_path
 from ..container import get_container, Mount
 from ..data_extraction.traced_data import TracedFile
@@ -30,38 +31,6 @@ from ..constants import (
 
 
 _REPL_PROMPT = "REPL>"
-_DECL_REGEX = re.compile(
-    r"(?<=\n)(?P<idents>.+?)\s+\:(?P<lean_type>.+?)\n(?=\S)", re.DOTALL
-)
-
-
-@dataclass(frozen=True)
-class Declaration:
-    ident: str
-    lean_type: str
-
-
-def _parse_local_context(goal_pp: str) -> List[Declaration]:
-    decls = []
-    for m in _DECL_REGEX.finditer("\n" + goal_pp):
-        lean_type = m["lean_type"].strip()
-        if lean_type.endswith(","):
-            lean_type = lean_type[:-1].strip()
-        for ident in m["idents"].strip().split():
-            decls.append(Declaration(ident.strip(), lean_type))
-    return decls
-
-
-@dataclass(frozen=True)
-class Goal:
-    assumptions: List[Declaration]
-    conclusion: str
-
-    @classmethod
-    def from_pp(cls, pp) -> "Goal":
-        _, concl = pp.split("⊢")
-        assumptions = _parse_local_context(pp)
-        return cls(assumptions, concl.strip())
 
 
 @dataclass(frozen=True)
@@ -72,7 +41,7 @@ class TacticState:
     goals: List[Goal] = field(init=False, compare=False, repr=False)
 
     def __post_init__(self):
-        goals = [Goal.from_pp(_) for _ in self.pp.split("\n\n")]
+        goals = parse_goals(self.pp)
         assert len(goals) == self.pp.count("⊢")
         object.__setattr__(self, "goals", goals)
 
@@ -148,17 +117,61 @@ def _get_all_dependencies(
 
 @dataclass
 class Dojo:
-    """Gym-like environment for programmatic interaction with a given theorem in Lean 3."""
-
-    theorem: Theorem
+    """Gym-like environment for programmatic interaction with a given theorem in Lean."""
+    
     hard_timeout: Optional[float] = None
     origin_dir: Path = field(init=False, repr=False)
     tmp_dir: Path = field(init=False)
     start_time: float = field(init=False, repr=False)
-    is_proved: bool = False
+    is_successful: bool = False
     is_crashed: bool = False
     has_timedout: bool = False
 
+    def _handle_hard_timeout(self, signum, frame) -> None:
+        logger.debug(f"Hard timeout in {self}")
+        self.has_timedout = True
+        raise DojoHardTimeoutError()
+
+    def _exit_gracefully(self, signum, frame):
+        logger.debug("Exiting gracefully.")
+        self._cleanup()
+        sys.exit(-1)
+
+    def _cleanup(self):
+        logger.debug("Cleaning up.")
+        try:
+            self._cleanup_container()
+            self._cleanup_proc()
+        finally:
+            self._cleanup_tmp_dir()
+            signal.signal(signal.SIGINT, self.old_sigint)
+            signal.signal(signal.SIGTERM, self.old_sigterm)
+
+    def _cleanup_container(self) -> None:
+        """Clean up the container."""
+        logger.debug("Cleaning up the container.")
+        self.container.cleanup()
+
+    def _cleanup_proc(self) -> None:
+        """Clean up the subprocess."""
+        self.proc.terminate()
+        try:
+            self.proc.wait(timeout=1)
+        except TimeoutExpired:
+            self.proc.kill()
+
+    def _cleanup_tmp_dir(self) -> None:
+        """Clean up the temporary directory."""
+        logger.debug("Cleaning up the temporary directory.")
+        os.chdir(self.origin_dir)
+        if os.path.exists(self.tmp_dir):
+            shutil.rmtree(self.tmp_dir)
+
+
+@dataclass
+class TheoremProvingDojo(Dojo):
+    theorem: Theorem
+    
     def __post_init__(self):
         if (
             self.theorem.repo.name == "lean4"
@@ -169,20 +182,15 @@ class Dojo:
 
         if self.uses_lean4 and self.hard_timeout is None:
             logger.warning(
-                "Using Lean 4 without a hard timeout may lead to problems if a tactic hangs indefinitely."
+                "Using Lean 4 without a hard timeout may hang indefinitely."
             )
 
     @property
     def uses_lean4(self) -> bool:
         return self.theorem.repo.uses_lean4
 
-    def _handle_hard_timeout(self, signum, frame) -> None:
-        logger.debug(f"Hard timeout when proving {self.theorem}")
-        self.has_timedout = True
-        raise DojoHardTimeoutError()
-
-    def __enter__(self) -> Tuple["Dojo", TacticState]:
-        """Initialize Dojo.
+    def __enter__(self) -> Tuple["TheoremProvingDojo", TacticState]:
+        """Initialize TheoremProvingDojo.
 
         Raises:
             DojoInitError: _description_
@@ -190,7 +198,7 @@ class Dojo:
         Returns:
             _type_: _description_
         """
-        logger.debug(f"Initializing Dojo for {self.theorem}")
+        logger.debug(f"Initializing TheoremProvingDojo for {self.theorem}")
 
         # Work in a temporary directory.
         self.origin_dir = Path.cwd()
@@ -302,7 +310,7 @@ class Dojo:
             raise ex
 
     def __exit__(self, exc_type: None, exc_val: None, exc_tb: None) -> None:
-        """Exit Dojo.
+        """Exit TheoremProvingDojo.
 
         Args:
             exc_type (None): _description_
@@ -313,9 +321,6 @@ class Dojo:
         if self.hard_timeout is not None:
             signal.alarm(0)
             signal.signal(signal.SIGALRM, signal.SIG_DFL)
-
-        if not self.is_proved:
-            logger.debug(f"Failed to prove {self.theorem}")
 
         if not self.is_crashed and not self.has_timedout:
             if self.uses_lean4:
@@ -328,41 +333,6 @@ class Dojo:
                 pass
 
         self._cleanup()
-
-    def _exit_gracefully(self, signum, frame):
-        logger.debug("Exiting gracefully.")
-        self._cleanup()
-        sys.exit(-1)
-
-    def _cleanup(self):
-        logger.debug("Cleaning up.")
-        try:
-            self._cleanup_container()
-            self._cleanup_proc()
-        finally:
-            self._cleanup_tmp_dir()
-            signal.signal(signal.SIGINT, self.old_sigint)
-            signal.signal(signal.SIGTERM, self.old_sigterm)
-
-    def _cleanup_container(self) -> None:
-        """Clean up the container."""
-        logger.debug("Cleaning up the container.")
-        self.container.cleanup()
-
-    def _cleanup_proc(self) -> None:
-        """Clean up the subprocess."""
-        self.proc.terminate()
-        try:
-            self.proc.wait(timeout=1)
-        except TimeoutExpired:
-            self.proc.kill()
-
-    def _cleanup_tmp_dir(self) -> None:
-        """Clean up the temporary directory."""
-        logger.debug("Cleaning up the temporary directory.")
-        os.chdir(self.origin_dir)
-        if os.path.exists(self.tmp_dir):
-            shutil.rmtree(self.tmp_dir)
 
     def _post_process(self, tactic_state: str) -> str:
         """Post-process the pretty-printed tactic state.
@@ -462,7 +432,7 @@ class Dojo:
             else:
                 return TacticError(res["error"].strip())
         elif res["tactic_state"] == "no goals":
-            self.is_proved = True
+            self.is_successful = True
             return ProofFinished(res["tsid"], res["message"])
         else:
             tactic_state = self._post_process(res["tactic_state"])
