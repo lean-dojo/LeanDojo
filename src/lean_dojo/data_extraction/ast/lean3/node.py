@@ -136,7 +136,7 @@ class Node:
         return subcls(lean_file, start, end, children, **kwargs)  # type: ignore
 
     def get_closure(self) -> Tuple[Pos, Pos]:
-        """Return the smallest start position and latest end position of all nodes in the subtree."""
+        """Return the earliest start position and latest end position of all nodes in the subtree."""
         start = self.start
         end = self.end
 

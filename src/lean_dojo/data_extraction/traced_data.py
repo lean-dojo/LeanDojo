@@ -216,25 +216,52 @@ class TracedTactic:
         provenances = []
         cur = self.start
 
-        def _callback(node: IdentNode, _):
-            nonlocal cur
+        if self.uses_lean3:
+            def _callback3(node: IdentNode, _):
+                nonlocal cur
 
-            if node.full_name is not None:
-                if node.def_path is None or node.def_pos is None:
-                    logger.warning(f"Unable to locate {node.full_name}")
-                else:
-                    annot_tac.append(lean_file[cur : node.start])
-                    annot_tac.append("<a>" + lean_file[node.start : node.end] + "</a>")
-                    prov = {"full_name": node.full_name}
-                    prov["def_path"] = node.def_path
-                    prov["def_pos"] = list(node.def_pos)
-                    provenances.append(prov)
-                    cur = node.end
+                if node.full_name is not None:
+                    if node.def_path is None or node.def_pos is None:
+                        logger.warning(f"Unable to locate {node.full_name}")
+                    else:
+                        annot_tac.append(lean_file[cur : node.start])
+                        annot_tac.append("<a>" + lean_file[node.start : node.end] + "</a>")
+                        prov = {"full_name": node.full_name}
+                        prov["def_path"] = node.def_path
+                        prov["def_pos"] = list(node.def_pos)
+                        provenances.append(prov)
+                        cur = node.end
 
-        self.ast.traverse_preorder(_callback, IdentNode)
-        annot_tac.append(lean_file[cur : self.end])
+            self.ast.traverse_preorder(_callback3, IdentNode)
+            annot_tac.append(lean_file[cur : self.end])
 
-        return "".join(annot_tac), provenances
+            return "".join(annot_tac), provenances
+        else:
+            assert self.uses_lean4
+
+            def _callback4(node: IdentNode4, _):
+                nonlocal cur
+
+                if (node.full_name is not None 
+                    and node.mod_name is not None 
+                    and node.def_start is not None 
+                    and node.def_end is not None
+                ):
+                    if cur <= node.start:
+                        annot_tac.append(lean_file[cur : node.start])
+                        annot_tac.append("<a>" + lean_file[node.start : node.end] + "</a>")
+                        prov = {"full_name": node.full_name}
+                        def_path = (node.mod_name).replace(".", "/") + ".lean"
+                        prov["def_path"] = def_path
+                        prov["def_pos"] = list(node.def_start)
+                        prov["def_end_pos"] = list(node.def_end)
+                        provenances.append(prov)
+                        cur = node.end
+
+            self.ast.traverse_preorder(_callback4, IdentNode4)
+            annot_tac.append(lean_file[cur : self.end])
+
+            return "".join(annot_tac), provenances
 
 
 @dataclass(frozen=True)
@@ -249,8 +276,7 @@ class TracedTheorem:
     """The corresponding :class:`Theorem` object.
     """
 
-    # TODO: Add something like TheoremNode4
-    ast: TheoremNode = field(repr=False, compare=False)
+    ast: Union[TheoremNode, CommandTheoremNode4] = field(repr=False, compare=False)
     """AST of the theorem.
     """
 
@@ -407,16 +433,15 @@ class TracedTheorem:
 
     def get_premise_full_names(self) -> List[str]:
         """Return the fully qualified names of all premises used in the proof."""
-        if self.uses_lean4:
-            raise NotImplementedError
-
         names = []
 
-        def _callback(node: IdentNode, parents: List[Node]):
+        def _callback(node: Union[IdentNode, IdentNode4], parents: List[Node]):
             if node.full_name is not None:
                 names.append(node.full_name)
 
-        self.ast.traverse_preorder(_callback, IdentNode)
+        node_cls = IdentNode if self.uses_lean3 else IdentNode4
+        self.ast.traverse_preorder(_callback, node_cls)
+
         return names
 
     def get_traced_tactics(self) -> List[TracedTactic]:
@@ -563,7 +588,7 @@ class TracedFile:
     def has_prelude(self) -> bool:
         """Check whether the file starts with :code:``prelude``.
 
-        :code:``prelude`` instructs Lean to NOT include its built-in library automatically.
+        :code:``prelude`` instructs Lean NOT to include its built-in library automatically.
         """
         result = False
 
@@ -638,9 +663,17 @@ class TracedFile:
         lean_file = LeanFile(root_dir, lean_path, uses_lean4=True)
 
         data = json.load(json_path.open())
+
+        data["module_paths"] = []
+        for line in json_path.with_suffix("").with_suffix("").with_suffix(".dep_paths").open():
+            line = line.strip()
+            if line == "":
+                break
+            data["module_paths"].append(line)
+
         ast = FileNode4.from_data(data, lean_file)
         comments = _collect_lean4_comments(ast)
-        TracedFile._post_process_lean4(ast, lean_file, data["tactics"], comments)
+        TracedFile._post_process_lean4(ast, lean_file, data["tactics"], data["premises"], data["module_paths"], comments)
 
         return cls(root_dir, lean_file, ast, None, comments)
 
@@ -700,6 +733,8 @@ class TracedFile:
         ast: FileNode4,
         lean_file: LeanFile,
         tactics_data: List[Dict[str, Any]],
+        premises_data: List[Dict[str, Any]],
+        imports_data: List[str],
         comments: List[Comment],
     ) -> None:
         pos2tactics = {}
@@ -707,6 +742,22 @@ class TracedFile:
             start = lean_file.convert_pos(t["pos"])
             end = lean_file.convert_pos(t["endPos"])
             pos2tactics[(start, end)] = t
+
+        pos2premises = {}
+        for p in premises_data:
+            if (
+                p is None
+                or p["pos"] is None
+                or p["endPos"] is None
+                or p["fullName"] is None
+                or p["fullName"] == "[anonymous]"
+            ):
+                continue
+            start_line_nb, start_column_nb = p["pos"]["line"], p["pos"]["column"]
+            end_line_nb, end_column_nb = p["endPos"]["line"], p["endPos"]["column"]
+            start = Pos(line_nb=start_line_nb, column_nb=start_column_nb+1)
+            end = Pos(line_nb=end_line_nb, column_nb=end_column_nb+1)
+            pos2premises[(start, end)] = p
 
         inside_sections_namespaces = []
 
@@ -744,7 +795,7 @@ class TracedFile:
                 TacticTacticseqbracketedNode4,
             ):
                 for tac_node in node.get_tactic_nodes():
-                    assert type(tac_node) in (TacticNode4, TacticTacticseqbracketedNode4)
+                    assert type(tac_node) in (OtherNode4, TacticTacticseqbracketedNode4)
                     if (tac_node.start, tac_node.end) not in pos2tactics:
                         continue
                     t = pos2tactics[(tac_node.start, tac_node.end)]
@@ -755,6 +806,34 @@ class TracedFile:
                     object.__setattr__(tac_node, "state_before", t["stateBefore"])
                     object.__setattr__(tac_node, "state_after", t["stateAfter"])
                     object.__setattr__(tac_node, "tactic", tac)
+            elif type(node) in (IdentNode4,):
+                start, end = node.get_closure()
+                if (start, end) in pos2premises:
+                    assert start is not None
+                    assert end is not None
+                    p = pos2premises[(start, end)]
+                    prem = get_code_without_comments(
+                        lean_file, start, end, comments
+                    )
+                    prem = _fix_indentation(prem, start.column_nb - 1)
+                    if p["fullName"] is not None:
+                        object.__setattr__(node, "full_name", p["fullName"])
+                    if p["modName"] is not None:
+                        object.__setattr__(node, "mod_name", p["modName"])
+                    if p["defPos"] is not None and p["defEndPos"] is not None:
+                        def_start_line_nb, def_start_column_nb = p["defPos"]["line"], p["defPos"]["column"]
+                        def_end_line_nb, def_end_column_nb = p["defEndPos"]["line"], p["defEndPos"]["column"]
+                        def_start = Pos(line_nb=def_start_line_nb, column_nb=def_start_column_nb+1)
+                        def_end = Pos(line_nb=def_end_line_nb, column_nb=def_end_column_nb+1)
+                        object.__setattr__(node, "def_start", def_start)
+                        object.__setattr__(node, "def_end", def_end)
+            elif type(node) in (ModuleImportNode4,):
+                node_module_name = object.__getattribute__(node, "module")
+                if node_module_name is not None:
+                    suffix = node_module_name.replace(".", "/")
+                    for import_line in imports_data:
+                        if import_line.endswith(suffix + ".lean") or import_line.endswith(suffix + "/default.lean"):
+                            object.__setattr__(node, "path", Path(import_line))
 
         ast.traverse_preorder(_callback, node_cls=None)
 
@@ -911,6 +990,7 @@ class TracedFile:
                 else:
                     deps.add(LEAN3_DEPS_DIR / "lean" / init_lean)
             else:
+                assert self.uses_lean4
                 init_lean = Path("src/lean/Init.lean")
                 if self.root_dir.name == "lean4":
                     deps.add(init_lean)
@@ -932,50 +1012,90 @@ class TracedFile:
         Returns:
             List[Dict[str, Any]]: _description_
         """
-        if self.uses_lean4:
-            raise NotImplementedError
+        if self.uses_lean3:
+            results = []
 
-        results = []
-
-        def _callback(node: Node, _) -> None:
-            if is_potential_premise_lean3(node):
-                start, end = node.get_closure()
-                if isinstance(node, TheoremNode):
-                    # We assume theorems are defined using keywords "theorem"
-                    # or "lemma" but not, e.g., "def".
-                    proof_start, _ = node.get_proof_node().get_closure()
-                    code = self.lean_file[start:proof_start].strip()
-                    if code.endswith(":="):
-                        code = code[:-2].strip()
-                else:
-                    code = get_code_without_comments(
-                        self.lean_file, start, end, self.comments
-                    )
-                # TODO: For alias, restate_axiom, etc., the code is not very informative.
-                if is_mutual_lean3(node):
-                    for s in node.full_name:
+            def _callback3(node: Node, _) -> None:
+                if is_potential_premise_lean3(node):
+                    start, end = node.get_closure()
+                    if isinstance(node, TheoremNode):
+                        # We assume theorems are defined using keywords "theorem"
+                        # or "lemma" but not, e.g., "def".
+                        proof_start, _ = node.get_proof_node().get_closure()
+                        code = self.lean_file[start:proof_start].strip()
+                        if code.endswith(":="):
+                            code = code[:-2].strip()
+                    else:
+                        code = get_code_without_comments(
+                            self.lean_file, start, end, self.comments
+                        )
+                    # TODO: For alias, restate_axiom, etc., the code is not very informative.
+                    if is_mutual_lean3(node):
+                        for s in node.full_name:
+                            results.append(
+                                {
+                                    "full_name": s,
+                                    "code": code,
+                                    "start": list(start),
+                                    "end": list(end),
+                                    "kind": node.kind(),
+                                }
+                            )
+                    elif node.full_name is not None and not node.name.startswith("user__"):
                         results.append(
                             {
-                                "full_name": s,
+                                "full_name": node.full_name,
                                 "code": code,
                                 "start": list(start),
                                 "end": list(end),
                                 "kind": node.kind(),
                             }
                         )
-                elif node.full_name is not None and not node.name.startswith("user__"):
-                    results.append(
-                        {
-                            "full_name": node.full_name,
-                            "code": code,
-                            "start": list(start),
-                            "end": list(end),
-                            "kind": node.kind(),
-                        }
-                    )
 
-        self.traverse_preorder(_callback, node_cls=None)
-        return results
+            self.traverse_preorder(_callback3, node_cls=None)
+            return results
+        elif self.uses_lean4:
+            results = []
+
+            def _callback4(node: Node4, _) -> None:
+                if is_potential_premise_lean4(node):
+                    start, end = node.get_closure()
+                    if isinstance(node, CommandTheoremNode4):
+                        # We assume theorems are defined using keywords "theorem"
+                        # or "lemma" but not, e.g., "def".
+                        proof_start, _ = node.get_proof_node().get_closure()
+                        code = self.lean_file[start:proof_start].strip()
+                        if code.endswith(":="):
+                            code = code[:-2].strip()
+                    else:
+                        code = get_code_without_comments(
+                            self.lean_file, start, end, self.comments
+                        )
+                    # TODO: For alias, restate_axiom, etc., the code is not very informative.
+                    if is_mutual_lean4(node):
+                        for s in node.full_name:
+                            results.append(
+                                {
+                                    "full_name": s,
+                                    "code": code,
+                                    "start": list(start),
+                                    "end": list(end),
+                                    "kind": node.kind(),
+                                }
+                            )
+                    elif node.full_name is not None and not node.name.startswith("user__"):
+                        results.append(
+                            {
+                                "full_name": node.full_name,
+                                "code": code,
+                                "start": list(start),
+                                "end": list(end),
+                                "kind": node.kind(),
+                            }
+                        )
+
+            self.traverse_preorder(_callback4, node_cls=None)
+            return results
 
     def to_xml(self) -> str:
         """Serialize a :class:`TracedFile` object to XML."""
@@ -1048,13 +1168,16 @@ def _build_dependency_graph(traced_files: List[TracedFile]) -> nx.DiGraph:
     G = nx.DiGraph()
 
     for tf in traced_files:
-        assert not G.has_node(tf.path)
-        G.add_node(tf.path, traced_file=tf)
+        tf_path_str = str(tf.path)
+        assert not G.has_node(tf_path_str)
+        G.add_node(tf_path_str, traced_file=tf)
 
     for tf in traced_files:
+        tf_path_str = str(tf.path)
         for dep_path in tf.get_direct_dependencies():
-            if G.has_node(dep_path):
-                G.add_edge(tf.path, dep_path)
+            dep_path_str = str(dep_path)
+            if G.has_node(dep_path_str):
+                G.add_edge(tf_path_str, dep_path_str)
 
     assert nx.is_directed_acyclic_graph(G)
     return G
@@ -1161,8 +1284,9 @@ class TracedRepo:
 
         assert len(json_files) == self.traced_files_graph.number_of_nodes()
 
-        for path, tf_node in self.traced_files_graph.nodes.items():
+        for path_str, tf_node in self.traced_files_graph.nodes.items():
             tf = tf_node["traced_file"]
+            path = Path(path_str)
             tf.check_sanity()
             assert tf.path == path and tf.root_dir == self.root_dir
             assert tf.traced_repo is None or tf.traced_repo is self
@@ -1183,8 +1307,8 @@ class TracedRepo:
 
     @classmethod
     def from_traced_files(cls, root_dir: Union[str, Path]) -> None:
-        """Construct a :class:`TracedRepo` object  by parsing :file:`*.ast.json` and
-        :file:`*.path` files produced by :code:`lean --ast --tsast --tspp`
+        """Construct a :class:`TracedRepo` object by parsing :file:`*.ast.json` and :file:`*.path` files
+           produced by :code:`lean --ast --tsast --tspp` (Lean 3) or :file:`ExtractData.lean` (Lean 4).
 
         Args:
             root_dir (Union[str, Path]): Root directory of the traced repo.
@@ -1235,7 +1359,7 @@ class TracedRepo:
 
     def get_traced_file(self, path: Union[str, Path]) -> TracedFile:
         """Return a traced file by its path."""
-        return self.traced_files_graph.nodes[Path(path)]["traced_file"]
+        return self.traced_files_graph.nodes[str(path)]["traced_file"]
 
     def _update_traced_files(self) -> None:
         for tf in self.traced_files:
