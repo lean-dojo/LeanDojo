@@ -37,7 +37,11 @@ class Node4:
             return gbs[cls_name]  # type: ignore
         else:
             # logger.warning(kind)
-            return TacticNode4
+            return OtherNode4
+        
+    @classmethod
+    def kind(cls: type) -> str:
+        return cls.__name__[:-4].lower()
 
     def traverse_preorder(
         self,
@@ -160,6 +164,11 @@ class IdentNode4(Node4):
     raw_val: str
     val: str
 
+    full_name: Optional[str] = None
+    mod_name: Optional[str] = None
+    def_start: Optional[Pos] = None
+    def_end: Optional[Pos] = None
+
     @classmethod
     def from_data(
         cls, ident_data: Dict[str, Any], lean_file: LeanFile
@@ -186,6 +195,10 @@ class IdentNode4(Node4):
             ident_data["rawVal"],
             ident_data["val"],
         )
+    
+    @property
+    def is_mutual(self) -> bool:
+        return not isinstance(self.full_name, str)
 
 
 def is_leaf(node: Node4) -> bool:
@@ -448,9 +461,7 @@ class TermTypespecNode4(Node4):
 class CommandTheoremNode4(Node4):
     name: str
     full_name: Optional[str] = None
-    _is_private_decl: Optional[
-        bool
-    ] = False  # `_is_private` doesn't play well with lxml.
+    _is_private_decl: Optional[bool] = False  # `_is_private` doesn't play well with lxml.
 
     @classmethod
     def from_data(
@@ -469,7 +480,7 @@ class CommandTheoremNode4(Node4):
             name = ident_node.val
         else:
             assert (
-                isinstance(ident_node, TacticNode4)
+                isinstance(ident_node, OtherNode4)
                 and ident_node.kind == "ident.antiquot"
             )
             name = "".join(gc.val for gc in ident_node.children if is_leaf(gc))
@@ -513,6 +524,10 @@ class CommandTheoremNode4(Node4):
     def has_tactic_proof(self) -> bool:
         node = self.get_proof_node()
         return isinstance(node, TermBytacticNode4)
+    
+    @property
+    def is_mutual(self) -> bool:
+        return not isinstance(self.name, str)
 
 
 @dataclass(frozen=True)
@@ -799,14 +814,14 @@ class CommandEndNode4(Node4):
 
 
 @dataclass(frozen=True)
-class TacticNode4(Node4):
+class OtherNode4(Node4):
     kind: str  # type: ignore
     state_before: Optional[str] = None
     state_after: Optional[str] = None
     tactic: Optional[str] = None
 
     @classmethod
-    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "TacticNode4":
+    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "OtherNode4":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -822,6 +837,6 @@ def is_potential_premise_lean4(node: Node4) -> bool:
 
 
 def is_mutual_lean4(node: Node4) -> bool:
-    return False
-    # TODO: Add more.
-    return type(node) in (DefinitionNode, InductiveNode) and node.is_mutual
+    return (type(node) in (IdentNode4, CommandTheoremNode4) 
+            and node.full_name is not None 
+            and node.is_mutual)

@@ -17,6 +17,9 @@ deriving instance ToJson for Position
 namespace LeanDojo
 
 
+set_option maxHeartbeats 0 -- Peiyang 7/19/2023: Dangerous! Debugging helper.
+
+
 structure TacticTrace where
   stateBefore: String
   stateAfter: String
