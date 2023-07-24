@@ -24,7 +24,7 @@ def test_env():
     )
     logger.info(f"Proving {theorem}")
 
-    with Dojo(theorem) as (dojo, init_state):
+    with TheoremProvingDojo(theorem) as (dojo, init_state):
         env = dojo.query_env(init_state)
         for name in tqdm(env):
             assert dojo.query_type(init_state, name) is not None
