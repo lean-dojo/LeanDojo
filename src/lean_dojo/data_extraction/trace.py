@@ -68,13 +68,12 @@ def _trace(repo: LeanGitRepo) -> None:
 
 def _trace_lean3(repo: LeanGitRepo) -> None:
     # Trace `repo` in the current working directory.
-    lean_version = repo.get_required_lean_version()
     if repo.is_lean:
-        _modify_lean3(lean_version)
+        _modify_lean3(repo.lean_version)
     else:
         repo.clone_and_checkout()
         with working_directory(Path(repo.name) / "_target/deps"):
-            _modify_lean3(lean_version)
+            _modify_lean3(repo.lean_version)
 
     logger.debug(f"Tracing {repo}")
     container = get_container()
@@ -168,6 +167,9 @@ def trace(repo: LeanGitRepo, dst_dir: Optional[Union[str, Path]] = None) -> Trac
     if dst_dir is not None:
         dst_dir.mkdir(parents=True)
         shutil.copytree(cached_path, dst_dir / cached_path.name)
-        execute(f"chmod -R a+w {dst_dir}")
 
     return traced_repo
+
+
+def trace_local(path: Path) -> TracedRepo:
+    raise NotImplementedError

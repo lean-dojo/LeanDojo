@@ -211,21 +211,6 @@ def remove_optional_type(tp: type) -> type:
         raise ValueError(f"{tp} is not Optional")
 
 
-def convert_tag_to_commit_hash(url: str, tag: str) -> str:
-    with working_directory():
-        execute(f"git clone -n {url}", capture_output=True)
-        repo_name = url.split("/")[-1]
-        with working_directory(repo_name):
-            try:
-                output, _ = execute(f"git rev-list -n 1 {tag}", capture_output=True)
-            except subprocess.CalledProcessError:
-                output, _ = execute(
-                    f"git rev-list -n 1 origin/{tag}", capture_output=True
-                )
-            commit = output.strip()
-            return commit
-
-
 def get_line_creation_date(repo_path: Path, file_path: Path, line_nb: int):
     """Return the date of creation of the line ``line_nb`` in the file ``file_path`` of the Git repo ``repo_path``."""
     with working_directory(repo_path):
@@ -280,15 +265,11 @@ def parse_str_list(s: str) -> List[str]:
 
 def get_latest_commit(url: str) -> str:
     """Get the hash of the latest commit of the Git repo at ``url``."""
-    with working_directory():
-        execute(f"git clone -n {url}", capture_output=True)
-        _, name = os.path.split(url)
-        with working_directory(name):
-            output, _ = execute("git log -n 1", capture_output=True)
-            line = output.splitlines()[0]
-            m = re.fullmatch(r"commit (?P<commit>[0-9a-z]+)", line)
-            assert m is not None
-            return m["commit"]
+    url = os.path.join(url, "commits")
+    html = read_url(url)
+    m = re.search(r"commits/(?P<commit>[a-z0-9]+)/commits_list_item", html)
+    assert len(m["commit"]) == 40
+    return m["commit"]
 
 
 def is_git_repo(path: Path) -> bool:

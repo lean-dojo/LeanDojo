@@ -119,9 +119,10 @@ def _get_all_dependencies(
 class Dojo:
     """Gym-like environment for programmatic interaction with a given theorem in Lean."""
 
+    theorem: Theorem
     hard_timeout: Optional[float] = None
-    origin_dir: Path = field(init=False, repr=False)
-    tmp_dir: Path = field(init=False)
+    origin_dir: Optional[Path] = field(default=None, repr=False)
+    tmp_dir: Optional[Path] = None
     start_time: float = field(init=False, repr=False)
     is_successful: bool = False
     is_crashed: bool = False
@@ -164,16 +165,10 @@ class Dojo:
         """Clean up the temporary directory."""
         logger.debug("Cleaning up the temporary directory.")
         os.chdir(self.origin_dir)
-        if os.path.exists(self.tmp_dir):
+        if self.tmp_dir is not None and os.path.exists(self.tmp_dir):
             shutil.rmtree(self.tmp_dir)
 
-
-@dataclass
-class TacticDojo(Dojo):
-    theorem: Optional[Theorem] = None
-
     def __post_init__(self):
-        assert self.theorem is not None
         if (
             self.theorem.repo.name == "lean4"
             and self.theorem.file_path.parts[0] == "src"
@@ -188,8 +183,8 @@ class TacticDojo(Dojo):
     def uses_lean4(self) -> bool:
         return self.theorem.repo.uses_lean4
 
-    def __enter__(self) -> Tuple["TacticDojo", TacticState]:
-        """Initialize TacticDojo.
+    def __enter__(self) -> Tuple["Dojo", TacticState]:
+        """Initialize Dojo.
 
         Raises:
             DojoInitError: _description_
@@ -197,7 +192,7 @@ class TacticDojo(Dojo):
         Returns:
             _type_: _description_
         """
-        logger.debug(f"Initializing TacticDojo for {self.theorem}")
+        logger.debug(f"Initializing Dojo for {self.theorem}")
 
         # Work in a temporary directory.
         self.origin_dir = Path.cwd()
@@ -219,7 +214,6 @@ class TacticDojo(Dojo):
                 repo.name,
                 ignore=ignore_patterns("*.dep_paths", "*.ast.json", "*.trace.xml"),
             )
-            execute(f"chmod -R a+w {repo.name}")
             os.chdir(repo.name)
 
             # Replace the human-written proof with a `repl` tactic.
@@ -288,12 +282,12 @@ class TacticDojo(Dojo):
                 else:
                     raise ex
 
-            assert res["error"] is None and res["tactic_state"] != "no goals"
+            assert res["error"] is None and res["tacticState"] != "no goals"
             # logger.debug(f"Response: {res}")
-            tactic_state = self._post_process(res["tactic_state"])
+            tactic_state = self._post_process(res["tacticState"])
             init_state = TacticState(
                 tactic_state,
-                res["tsid"],
+                res["sid"],
             )
 
             self.start_time = time.monotonic()
@@ -309,7 +303,7 @@ class TacticDojo(Dojo):
             raise ex
 
     def __exit__(self, exc_type: None, exc_val: None, exc_tb: None) -> None:
-        """Exit TacticDojo.
+        """Exit Dojo.
 
         Args:
             exc_type (None): _description_
@@ -418,7 +412,7 @@ class TacticDojo(Dojo):
 
         tsid = state.id
         if self.uses_lean4:
-            req = json.dumps({"tsid": tsid, "tac": tactic})
+            req = json.dumps({"sid": tsid, "cmd": tactic})
         else:
             req = json.dumps(["run_tac", [tsid, tactic]])
         res = self._submit_request(req)
@@ -430,14 +424,14 @@ class TacticDojo(Dojo):
                 return TimeoutError(res["error"].strip())
             else:
                 return TacticError(res["error"].strip())
-        elif res["tactic_state"] == "no goals":
+        elif res["tacticState"] == "no goals":
             self.is_successful = True
-            return ProofFinished(res["tsid"], res["message"])
+            return ProofFinished(res["sid"], res["message"])
         else:
-            tactic_state = self._post_process(res["tactic_state"])
+            tactic_state = self._post_process(res["tacticState"])
             return TacticState(
                 tactic_state,
-                res["tsid"],
+                res["sid"],
                 res["message"],
             )
 

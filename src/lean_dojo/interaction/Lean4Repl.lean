@@ -253,8 +253,8 @@ private def loop (m : Type → Type) [Monad m] [MonadLift IO m] [MonadError m] (
 namespace TacticRepl
 
 /--
-{"tsid": 0, "tac": "skip"}
-{"tsid": 1, "tac": "rw [add_assoc, add_comm b, ←add_assoc]"}
+{"sid": 0, "cmd": "skip"}
+{"sid": 1, "cmd": "rw [add_assoc, add_comm b, ←add_assoc]"}
 exit
 --/
 def repl : TacticM Unit := do
@@ -319,6 +319,13 @@ private def handleRunCmd (req : Request) : CommandReplM Response := do
     return {sid := next_csid, error := join errors.toList}
 
 
+/--
+{"csid": 0, "cmd": "#eval 1"}
+{"csid": 1, "cmd": "#eval x"}
+{"csid": 0, "cmd": "def x := 1"}
+{"csid": 3, "cmd": "#eval x"}
+exit
+--/
 def repl : CommandElabM Unit := do
   let cs ← initializeRepl
   let loop := LeanDojo.loop CommandReplM handleRunCmd
@@ -334,12 +341,5 @@ end LeanDojo
 elab "lean_dojo_repl" : tactic => LeanDojo.TacticRepl.repl
 
 
-/-- The `#lean_dojo_repl` command.
-
-{"csid": 0, "cmd": "#eval 1"}
-{"csid": 1, "cmd": "#eval x"}
-{"csid": 0, "cmd": "def x := 1"}
-{"csid": 3, "cmd": "#eval x"}
-exit
---/
+/-- The `#lean_dojo_repl` command. --/
 elab "#lean_dojo_repl" : command => LeanDojo.CommandRepl.repl

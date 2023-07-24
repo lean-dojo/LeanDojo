@@ -18,9 +18,21 @@ from ..utils import (
     get_repo_info,
     working_directory,
     get_latest_commit,
-    convert_tag_to_commit_hash,
 )
 from ..constants import LEAN3_URL, LEAN4_URL, LEAN4_NIGHTLY_URL
+
+
+def _convert_tag_to_commit_hash(url: str, tag: str) -> str:
+    with working_directory():
+        execute(f"git clone -n {url}", capture_output=True)
+        repo_name = url.split("/")[-1]
+        with working_directory(repo_name):
+            output, _ = execute(
+                f"git rev-list -n 1 {tag} 2>/dev/null || git rev-list -n 1 origin/{tag} 2>/dev/null",
+                capture_output=True,
+            )
+            commit = output.strip()
+            return commit
 
 
 @dataclass(eq=True, unsafe_hash=True)
@@ -283,6 +295,23 @@ def get_lean4_commit_from_config(config: str) -> str:
     return m["commit"]
 
 
+URL = TAG = COMMIT = str
+
+
+@dataclass(frozen=True)
+class RepoInfoCache:
+    """To minize the number of network requests, we cache and re-use the info
+    of all repos, assuming it does not change during the execution of LeanDojo."""
+
+    tag2commit: Dict[Tuple[URL, TAG], COMMIT] = field(default_factory=dict)
+    uses_lean3: Dict[Tuple[URL, COMMIT], bool] = field(default_factory=dict)
+    uses_lean4: Dict[Tuple[URL, COMMIT], bool] = field(default_factory=dict)
+    lean_version: Dict[Tuple[URL, COMMIT], str] = field(default_factory=dict)
+
+
+info_cache = RepoInfoCache()
+
+
 @dataclass(frozen=True)
 class LeanGitRepo:
     """Git repo of a Lean project."""
@@ -299,20 +328,74 @@ class LeanGitRepo:
     You can also use tags such as ``v3.5.0``. They will be converted to commit hashes.
     """
 
+    name: str = field(init=False, repr=False)
+    """The repo's name.
+    """
+
+    uses_lean3: bool = field(init=False, repr=False)
+    """Whether the repo uses Lean 3.
+    """
+
+    uses_lean4: bool = field(init=False, repr=False)
+    """Whether the repo uses Lean 4.
+    """
+
+    lean_version: str = field(init=False, repr=False)
+    """Required Lean version.
+    """
+
     def __post_init__(self) -> None:
         if "github.com" not in self.url:
             raise ValueError(f"{self.url} is not a Github URL")
-        if self.url.startswith("git@"):
-            raise ValueError(
-                f"{self.url} is a SSH URL. Please use the HTTPS URL instead."
-            )
+        if not self.url.startswith("https://"):
+            raise ValueError(f"{self.url} is not a valid URL")
+        object.__setattr__(self, "name", os.path.split(self.url)[-1])
 
         # Convert tags to commit hashes
         if not (len(self.commit) == 40 and _COMMIT_REGEX.fullmatch(self.commit)):
-            logger.debug(f"Querying the commit hash for {self.name} {self.commit}")
-            commit = convert_tag_to_commit_hash(self.url, self.commit)
-            assert _COMMIT_REGEX.fullmatch(commit), f"Invalid commit hash: {commit}"
+            if (self.url, self.commit) in info_cache.tag2commit:
+                commit = info_cache.tag2commit[(self.url, self.commit)]
+            else:
+                logger.debug(f"Querying the commit hash for {self.name} {self.commit}")
+                commit = _convert_tag_to_commit_hash(self.url, self.commit)
+                assert _COMMIT_REGEX.fullmatch(commit), f"Invalid commit hash: {commit}"
+                info_cache.tag2commit[(self.url, self.commit)] = commit
             object.__setattr__(self, "commit", commit)
+
+        # Determine whether the repo uses Lean 3 or Lean 4
+        if (self.url, self.commit) in info_cache.uses_lean3:
+            uses_lean3 = info_cache.uses_lean3[(self.url, self.commit)]
+        else:
+            uses_lean3 = self.is_lean3 or url_exists(
+                self._get_config_url("leanpkg.toml")
+            )
+        info_cache.uses_lean3[(self.url, self.commit)] = uses_lean3
+        object.__setattr__(self, "uses_lean3", uses_lean3)
+
+        if (self.url, self.commit) in info_cache.uses_lean4:
+            uses_lean4 = info_cache.uses_lean4[(self.url, self.commit)]
+        else:
+            uses_lean4 = self.is_lean4 or url_exists(
+                self._get_config_url("lean-toolchain")
+            )
+        info_cache.uses_lean4[(self.url, self.commit)] = uses_lean4
+        object.__setattr__(self, "uses_lean4", uses_lean4)
+
+        assert uses_lean3 ^ uses_lean4
+
+        # Determine the required Lean version, e.g., ``v3.50.3``.
+        if (self.url, self.commit) in info_cache.lean_version:
+            lean_version = info_cache.lean_version[(self.url, self.commit)]
+        elif self.is_lean:
+            lean_version = self.commit
+        elif uses_lean3:
+            config = self.get_config("leanpkg.toml")
+            lean_version = get_lean3_version_from_config(config)
+        else:
+            config = self.get_config("lean-toolchain")
+            lean_version = get_lean4_commit_from_config(config)
+        info_cache.lean_version[(self.url, self.commit)] = lean_version
+        object.__setattr__(self, "lean_version", lean_version)
 
     @classmethod
     def from_path(cls, path: Path) -> "LeanGitRepo":
@@ -321,38 +404,17 @@ class LeanGitRepo:
         return cls(url, commit)
 
     @property
-    def name(self) -> str:
-        """Return the name of the repo."""
-        return os.path.split(self.url)[-1]
-
-    @property
     def is_lean4(self) -> bool:
-        lean4_url_suffix = LEAN4_URL[len("https://") :]
-        return self.url.endswith(lean4_url_suffix)
+        return self.url == LEAN4_URL
 
     @property
     def is_lean3(self) -> bool:
-        lean3_url_suffix = LEAN3_URL[len("https://") :]
-        return self.url.endswith(lean3_url_suffix)
+        return self.url == LEAN3_URL
 
     @property
     def is_lean(self) -> bool:
         """Check if the repo is Lean itself."""
         return self.is_lean3 or self.is_lean4
-
-    @property
-    def uses_lean3(self) -> bool:
-        if self.is_lean3:
-            return True
-        config_url = self._get_config_url("leanpkg.toml")
-        return url_exists(config_url)
-
-    @property
-    def uses_lean4(self) -> bool:
-        if self.is_lean4:
-            return True
-        config_url = self._get_config_url("lean-toolchain")
-        return url_exists(config_url)
 
     @property
     def commit_url(self) -> str:
@@ -374,21 +436,6 @@ class LeanGitRepo:
                 f"git checkout {self.commit} && git submodule update --recursive",
                 capture_output=True,
             )
-
-    def get_required_lean_version(self) -> str:
-        """Return the Lean version required by the repo.
-
-        Returns:
-            str: Lean version tag such as ``v3.50.3``
-        """
-        if self.is_lean:
-            return self.commit
-        if self.uses_lean3:
-            config = self.get_config("leanpkg.toml")
-            return get_lean3_version_from_config(config)
-        else:
-            config = self.get_config("lean-toolchain")
-            return get_lean4_commit_from_config(config)
 
     def get_dependencies(
         self, path: Union[str, Path, None] = None
@@ -450,7 +497,7 @@ class LeanGitRepo:
                 commit = rev
             else:
                 logger.debug(f"Querying the commit hash for {url} {rev}")
-                commit = convert_tag_to_commit_hash(url, rev)
+                commit = _convert_tag_to_commit_hash(url, rev)
                 assert _COMMIT_REGEX.fullmatch(commit)
 
             deps.append((m["name"], LeanGitRepo(url, commit)))

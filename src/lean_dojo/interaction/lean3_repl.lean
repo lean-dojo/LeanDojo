@@ -186,8 +186,8 @@ meta instance : has_from_json LeanREPLRequest := ⟨λ msg, match msg with
 ⟩
 
 meta structure LeanREPLResponse : Type :=
-(tsid : option nat)
-(tactic_state : option string)
+(sid : option nat)
+(tacticState : option string)  -- To be consistent with Lean 4's
 (env_fingerprint: option string)
 (environment: option (list string))
 (declaration: option (list (string × string)))
@@ -196,11 +196,11 @@ meta structure LeanREPLResponse : Type :=
 meta def LeanREPLResponse.to_json: LeanREPLResponse → json
 | ⟨tsid, ts, ef, env, decl, err⟩ :=
     json.object [
-      ⟨"tsid", match tsid with
+      ⟨"sid", match tsid with
         | none := json.null
         | some tsid := json.of_int (int.of_nat tsid)
         end⟩,
-      ⟨"tactic_state", match ts with
+      ⟨"tacticState", match ts with
         | none := json.null
         | some ts := json.of_string ts
         end⟩,
