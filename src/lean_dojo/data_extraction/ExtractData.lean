@@ -17,7 +17,7 @@ deriving instance ToJson for Position
 namespace LeanDojo
 
 
-set_option maxHeartbeats 0 -- Peiyang 7/19/2023: Dangerous! Debugging helper.
+set_option maxHeartbeats 2000000  -- 10x the default maxHeartbeats.
 
 
 structure TacticTrace where
@@ -242,30 +242,33 @@ private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : Info
 
 
 private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := do
-  let fullName := ti.expr.constName!
+  let some fullName := ti.expr.constName? | return ()
+  let fileMap ← getFileMap
 
-  let posBeforeUgly := ti.toElabInfo.stx.getPos?
-  let mut posBefore := none
-  match posBeforeUgly with
-    | some posInfo => posBefore := (← getFileMap).toPosition posInfo
-    | none => posBefore := none
+  let posBefore := match ti.toElabInfo.stx.getPos? with
+    | some posInfo => fileMap.toPosition posInfo
+    | none => none
 
-  let posAfterUgly := ti.toElabInfo.stx.getTailPos?
-  let mut posAfter := none
-  match posAfterUgly with
-    | some posInfo => posAfter := (← getFileMap).toPosition posInfo
-    | none => posAfter := none
+  let posAfter := match ti.toElabInfo.stx.getTailPos? with
+    | some posInfo => fileMap.toPosition posInfo
+    | none => none
 
-  let modIdx := env.const2ModIdx.find? fullName
-
-  let modName := env.header.moduleNames[modIdx.get!.toNat]!
+  let some modIdx := env.const2ModIdx.find? fullName | return ()
+  let modName := env.header.moduleNames[modIdx.toNat]!
 
   let decRanges ← findDeclarationRanges? fullName
-  let defPos := decRanges.bind fun (decR : DeclarationRanges) => decR.selectionRange.pos
-  let defEndPos := decRanges.bind fun (decR : DeclarationRanges) => decR.selectionRange.endPos
+  let defPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.pos
+  let defEndPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.endPos
 
   modifyGet fun trace => ((),
-    { trace with premises := trace.premises.push { fullName := toString fullName, defPos := defPos, defEndPos := defEndPos, pos := posBefore, endPos := posAfter, modName := toString modName} }
+    { trace with premises := trace.premises.push {
+      fullName := toString fullName,
+      defPos := defPos,
+      defEndPos := defEndPos,
+      pos := posBefore,
+      endPos := posAfter,
+      modName := toString modName}
+    }
   )
 
 
@@ -286,7 +289,7 @@ private partial def traverseTree (ctx: ContextInfo) (tree : InfoTree) (parent : 
   | _ => pure ()
 
 
-def traverseTopLevelTree (tree : InfoTree) (env : Environment) : TraceM Unit := do
+private def traverseTopLevelTree (tree : InfoTree) (env : Environment) : TraceM Unit := do
   match tree with
   | .context ctx t => traverseTree ctx t tree env
   | _ => pure ()
@@ -300,6 +303,8 @@ def traverseForest (trees : Array InfoTree) (env : Environment) : TraceM Trace :
 
 end Traversal
 
+
+open Traversal
 
 -- Trace a *.lean file.
 unsafe def processFile (path : FilePath) : IO Unit := do
@@ -323,7 +328,7 @@ unsafe def processFile (path : FilePath) : IO Unit := do
   let s ← IO.processCommands inputCtx parserState commandState
   let commands := s.commands.pop -- Remove EOI command.
   let trees := s.commandState.infoState.trees.toArray
-  let traceM := (Traversal.traverseForest trees env).run' ⟨#[header] ++ commands, #[], #[]⟩
+  let traceM := (traverseForest trees env).run' ⟨#[header] ++ commands, #[], #[]⟩
   let (trace, _) ← traceM.run'.toIO {fileName := s!"{path}", fileMap := FileMap.ofString input} {env := env}
 
   let cwd ← IO.currentDir
@@ -376,17 +381,20 @@ open LeanDojo
 
 -- Whether a *.lean file should be traced.
 def shouldProcess (path : FilePath) : IO Bool := do
-  if path.extension != "lean" then 
+  if path.extension != "lean" then
     return false
 
   let cwd ← IO.currentDir
-  let some relativePath := Path.relativeTo path cwd | throw $ IO.userError s!"Invalid path: {path}"
-  
+  let some relativePath := Path.relativeTo path cwd |
+    throw $ IO.userError s!"Invalid path: {path}"
+
   if cwd.fileName == "lean4" then
-    let oleanPath := mkFilePath $ "lib" :: (relativePath.withExtension "olean").components.tail!
+    let oleanPath := mkFilePath $ "lib" ::
+      (relativePath.withExtension "olean").components.tail!
     return ← oleanPath.pathExists
   else
-    let some oleanPath := Path.toBuildDir "lib" relativePath "olean" | throw $ IO.userError s!"Invalid path: {path}"
+    let some oleanPath := Path.toBuildDir "lib" relativePath "olean" |
+      throw $ IO.userError s!"Invalid path: {path}"
     return ← oleanPath.pathExists
 
 

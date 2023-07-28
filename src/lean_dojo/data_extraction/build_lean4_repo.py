@@ -146,10 +146,6 @@ def main() -> None:
         num_dep = len(glob("build/ir/**/*.dep_paths", recursive=True))
         num_c = len(glob("build/ir/**/*.c", recursive=True))
         assert num_json == num_dep == num_c, f"{num_json} {num_dep} {num_c}"
-        # Peiyang 7/17/2023: Debugging helper: a weaker version of alert.
-        # if not num_json == num_dep == num_c:
-        #     assert num_json == num_dep, f"{num_json} JSON and {num_dep} DEP_PATHS files do not match"
-        #     logger.warning(f"{num_c - num_json} files not traced: ExtractData.lean failed silently")
 
 
 if __name__ == "__main__":

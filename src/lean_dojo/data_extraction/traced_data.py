@@ -217,6 +217,7 @@ class TracedTactic:
         cur = self.start
 
         if self.uses_lean3:
+
             def _callback3(node: IdentNode, _):
                 nonlocal cur
 
@@ -225,7 +226,9 @@ class TracedTactic:
                         logger.warning(f"Unable to locate {node.full_name}")
                     else:
                         annot_tac.append(lean_file[cur : node.start])
-                        annot_tac.append("<a>" + lean_file[node.start : node.end] + "</a>")
+                        annot_tac.append(
+                            "<a>" + lean_file[node.start : node.end] + "</a>"
+                        )
                         prov = {"full_name": node.full_name}
                         prov["def_path"] = node.def_path
                         prov["def_pos"] = list(node.def_pos)
@@ -242,14 +245,17 @@ class TracedTactic:
             def _callback4(node: IdentNode4, _):
                 nonlocal cur
 
-                if (node.full_name is not None 
-                    and node.mod_name is not None 
-                    and node.def_start is not None 
+                if (
+                    node.full_name is not None
+                    and node.mod_name is not None
+                    and node.def_start is not None
                     and node.def_end is not None
                 ):
                     if cur <= node.start:
                         annot_tac.append(lean_file[cur : node.start])
-                        annot_tac.append("<a>" + lean_file[node.start : node.end] + "</a>")
+                        annot_tac.append(
+                            "<a>" + lean_file[node.start : node.end] + "</a>"
+                        )
                         prov = {"full_name": node.full_name}
                         def_path = (node.mod_name).replace(".", "/") + ".lean"
                         prov["def_path"] = def_path
@@ -665,7 +671,9 @@ class TracedFile:
         data = json.load(json_path.open())
 
         data["module_paths"] = []
-        for line in json_path.with_suffix("").with_suffix("").with_suffix(".dep_paths").open():
+        for line in (
+            json_path.with_suffix("").with_suffix("").with_suffix(".dep_paths").open()
+        ):
             line = line.strip()
             if line == "":
                 break
@@ -673,7 +681,14 @@ class TracedFile:
 
         ast = FileNode4.from_data(data, lean_file)
         comments = _collect_lean4_comments(ast)
-        TracedFile._post_process_lean4(ast, lean_file, data["tactics"], data["premises"], data["module_paths"], comments)
+        TracedFile._post_process_lean4(
+            ast,
+            lean_file,
+            data["tactics"],
+            data["premises"],
+            data["module_paths"],
+            comments,
+        )
 
         return cls(root_dir, lean_file, ast, None, comments)
 
@@ -755,8 +770,8 @@ class TracedFile:
                 continue
             start_line_nb, start_column_nb = p["pos"]["line"], p["pos"]["column"]
             end_line_nb, end_column_nb = p["endPos"]["line"], p["endPos"]["column"]
-            start = Pos(line_nb=start_line_nb, column_nb=start_column_nb+1)
-            end = Pos(line_nb=end_line_nb, column_nb=end_column_nb+1)
+            start = Pos(line_nb=start_line_nb, column_nb=start_column_nb + 1)
+            end = Pos(line_nb=end_line_nb, column_nb=end_column_nb + 1)
             pos2premises[(start, end)] = p
 
         inside_sections_namespaces = []
@@ -812,19 +827,27 @@ class TracedFile:
                     assert start is not None
                     assert end is not None
                     p = pos2premises[(start, end)]
-                    prem = get_code_without_comments(
-                        lean_file, start, end, comments
-                    )
+                    prem = get_code_without_comments(lean_file, start, end, comments)
                     prem = _fix_indentation(prem, start.column_nb - 1)
                     if p["fullName"] is not None:
                         object.__setattr__(node, "full_name", p["fullName"])
                     if p["modName"] is not None:
                         object.__setattr__(node, "mod_name", p["modName"])
                     if p["defPos"] is not None and p["defEndPos"] is not None:
-                        def_start_line_nb, def_start_column_nb = p["defPos"]["line"], p["defPos"]["column"]
-                        def_end_line_nb, def_end_column_nb = p["defEndPos"]["line"], p["defEndPos"]["column"]
-                        def_start = Pos(line_nb=def_start_line_nb, column_nb=def_start_column_nb+1)
-                        def_end = Pos(line_nb=def_end_line_nb, column_nb=def_end_column_nb+1)
+                        def_start_line_nb, def_start_column_nb = (
+                            p["defPos"]["line"],
+                            p["defPos"]["column"],
+                        )
+                        def_end_line_nb, def_end_column_nb = (
+                            p["defEndPos"]["line"],
+                            p["defEndPos"]["column"],
+                        )
+                        def_start = Pos(
+                            line_nb=def_start_line_nb, column_nb=def_start_column_nb + 1
+                        )
+                        def_end = Pos(
+                            line_nb=def_end_line_nb, column_nb=def_end_column_nb + 1
+                        )
                         object.__setattr__(node, "def_start", def_start)
                         object.__setattr__(node, "def_end", def_end)
             elif type(node) in (ModuleImportNode4,):
@@ -832,7 +855,9 @@ class TracedFile:
                 if node_module_name is not None:
                     suffix = node_module_name.replace(".", "/")
                     for import_line in imports_data:
-                        if import_line.endswith(suffix + ".lean") or import_line.endswith(suffix + "/default.lean"):
+                        if import_line.endswith(
+                            suffix + ".lean"
+                        ) or import_line.endswith(suffix + "/default.lean"):
                             object.__setattr__(node, "path", Path(import_line))
 
         ast.traverse_preorder(_callback, node_cls=None)
@@ -1041,7 +1066,9 @@ class TracedFile:
                                     "kind": node.kind(),
                                 }
                             )
-                    elif node.full_name is not None and not node.name.startswith("user__"):
+                    elif node.full_name is not None and not node.name.startswith(
+                        "user__"
+                    ):
                         results.append(
                             {
                                 "full_name": node.full_name,
@@ -1083,7 +1110,9 @@ class TracedFile:
                                     "kind": node.kind(),
                                 }
                             )
-                    elif node.full_name is not None and not node.name.startswith("user__"):
+                    elif node.full_name is not None and not node.name.startswith(
+                        "user__"
+                    ):
                         results.append(
                             {
                                 "full_name": node.full_name,

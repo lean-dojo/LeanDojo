@@ -38,7 +38,7 @@ class Node4:
         else:
             # logger.warning(kind)
             return OtherNode4
-        
+
     @classmethod
     def kind(cls: type) -> str:
         return cls.__name__[:-4].lower()
@@ -195,7 +195,7 @@ class IdentNode4(Node4):
             ident_data["rawVal"],
             ident_data["val"],
         )
-    
+
     @property
     def is_mutual(self) -> bool:
         return not isinstance(self.full_name, str)
@@ -461,7 +461,9 @@ class TermTypespecNode4(Node4):
 class CommandTheoremNode4(Node4):
     name: str
     full_name: Optional[str] = None
-    _is_private_decl: Optional[bool] = False  # `_is_private` doesn't play well with lxml.
+    _is_private_decl: Optional[
+        bool
+    ] = False  # `_is_private` doesn't play well with lxml.
 
     @classmethod
     def from_data(
@@ -524,7 +526,7 @@ class CommandTheoremNode4(Node4):
     def has_tactic_proof(self) -> bool:
         node = self.get_proof_node()
         return isinstance(node, TermBytacticNode4)
-    
+
     @property
     def is_mutual(self) -> bool:
         return not isinstance(self.name, str)
@@ -837,6 +839,8 @@ def is_potential_premise_lean4(node: Node4) -> bool:
 
 
 def is_mutual_lean4(node: Node4) -> bool:
-    return (type(node) in (IdentNode4, CommandTheoremNode4) 
-            and node.full_name is not None 
-            and node.is_mutual)
+    return (
+        type(node) in (IdentNode4, CommandTheoremNode4)
+        and node.full_name is not None
+        and node.is_mutual
+    )

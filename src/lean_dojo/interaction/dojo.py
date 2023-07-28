@@ -192,7 +192,7 @@ class Dojo:
         Returns:
             _type_: _description_
         """
-        logger.debug(f"Initializing TheoremProvingDojo for {self.theorem}")
+        logger.debug(f"Initializing Dojo for {self.theorem}")
 
         # Work in a temporary directory.
         self.origin_dir = Path.cwd()
@@ -303,7 +303,7 @@ class Dojo:
             raise ex
 
     def __exit__(self, exc_type: None, exc_val: None, exc_tb: None) -> None:
-        """Exit TheoremProvingDojo.
+        """Exit Dojo.
 
         Args:
             exc_type (None): _description_

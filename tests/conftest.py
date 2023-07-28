@@ -85,6 +85,7 @@ def minif2f_repo():
     return LeanGitRepo(MINIF2F_URL, commit)
 
 
+"""
 @pytest.fixture(scope="session")
 def local_traced_repo():
     commit = get_latest_commit(LEAN4_EXAMPLE_URL)
@@ -95,6 +96,7 @@ def local_traced_repo():
         with working_directory(repo.name):
             shutil.rmtree(".git")
         return trace_local(repo.name)
+"""
 
 
 @pytest.fixture(scope="session", params=URLS)
