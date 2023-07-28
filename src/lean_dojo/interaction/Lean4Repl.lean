@@ -1,62 +1,87 @@
+-- REPL for interacting with Lean 4 via the command line.
 import Lean.Elab.Tactic
-open Lean Lean.Meta Lean.Elab Lean.Elab.Tactic
+import Lean.Elab.Frontend
+
+open Lean Lean.Meta Lean.Elab Lean.Elab.Command Lean.Elab.Tactic
 
 namespace LeanDojo
 
+
+/-- Print the response as JSON. --/
+private def printResponse {α : Type _} [ToJson α] (res : α) : IO Unit := do
+  let json := (toJson res).pretty 99999999999999999
+  println! "REPL> {json}"
+  (← IO.getStdout).flush
+
+
+/-- Join a list of strings using a separator. --/
+private def join (l : List String) (sep : String := "\n") : String :=
+  match l with
+  | [] => ""
+  | first :: others => others.foldl (fun r s => r ++ sep ++ s) first
+
+
 /-- A request to REPL. --/
 structure Request where
-  /-- Tactic state ID on which to execute the request. -/
-  tsid: Nat
-  /-- Tactic. --/
-  tac: String
+  /-- Tactic/command state ID on which to execute the request. -/
+  sid: Nat
+  /-- Tactic/command. --/
+  cmd: String
 deriving FromJson, ToJson
 
 
 /-- A response to REPL. --/
 structure Response where
-  /-- New tactic state ID. --/
-  tsid : Option Nat := none
+  /-- New tactic/command state ID. --/
+  sid : Option Nat := none
   /-- Next tactic state. --/
-  tactic_state : Option String := none
+  tacticState : Option String := none
   /-- Error message. --/
   error: Option String := none
 deriving ToJson
 
 
 /-- The state of the REPL. --/
-structure ReplState where
-  /-- Saved tactic states. --/
-  saved_states : Array Tactic.SavedState
+structure ReplState (σ : Type _) where
+  /-- Saved tactic/command states. --/
+  savedStates : Array σ
   /-- The first solved tactic state. --/
-  solved_ts : Option Tactic.SavedState
-
-
-/-- The REPL monad. --/
-abbrev ReplM := StateT ReplState TacticM
+  solvedState : Option σ
 
 
 /-- Get the saved tactic state with the given ID. --/
-def getSavedState?(tsid : Nat) : ReplM (Option Tactic.SavedState) := do
-  return (← get).saved_states[tsid]?
+private def getSavedState? (m : Type → Type) [Monad m] [MonadState (ReplState σ) m] (sid : Nat) : m (Option σ) := do
+  return (← get).savedStates[sid]?
 
 
 /-- Get the initial tactic state. --/
-def getInitialState : ReplM Tactic.SavedState := do
-  let some ts ← getSavedState? 0 | throwError "[fatal] no initial state"
+private def getInitialState! (m : Type → Type) [Monad m] [MonadState (ReplState σ) m] [MonadError m] : m σ := do
+  let some ts ← getSavedState? m 0 | throwError "[fatal] no initial state"
   return ts
 
 
-/-- Get the next tactic state ID. --/
-def getNextTsid : ReplM Nat := do
-  return (← get).saved_states.size
+/-- Get the next state ID. --/
+private def getNextSid (m : Type → Type) [Monad m] [MonadState (ReplState σ) m] : m Nat := do
+  return (← get).savedStates.size
+
+
+namespace TacticRepl
+
+
+/-- The tactic REPL monad. --/
+abbrev TacticReplM := StateT (ReplState Tactic.SavedState) TacticM
+
+
+instance : MonadLift IO TacticReplM where
+  monadLift x := liftM x
 
 
 /-- Insert a tactic state into the REPL state. --/
-def insert (ts : Tactic.SavedState) : ReplM Unit := do
+private def insertTacticState (ts : Tactic.SavedState) : TacticReplM Unit := do
   let succeeded := ts.tactic.goals.isEmpty
-  modifyGet fun s => ((), ⟨s.saved_states.push ts,
-    match s.solved_ts with
-    | some _ => s.solved_ts
+  modifyGet fun s => ((), ⟨s.savedStates.push ts,
+    match s.solvedState with
+    | some _ => s.solvedState
     | none => if succeeded then ts else none
   ⟩)
 
@@ -70,20 +95,14 @@ def ppTacticState (ts : Tactic.SavedState) : TacticM String := do
       return (← goals.foldlM (fun a b => do return a ++ "\n\n" ++ (← Meta.ppGoal b).pretty) "").trim
 
 
-/-- Print the response as JSON. --/
-private def printResponse (res : Response) : IO Unit := do
-  let json := (toJson res).pretty 99999999999999999
-  println! "REPL> {json}"
-  (← IO.getStdout).flush
-
-
 /-- Initialize the REPL. --/
-private def initializeRepl : TacticM Tactic.SavedState := do
-  if not (← isProp (← getMainTarget)) then throwError "[fatal] not_a_theorem"
+private def initializeTacticRepl : TacticM Tactic.SavedState := do
+  if not (← isProp (← getMainTarget)) then
+    throwError "[fatal] not_a_theorem"
   pruneSolvedGoals
   let ts ← Tactic.saveState
   let ts_str ← ppTacticState ts
-  let res : Response := {tsid := some 0, tactic_state := ts_str}
+  let res : Response := {sid := some 0, tacticState := ts_str}
   printResponse res
   return ts
 
@@ -138,11 +157,11 @@ private def abstractAllLambdaFVars (e : Expr) : MetaM Expr := do
   return e'
 
 
-private def validateProof : ReplM Response := do
+private def validateProof : TacticReplM Response := do
   let ts ← Tactic.saveState
 
   -- Go to the initial state and grab the goal's metavariable ID.
-  let ts0 ← getInitialState
+  let ts0 ← getInitialState! TacticReplM
   ts0.restore
   let [goalId] ← getGoals | throwError "[fatal] more than one initial goal"
   let tgt ← getMainTarget >>= instantiateMVars
@@ -181,27 +200,23 @@ private def validateProof : ReplM Response := do
     return {error := s!"kernel type check failed: {← ex.toMessageData.toString}"}
 
   let ts_str ← ppTacticState ts
-  let next_tsid ← getNextTsid
-  insert ts
-  return {tsid := next_tsid, tactic_state := ts_str}
+  let next_tsid ← getNextSid TacticReplM
+  insertTacticState ts
+  return {sid := next_tsid, tacticState := ts_str}
 
 
-private def join (l : List String) (sep : String := " ") : String :=
-  l.foldl (fun r s => r ++ sep ++ s) ""
-
-
-private def handleRunTac (tsid : Nat) (tac : String) : ReplM Response := do
-  match ← getSavedState? tsid with
-  | none => throwError s!"[fatal] unknown tsid: {tsid}"
+private def handleRunTac (req : Request) : TacticReplM Response := do
+  match ← getSavedState? TacticReplM req.sid with
+  | none => throwError s!"[fatal] unknown tsid: {req.sid}"
   | some ts =>
-    match Parser.runParserCategory (← getEnv) `tactic tac "<stdin>" with
+    match Parser.runParserCategory (← getEnv) `tactic req.cmd "<stdin>" with
     | .error err => return {error := err}
     | .ok stx =>
       ts.restore
 
       try
         evalTactic stx
-        let s ←  getThe Core.State
+        let s ← getThe Core.State
         if s.messages.hasErrors then
           let messages := s.messages.toList.filter fun m => m.severity == MessageSeverity.error
           return { error := join $ ← (messages.map Message.data).mapM fun md => md.toString }
@@ -214,44 +229,117 @@ private def handleRunTac (tsid : Nat) (tac : String) : ReplM Response := do
       else
         let ts' ← Tactic.saveState
         let ts'_str ← ppTacticState ts'
-        let next_tsid ← getNextTsid
-        insert ts'
-        return {tsid := next_tsid, tactic_state := ts'_str}
+        let next_tsid ← getNextSid TacticReplM
+        insertTacticState ts'
+        return {sid := next_tsid, tacticState := ts'_str}
 
 
-private def loop : ReplM Unit := do
+end TacticRepl
+
+
+private def loop (m : Type → Type) [Monad m] [MonadLift IO m] [MonadError m] (handler : Request → m Response) : m Unit := do
   while true do
     let line ← (← IO.getStdin).getLine
-    if line.trim == "exit" then break
+    if line.trim == "exit" then
+      break
     match (Json.parse line) with
     | .error err => throwError s!"[fatal] failed to parse JSON {err}"
     | .ok cmd =>
       match (fromJson? cmd : Except String Request) with
       | .error err => throwError s!"[fatal] parse_failed: data={err}"
-      | .ok req =>
-        let res ← handleRunTac req.tsid req.tac
-        printResponse res
+      | .ok req => (← handler req) |> printResponse
 
+
+namespace TacticRepl
 
 /--
-{"tsid": 0, "tac": "skip"}
-{"tsid": 1, "tac": "rw [add_assoc, add_comm b, ←add_assoc]"}
+{"sid": 0, "cmd": "skip"}
+{"sid": 1, "cmd": "rw [add_assoc, add_comm b, ←add_assoc]"}
 exit
 --/
 def repl : TacticM Unit := do
   withMainContext do
     -- Print the initial goal.
-    let ts ← initializeRepl
+    let ts ← initializeTacticRepl
     -- Interaction through the command line.
-    let (_, s) ← loop.run {saved_states := #[ts], solved_ts := none}
+    let loop := LeanDojo.loop TacticReplM handleRunTac
+    let (_, s) ← loop.run {savedStates := #[ts], solvedState := none}
     -- Close the proof if we have found a solved tactic state.
-    match s.solved_ts with
+    match s.solvedState with
     | none => return ()
     | some ts' => ts'.restore
 
+
+end TacticRepl
+
+
+namespace CommandRepl
+
+
+/-- The REPL monad. --/
+abbrev CommandReplM := StateT (ReplState Command.State) CommandElabM
+
+
+instance : MonadLift IO CommandReplM where
+  monadLift x := liftM x
+
+
+/-- Insert a command state into the REPL state. --/
+private def insertCommandState (cs : Command.State) : CommandReplM Unit := do
+  modifyGet fun s => ((), ⟨s.savedStates.push cs, none⟩)
+
+
+/-- Initialize the REPL. --/
+private def initializeRepl : CommandElabM Command.State := do
+  let res : Response := {sid := some 0}
+  printResponse res
+  return (← get)
+
+
+private def handleRunCmd (req : Request) : CommandReplM Response := do
+  match ← getSavedState? CommandReplM req.sid with
+  | none => throwError s!"[fatal] unknown csid: {req.sid}"
+  | some cs =>
+    let inputCtx := Parser.mkInputContext req.cmd "<stdin>"
+    let parserState := { : Parser.ModuleParserState }
+    let cs' := (← IO.processCommands inputCtx parserState cs).commandState
+
+    -- Collect error messages and print other messages.
+    let messages := cs'.messages.toList
+    let mut errors := #[]
+    for msg in messages do
+      let s ← msg.data.toString
+      if msg.severity == MessageSeverity.error then
+        errors := errors.push s
+      else
+        println! s.trim
+
+    let next_csid ← getNextSid CommandReplM
+    insertCommandState cs'
+    return {sid := next_csid, error := join errors.toList}
+
+
+/--
+{"csid": 0, "cmd": "#eval 1"}
+{"csid": 1, "cmd": "#eval x"}
+{"csid": 0, "cmd": "def x := 1"}
+{"csid": 3, "cmd": "#eval x"}
+exit
+--/
+def repl : CommandElabM Unit := do
+  let cs ← initializeRepl
+  let loop := LeanDojo.loop CommandReplM handleRunCmd
+  let _ ← loop.run {savedStates := #[cs], solvedState := none}
+
+
+end CommandRepl
 
 end LeanDojo
 
 
 /-- The `lean_dojo_repl` tactic. --/
-elab "lean_dojo_repl" : tactic => LeanDojo.repl
+elab "lean_dojo_repl" : tactic => LeanDojo.TacticRepl.repl
+
+
+/-- The `#lean_dojo_repl` command. --/
+elab "#lean_dojo_repl" : command => LeanDojo.CommandRepl.repl

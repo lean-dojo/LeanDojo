@@ -15,7 +15,7 @@ def test_private_name_failure_1(mathlib_repo: LeanGitRepo) -> None:
             "{ unfold to_option, by_cases h : o.dom; simp [h], { exact ⟨λ h, ⟨_, h⟩, λ ⟨_, h⟩, h⟩ }, { exact mt Exists.fst h } }",
         )
         assert isinstance(res, TacticError)
-        assert not dojo.is_proved
+        assert not dojo.is_successful
 
 
 def test_private_name_failure_2(mathlib_repo: LeanGitRepo) -> None:
@@ -28,7 +28,7 @@ def test_private_name_failure_2(mathlib_repo: LeanGitRepo) -> None:
             "{ classical, rw [not_iff_comm, ← le_bot_iff, F.le_iff realizer.bot, not_forall], simp only [set.not_nonempty_iff_eq_empty], exact ⟨λ ⟨x, e⟩ _, ⟨x, le_of_eq e⟩, λ h, let ⟨x, h⟩ := h () in ⟨x, le_bot_iff.1 h⟩⟩ }",
         )
         assert isinstance(res, TacticError)
-        assert not dojo.is_proved
+        assert not dojo.is_successful
 
 
 def test_parse_tactic_failure_1(mathlib_repo: LeanGitRepo) -> None:
@@ -43,7 +43,7 @@ def test_parse_tactic_failure_1(mathlib_repo: LeanGitRepo) -> None:
             "{ convert le_sup.{u u} _ ((@equiv_shrink s hs) ⟨a, ha⟩), rw symm_apply_apply }",
         )
         assert isinstance(res, TacticError)
-        assert not dojo.is_proved
+        assert not dojo.is_successful
 
 
 def test_proof_check_failure_1(mathlib_repo: LeanGitRepo) -> None:
@@ -58,7 +58,7 @@ def test_proof_check_failure_1(mathlib_repo: LeanGitRepo) -> None:
             "{ delta initial_seg.le_lt, cases h : f.lt_or_eq with f' f', { simp only [principal_seg.trans_apply, f.lt_or_eq_apply_left] }, { simp only [principal_seg.equiv_lt_apply, f.lt_or_eq_apply_right] } }",
         )
         assert isinstance(res, TacticError)
-        assert not dojo.is_proved
+        assert not dojo.is_successful
 
 
 def test_prelude_failure_1(lean_repo: LeanGitRepo) -> None:
@@ -69,7 +69,7 @@ def test_prelude_failure_1(lean_repo: LeanGitRepo) -> None:
             "{ simp [int.lt_iff_le_and_ne], split; intro h, { cases h with hab hn, split, { assumption }, { intro hba, simp [int.le_antisymm hab hba] at *, contradiction } } { cases h with hab hn, split, { assumption }, { intro h, simp [*] at * } } }",
         )
         assert isinstance(res, TacticError)
-        assert not dojo.is_proved
+        assert not dojo.is_successful
 
 
 def test_prelude_failure_2(lean_repo: LeanGitRepo) -> None:
@@ -80,7 +80,7 @@ def test_prelude_failure_2(lean_repo: LeanGitRepo) -> None:
             "{ induction n with n IH, { simp, cases bodd m; refl }, { simp [IH], cases bodd m; cases bodd n; refl } }",
         )
         assert isinstance(res, TacticError)
-        assert not dojo.is_proved
+        assert not dojo.is_successful
 
 
 def test_prelude_failure_3(lean_repo: LeanGitRepo) -> None:
@@ -91,7 +91,7 @@ def test_prelude_failure_3(lean_repo: LeanGitRepo) -> None:
             "{ induction n with n IH, { simp, cases bodd m; refl }, { simp [mul_succ, IH], cases bodd m; cases bodd n; refl } }",
         )
         assert isinstance(res, TacticError)
-        assert not dojo.is_proved
+        assert not dojo.is_successful
 
 
 def test_deep_recursion_1(minif2f_repo: LeanGitRepo) -> None:

@@ -1,4 +1,4 @@
-"""Build Lean 3 projects in Docker.
+"""Build Lean 4 projects in Docker.
 
 Only this file runs in Docker. So it must be self-contained.
 """
@@ -134,7 +134,7 @@ def main() -> None:
         lean_prefix = run_cmd(f"lean --print-prefix", capture_output=True).strip()
         shutil.copytree(lean_prefix, "lake-packages/lean4")
 
-        # Run ExtractData.lean to extract ASTs and tactic states.
+        # Run ExtractData.lean to extract ASTs, tactic states, and premise information.
         logger.info(f"Tracing {repo_name}")
         with launch_progressbar(["build", "lake-packages"]):
             run_cmd(
