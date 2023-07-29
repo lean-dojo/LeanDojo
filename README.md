@@ -34,7 +34,6 @@ It can also be installed locally from the Git repo:
 pip install .
 ```
 
-:warning: **Known issue**: If you encounter errors related to `ray` and `pydantic`, see this temporary workaround: https://github.com/ray-project/ray/issues/37019. The error will be fixed when Ray 2.6 is released.
 
 ## Documentation
 
