@@ -42,7 +42,7 @@ which has a single Lean file with the theorem:
    rw [add_assoc, add_comm b, ←add_assoc]
    end
 
-We use LeanDojo to trace the repo by specifying its URL and a commit hash:
+We use LeanDojo to trace the repo in Python by specifying its URL and a commit hash:
 
 .. code-block:: python
 
@@ -216,7 +216,7 @@ which has a single Lean file with the theorem:
       : a + b + c = a + c + b := by 
       rw [add_assoc, add_comm b, ←add_assoc]
 
-We use LeanDojo to trace the repo by specifying its URL and a commit hash:
+We use LeanDojo to trace the repo in Python by specifying its URL and a commit hash:
 
 .. code-block:: python
 

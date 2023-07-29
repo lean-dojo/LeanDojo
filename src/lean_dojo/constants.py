@@ -6,7 +6,7 @@ import multiprocessing
 from pathlib import Path
 
 
-__version__ = "1.1.2"
+__version__ = "1.2.0"
 
 CACHE_DIR = (
     Path(os.environ["CACHE_DIR"])
@@ -24,7 +24,7 @@ DISABLE_REMOTE_CACHE = "DISABLE_REMOTE_CACHE" in os.environ
 """
 
 TMP_DIR = Path(os.environ["TMP_DIR"]) if "TMP_DIR" in os.environ else None
-"""Temporary directory used by LeanDo for storing intermediate files
+"""Temporary directory used by LeanDojo for storing intermediate files
 """
 
 MAX_NUM_PROCS = 32

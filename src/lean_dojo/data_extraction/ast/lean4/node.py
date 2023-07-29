@@ -39,6 +39,10 @@ class Node4:
             # logger.warning(kind)
             return OtherNode4
 
+    @classmethod
+    def kind(cls: type) -> str:
+        return cls.__name__[:-4].lower()
+
     def traverse_preorder(
         self,
         callback: Callable[["Node4", List["Node4"]], Any],
@@ -89,7 +93,6 @@ class Node4:
                 assert isinstance(v, str)
                 v = unescape(v, entities={"&quot;": '"'})
             if is_optional_type(field.type):
-                # TODO: Make it less ad-hoc.
                 tp = remove_optional_type(field.type)
                 if tp is Pos and v is not None:
                     kwargs[field.name] = Pos.from_str(v)
@@ -161,6 +164,11 @@ class IdentNode4(Node4):
     raw_val: str
     val: str
 
+    full_name: Optional[str] = None
+    mod_name: Optional[str] = None
+    def_start: Optional[Pos] = None
+    def_end: Optional[Pos] = None
+
     @classmethod
     def from_data(
         cls, ident_data: Dict[str, Any], lean_file: LeanFile
@@ -187,6 +195,10 @@ class IdentNode4(Node4):
             ident_data["rawVal"],
             ident_data["val"],
         )
+
+    @property
+    def is_mutual(self) -> bool:
+        return not isinstance(self.full_name, str)
 
 
 def is_leaf(node: Node4) -> bool:
@@ -276,7 +288,6 @@ class CommandDeclarationNode4(Node4):
         ):
             for child in children:
                 if isinstance(child, CommandTheoremNode4):
-                    # TODO: Check if is_private is properly set.
                     object.__setattr__(child, "_is_private_decl", True)
         return cls(lean_file, start, end, children)
 
@@ -515,6 +526,10 @@ class CommandTheoremNode4(Node4):
     def has_tactic_proof(self) -> bool:
         node = self.get_proof_node()
         return isinstance(node, TermBytacticNode4)
+
+    @property
+    def is_mutual(self) -> bool:
+        return not isinstance(self.name, str)
 
 
 @dataclass(frozen=True)
@@ -890,6 +905,8 @@ def is_potential_premise_lean4(node: Node4) -> bool:
 
 
 def is_mutual_lean4(node: Node4) -> bool:
-    return False
-    # TODO: Add more.
-    return type(node) in (DefinitionNode, InductiveNode) and node.is_mutual
+    return (
+        type(node) in (IdentNode4, CommandTheoremNode4)
+        and node.full_name is not None
+        and node.is_mutual
+    )

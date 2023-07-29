@@ -1,8 +1,8 @@
 import pytest
-from loguru import logger
+import shutil
 
 from lean_dojo import *
-from lean_dojo.utils import get_latest_commit
+from lean_dojo.utils import get_latest_commit, working_directory
 
 
 LEAN3_URL = "https://github.com/leanprover-community/lean"
@@ -83,6 +83,20 @@ def aesop_repo():
 def minif2f_repo():
     commit = get_latest_commit(MINIF2F_URL)
     return LeanGitRepo(MINIF2F_URL, commit)
+
+
+"""
+@pytest.fixture(scope="session")
+def local_traced_repo():
+    commit = get_latest_commit(LEAN4_EXAMPLE_URL)
+    repo = LeanGitRepo(LEAN4_EXAMPLE_URL, commit)
+
+    with working_directory():
+        repo.clone_and_checkout()
+        with working_directory(repo.name):
+            shutil.rmtree(".git")
+        return trace_local(repo.name)
+"""
 
 
 @pytest.fixture(scope="session", params=URLS)

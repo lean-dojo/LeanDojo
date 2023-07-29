@@ -11,7 +11,7 @@ Developers
 ----------
 
 * `Kaiyu Yang <https://yangky11.github.io/>`_: Postdoctoral Scholar at Caltech
-* `Peiyang Song <https://www.linkedin.com/in/peiyang-song-3279b3251>`_: Undergrad at UC Santa Barbara
+* `Peiyang Song <https://peiyang-song.github.io/>`_: Undergrad at UC Santa Barbara
 * `Rahul Chalamala <https://rchalamala.github.io/>`_: Undergrad at Caltech
 
 

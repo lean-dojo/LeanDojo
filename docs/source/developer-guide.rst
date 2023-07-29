@@ -49,7 +49,7 @@ We use `pytest <https://docs.pytest.org/>`_ for testing. You can run tests by:
 .. code-block:: bash
 
    VERBOSE=1 CACHE_DIR=~/.cache/lean_dojo_testing DISABLE_REMOTE_CACHE=1 pytest -s tests
-   chmod -R a+w ~/.cache/lean_dojo_testing && rm -r ~/.cache/lean_dojo_testing 
+   rm -rf ~/.cache/lean_dojo_testing 
 
 Setting :code:`CACHE_DIR` makes sure the testing uses a temporary cache directory that 
 does not interfere with the deployed code. And the temporary cache directory is deleted

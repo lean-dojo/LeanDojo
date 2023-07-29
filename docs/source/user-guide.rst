@@ -80,7 +80,7 @@ with a proof assistant to prove the theorem about summing :math:`n` positive int
 
 .. image:: _static/images/theorem-proving.jpg
   :width: 800
-  :alt: The proecss of proving a theorem in proof asssistants
+  :alt: The process of proving a theorem in proof assistants
 
 Initially, we know :math:`n \in \mathbb{N}` and want to prove :math:`1 + 2 + \dots + n = \frac{n (n + 1)}{2}`. 
 We enter the tactic :code:`induction n` to reason by induction on the integer :math:`n`, which leads to two sub-goals, 
@@ -105,7 +105,7 @@ rely on existing theorems and definitions. Consider a simple example we've seen 
 
 The tactic :code:`rw [add_assoc, add_comm b, ←add_assoc]` uses the premise :code:`add_assoc`, 
 which is an existing theorem stating that the addition between natural numbers is associative 
-(Similarly, :code:`add_comm` is about communicativity). Premise selection, i.e. generating the 
+(Similarly, :code:`add_comm` is about commutativity). Premise selection, i.e. generating the 
 premises :code:`add_assoc` and :code:`add_comm`, is a major challenge in theorem proving (for 
 both humans and machines). This is because the space of potentially useful premises is huge. 
 In principle, it includes all existing math when we attempt to prove a new math theorem. In practice, 
@@ -113,7 +113,7 @@ there can be hundreds of thousands of potential premises, which cannot fit into 
 any Transformer-based large language model. Therefore, it is difficult for these models to perform 
 premise selection effectively when generating tactics.
 
-We have presented a vastly simplifed view of theorems and proofs in Lean. For more detail, Theorem Proving in Lean (`Lean 3 version <https://leanprover.github.io/theorem_proving_in_lean/>`_, `Lean 4 version <https://leanprover.github.io/theorem_proving_in_lean4/>`_)
+We have presented a vastly simplified view of theorems and proofs in Lean. For more detail, Theorem Proving in Lean (`Lean 3 version <https://leanprover.github.io/theorem_proving_in_lean/>`_, `Lean 4 version <https://leanprover.github.io/theorem_proving_in_lean4/>`_)
 is the definitive source. You may also refer to Sec. 3 of the LeanDojo paper. 
 In LeanDojo, theorems are implemented by the :class:`lean_dojo.data_extraction.lean.Theorem` class.
 
@@ -197,7 +197,7 @@ datasets from `Lean 3's mathlib <https://github.com/lean-dojo/LeanDojo/blob/main
 Interacting with Lean
 *********************
 
-LeanDojo enables intearcting with Lean programmatically using tactics. 
+LeanDojo enables interacting with Lean programmatically using tactics. 
 Please see the `demo <https://github.com/lean-dojo/LeanDojo/blob/main/scripts/demo.ipynb>`_ and `dojo.py <https://github.com/lean-dojo/LeanDojo/blob/main/src/lean_dojo/interaction/dojo.py>`_.
 
 
@@ -211,11 +211,11 @@ Therefore, we trace the repo only once and cache the traced repo for fast access
 The default cache directory is :file:`~/.cache/lean_dojo`, which can be configured through the :code:`CACHE_DIR` environment variable.
 Traced repos in the cache are read-only, which prevents accidental modifications.  
 You need :code:`chmod` if you want to, e.g., clean the cache. However, **refrain from manually modifying the cache while LeanDojo is running.**
-It may lead to unpredicable behaviors, e.g., LeanDojo may attempt to refill the cache.
+It may lead to unpredictable behaviors, e.g., LeanDojo may attempt to refill the cache.
 
 Traced repos in the cache are portable across machines. We host a number of them on `AWS S3 <https://lean-dojo.s3.amazonaws.com>`_, 
 and LeanDojo will automatically download them if they are not in the local cache. To disable this behavior and 
-buid all repos locally, set the :code:`DISABLE_REMOTE_CACHE` environment variable to any value.
+build all repos locally, set the :code:`DISABLE_REMOTE_CACHE` environment variable to any value.
 
 The caching mechanism in LeanDojo is implemented in `cache.py <https://github.com/lean-dojo/LeanDojo/blob/main/src/lean_dojo/data_extraction/cache.py>`_
 

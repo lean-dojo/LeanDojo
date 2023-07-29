@@ -11,9 +11,13 @@ instance : ToJson String.Pos where
 deriving instance ToJson for SourceInfo
 deriving instance ToJson for Syntax.Preresolved
 deriving instance ToJson for Syntax
+deriving instance ToJson for Position
 
 
 namespace LeanDojo
+
+
+set_option maxHeartbeats 2000000  -- 10x the default maxHeartbeats.
 
 
 structure TacticTrace where
@@ -24,13 +28,24 @@ structure TacticTrace where
 deriving ToJson
 
 
-structure Trace where
-  commandASTs : Array Syntax
-  tactics: Array TacticTrace
+structure PremiseTrace where
+  fullName: String
+  defPos: Option Position
+  defEndPos: Option Position
+  modName: Option String
+  pos: Option Position
+  endPos: Option Position
 deriving ToJson
 
 
-abbrev TraceM := StateT Trace IO
+structure Trace where
+  commandASTs : Array Syntax
+  tactics: Array TacticTrace
+  premises: Array PremiseTrace
+deriving ToJson
+
+
+abbrev TraceM := StateT Trace MetaM
 
 
 namespace Pp
@@ -226,37 +241,72 @@ private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : Info
   | _ => pure ()
 
 
-private def visitInfo (ctx : ContextInfo) (i : Info) (parent : InfoTree) : TraceM Unit := do
+private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := do
+  let some fullName := ti.expr.constName? | return ()
+  let fileMap ← getFileMap
+
+  let posBefore := match ti.toElabInfo.stx.getPos? with
+    | some posInfo => fileMap.toPosition posInfo
+    | none => none
+
+  let posAfter := match ti.toElabInfo.stx.getTailPos? with
+    | some posInfo => fileMap.toPosition posInfo
+    | none => none
+
+  let some modIdx := env.const2ModIdx.find? fullName | return ()
+  let modName := env.header.moduleNames[modIdx.toNat]!
+
+  let decRanges ← findDeclarationRanges? fullName
+  let defPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.pos
+  let defEndPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.endPos
+
+  modifyGet fun trace => ((),
+    { trace with premises := trace.premises.push {
+      fullName := toString fullName,
+      defPos := defPos,
+      defEndPos := defEndPos,
+      pos := posBefore,
+      endPos := posAfter,
+      modName := toString modName}
+    }
+  )
+
+
+private def visitInfo (ctx : ContextInfo) (i : Info) (parent : InfoTree) (env : Environment) : TraceM Unit := do
   match i with
   | .ofTacticInfo ti => visitTacticInfo ctx ti parent
+  | .ofTermInfo ti => visitTermInfo ti env
   | _ => pure ()
 
 
-private partial def traverseTree (ctx: ContextInfo) (tree : InfoTree) (parent : InfoTree) : TraceM Unit := do
+private partial def traverseTree (ctx: ContextInfo) (tree : InfoTree) (parent : InfoTree) (env : Environment) : TraceM Unit := do
   match tree with
-  | .context ctx' t => traverseTree ctx' t tree
+  | .context ctx' t => traverseTree ctx' t tree env
   | .node i children =>
-    visitInfo ctx i parent
+    visitInfo ctx i parent env
     for x in children do
-      traverseTree ctx x tree
+      traverseTree ctx x tree env
   | _ => pure ()
 
 
-private def traverseTopLevelTree (tree : InfoTree) : TraceM Unit := do
+private def traverseTopLevelTree (tree : InfoTree) (env : Environment) : TraceM Unit := do
   match tree with
-  | .context ctx t => traverseTree ctx t tree
-  | _ => throw $ IO.userError "Errors in traverseTopLevelTree; aborting"
+  | .context ctx t => traverseTree ctx t tree env
+  | _ => pure ()
 
 
-def traverseForest (trees : Array InfoTree) : TraceM Trace := do
+def traverseForest (trees : Array InfoTree) (env : Environment) : TraceM Trace := do
   for t in trees do
-    traverseTopLevelTree t
+    traverseTopLevelTree t env
   get
 
 
 end Traversal
 
 
+open Traversal
+
+-- Trace a *.lean file.
 unsafe def processFile (path : FilePath) : IO Unit := do
   println! path
   let input ← IO.FS.readFile path
@@ -264,7 +314,6 @@ unsafe def processFile (path : FilePath) : IO Unit := do
   enableInitializersExecution
   let inputCtx := Parser.mkInputContext input path.toString
   let (header, parserState, messages) ← Parser.parseHeader inputCtx
-
   let (env, messages) ← processHeader header opts messages inputCtx
 
   if messages.hasErrors then
@@ -279,7 +328,8 @@ unsafe def processFile (path : FilePath) : IO Unit := do
   let s ← IO.processCommands inputCtx parserState commandState
   let commands := s.commands.pop -- Remove EOI command.
   let trees := s.commandState.infoState.trees.toArray
-  let trace ← (Traversal.traverseForest trees).run' ⟨#[header] ++ commands, #[]⟩
+  let traceM := (traverseForest trees env).run' ⟨#[header] ++ commands, #[], #[]⟩
+  let (trace, _) ← traceM.run'.toIO {fileName := s!"{path}", fileMap := FileMap.ofString input} {env := env}
 
   let cwd ← IO.currentDir
   let is_lean := cwd.fileName == "lean4"
@@ -326,24 +376,32 @@ unsafe def processFile (path : FilePath) : IO Unit := do
 
 end LeanDojo
 
+
 open LeanDojo
 
-
+-- Whether a *.lean file should be traced.
 def shouldProcess (path : FilePath) : IO Bool := do
-  if path.extension != "lean" then return false
+  if path.extension != "lean" then
+    return false
+
   let cwd ← IO.currentDir
-  let some relativePath := Path.relativeTo path cwd | throw $ IO.userError s!"Invalid path: {path}"
+  let some relativePath := Path.relativeTo path cwd |
+    throw $ IO.userError s!"Invalid path: {path}"
+
   if cwd.fileName == "lean4" then
-    let oleanPath := mkFilePath $ "lib" :: (relativePath.withExtension "olean").components.tail!
+    let oleanPath := mkFilePath $ "lib" ::
+      (relativePath.withExtension "olean").components.tail!
     return ← oleanPath.pathExists
   else
-    let some oleanPath := Path.toBuildDir "lib" relativePath "olean" | throw $ IO.userError s!"Invalid path: {path}"
+    let some oleanPath := Path.toBuildDir "lib" relativePath "olean" |
+      throw $ IO.userError s!"Invalid path: {path}"
     return ← oleanPath.pathExists
 
 
 unsafe def main (args : List String) : IO Unit := do
   match args with
   | [] =>
+    -- Trace all *.lean files in the current directory whose corresponding *.olean file exists.
     let cwd ← IO.currentDir
     println! "Extracting data at {cwd}"
     let _ ← System.FilePath.walkDir cwd fun dir => do
@@ -357,4 +415,5 @@ unsafe def main (args : List String) : IO Unit := do
           println! p.path
       pure true
   | path :: _ =>
+    -- Trace a given file.
     processFile (← Path.toAbsolute ⟨path⟩)

@@ -118,7 +118,6 @@ class Node:
                 assert isinstance(v, str)
                 v = unescape(v, entities={"&quot;": '"'})
             if is_optional_type(field.type):
-                # TODO: Make it less ad-hoc.
                 tp = remove_optional_type(field.type)
                 if tp is Pos and v is not None:
                     kwargs[field.name] = Pos.from_str(v)
@@ -136,7 +135,7 @@ class Node:
         return subcls(lean_file, start, end, children, **kwargs)  # type: ignore
 
     def get_closure(self) -> Tuple[Pos, Pos]:
-        """Return the smallest start position and latest end position of all nodes in the subtree."""
+        """Return the earliest start position and latest end position of all nodes in the subtree."""
         start = self.start
         end = self.end
 

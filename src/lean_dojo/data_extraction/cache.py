@@ -78,7 +78,6 @@ class Cache:
                     with tarfile.open(f"{dirpath}.tar.gz") as tar:
                         tar.extractall(self.cache_dir)
                     os.remove(f"{dirpath}.tar.gz")
-                    execute(f"chmod -R a-w {dirpath}")
                     assert (dirpath / repo_name).exists()
 
                 return dirpath / repo_name
@@ -96,8 +95,6 @@ class Cache:
             with self.lock:
                 with report_critical_failure(_CACHE_CORRPUTION_MSG):
                     shutil.copytree(src, dirpath)
-                    # Prevent the cache from being modified accidentally.
-                    execute(f"chmod -R a-w {dirpath}")
         _, repo_name = _split_git_url(url)
         return dirpath / repo_name
 
