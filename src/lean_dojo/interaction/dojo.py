@@ -205,7 +205,9 @@ class Dojo:
 
             repo = self.theorem.repo
             if repo.is_lean4:
-                raise NotImplementedError("Interacting with Lean 4 is not supported yet.")
+                raise NotImplementedError(
+                    "Interacting with the Lean 4 repo itself is not supported yet."
+                )
             traced_repo_path = get_traced_repo_path(repo)
 
             # Copy and `cd` into the repo.
