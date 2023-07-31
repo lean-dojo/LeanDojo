@@ -844,11 +844,17 @@ class TracedFile:
                     t = rw_pos2tactics[tac_node.start]
 
                     def get_code(start, end):
-                        return get_code_without_comments(lean_file, start, end, comments)
+                        return get_code_without_comments(
+                            lean_file, start, end, comments
+                        )
 
                     object.__setattr__(tac_node, "state_before", t["stateBefore"])
                     object.__setattr__(tac_node, "state_after", t["stateAfter"])
-                    object.__setattr__(tac_node, "tactic", node.extract_rewrite_step(get_code, tac_node))
+                    object.__setattr__(
+                        tac_node,
+                        "tactic",
+                        node.extract_rewrite_step(get_code, tac_node),
+                    )
             elif type(node) in (IdentNode4,):
                 start, end = node.get_closure()
                 if (start, end) in pos2premises:

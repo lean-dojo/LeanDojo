@@ -584,6 +584,7 @@ class TacticTacticseq1IndentedNode4(Node4):
                     tac_node, AtomNode4
                 )
 
+
 @dataclass(frozen=True)
 class TacticRewriteBaseNode4(Node4):
     state_before: Optional[str] = None
@@ -591,25 +592,23 @@ class TacticRewriteBaseNode4(Node4):
     tactic: Optional[str] = None
 
     @classmethod
-    def from_data(
-        cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ):
+    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile):
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
-        assert len(children) == 4 and isinstance(children[2], TacticRwruleseqNode4)
-
+        assert len(children) == 4
         return cls(lean_file, start, end, children)
-    
-    def get_tactic_nodes(self) -> Generator[Node4, None, None]:
-        return self.children[2].get_tactic_nodes()
 
-    # Extract a single step from a rewrite like tactic, e.g. rw/rewrite. For
-    # example from `rw [h, h2] at h1` at `h2` step should extract
-    # `rewrite [h2] at h1`. Note: rw is a rewrite with `rfl` at the end of the
-    # sequence. We provide a special function since the config and the location
-    # should be preserved for each step.
+    def get_tactic_nodes(self) -> Generator[Node4, None, None]:
+        if isinstance(self.children[2], TacticRwruleseqNode4):
+            yield from self.children[2].get_tactic_nodes()
+
     def extract_rewrite_step(self, get_code, step_node: Node4) -> str:
+        # Extract a single step from a rewrite like tactic, e.g. rw/rewrite. For
+        # example from `rw [h, h2] at h1` at `h2` step should extract
+        # `rewrite [h2] at h1`. Note: rw is a rewrite with `rfl` at the end of the
+        # sequence. We provide a special function since the config and the location
+        # should be preserved for each step.
         config, loc = self.children[1], self.children[3]
         parts = ["rewrite"]
         if config.start and config.end:
@@ -642,7 +641,7 @@ class TacticRwruleseqNode4(Node4):
         assert len(children) == 3 and isinstance(children[1], NullNode4)
 
         return cls(lean_file, start, end, children)
-    
+
     def get_tactic_nodes(self) -> Generator[Node4, None, None]:
         for i, tac_node in enumerate(self.children[1].children):
             if i % 2 == 0:
