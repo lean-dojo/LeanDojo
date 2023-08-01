@@ -139,7 +139,7 @@ class TracedTactic:
     its AST and the states before/after the tactic.
     """
 
-    ast: Union[TacticNode, Node4] = field(compare=False, repr=False)
+    ast: Union[TacticNode, Node4] = field(repr=False)
     """AST of the tactic.
     """
 
@@ -453,9 +453,19 @@ class TracedTheorem:
     def get_traced_tactics(self) -> List[TracedTactic]:
         """Return a list of traced tactics in the proof."""
         if self.uses_lean3:
-            return self._get_traced_tactics_lean3()
+            tacs = self._get_traced_tactics_lean3()
         else:
-            return self._get_traced_tactics_lean4()
+            tacs = self._get_traced_tactics_lean4()
+
+        # Deduplicate.
+        signatures = set()
+        tacs_dedup = []
+        for t in tacs:
+            sig = (t.state_before, t.tactic, t.state_after)
+            if sig not in signatures:
+                signatures.add(sig)
+                tacs_dedup.append(t)
+        return tacs_dedup
 
     def _get_traced_tactics_lean3(self) -> List[TracedTactic]:
         tacs = []

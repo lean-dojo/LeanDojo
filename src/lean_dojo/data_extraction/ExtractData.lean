@@ -229,14 +229,17 @@ private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : Info
       let ctxAfter := { ctx with mctx := ti.mctxAfter }
       let stateBefore ← Pp.ppGoals ctxBefore ti.goalsBefore
       let stateAfter ← Pp.ppGoals ctxAfter ti.goalsAfter
-      let some posBefore := ti.stx.getPos? true | pure ()
-      let some posAfter := ti.stx.getTailPos? true | pure ()
-      match ti.stx with
-      | .node _ _ _ =>
-        modifyGet fun trace => ((),
-          { trace with tactics := trace.tactics.push { stateBefore := stateBefore, stateAfter := stateAfter, pos := posBefore, endPos := posAfter } }
-        )
-      | _ => pure ()
+      if stateBefore == "no goals" || stateBefore == stateAfter then
+        pure ()
+      else
+        let some posBefore := ti.stx.getPos? true | pure ()
+        let some posAfter := ti.stx.getTailPos? true | pure ()
+        match ti.stx with
+        | .node _ _ _ =>
+          modifyGet fun trace => ((),
+            { trace with tactics := trace.tactics.push { stateBefore := stateBefore, stateAfter := stateAfter, pos := posBefore, endPos := posAfter } }
+          )
+        | _ => pure ()
     | _ => pure ()
   | _ => pure ()
 
