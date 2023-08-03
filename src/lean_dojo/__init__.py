@@ -14,8 +14,9 @@ from .data_extraction.traced_data import (
 )
 from .utils import set_lean_dojo_logger
 from .interaction.dojo import (
+    CommandState,
     TacticState,
-    TacticError,
+    LeanError,
     TimeoutError,
     TacticResult,
     DojoCrashError,

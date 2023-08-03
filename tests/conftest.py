@@ -69,7 +69,7 @@ def mathlib_repo():
 
 @pytest.fixture(scope="session")
 def mathlib4_repo():
-    commit = "5a919533f110b7d76410134a237ee374f24eaaad"
+    commit = "33baf7d8226b5e94c83a4aebaaeda121436fd035"
     return LeanGitRepo(MATHLIB4_URL, commit)
 
 

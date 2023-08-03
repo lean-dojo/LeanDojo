@@ -94,7 +94,7 @@ def test_example_7(mathlib4_repo: LeanGitRepo) -> None:
     )
     with Dojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact nsmul_zero n")
-        assert isinstance(s1, TacticError)
+        assert isinstance(s1, LeanError)
         assert not dojo.is_successful
 
 

@@ -268,6 +268,7 @@ def repl : TacticM Unit := do
     match s.solvedState with
     | none => return ()
     | some ts' => ts'.restore
+  IO.Process.exit 0
 
 
 end TacticRepl
@@ -313,24 +314,25 @@ private def handleRunCmd (req : Request) : CommandReplM Response := do
         errors := errors.push s
       else
         println! s.trim
+    let err_msg := if errors.isEmpty then none else some (join errors.toList)
 
     let next_csid ← getNextSid CommandReplM
     insertCommandState cs'
-    return {sid := next_csid, error := join errors.toList}
+    return {sid := next_csid, error := err_msg}
 
 
 /--
-{"csid": 0, "cmd": "#eval 1"}
-{"csid": 1, "cmd": "#eval x"}
-{"csid": 0, "cmd": "def x := 1"}
-{"csid": 3, "cmd": "#eval x"}
+{"sid": 0, "cmd": "#eval 1"}
+{"sid": 1, "cmd": "#eval x"}
+{"sid": 0, "cmd": "def x := 1"}
+{"sid": 3, "cmd": "#eval x"}
 exit
 --/
 def repl : CommandElabM Unit := do
   let cs ← initializeRepl
   let loop := LeanDojo.loop CommandReplM handleRunCmd
   let _ ← loop.run {savedStates := #[cs], solvedState := none}
-
+  IO.Process.exit 0
 
 end CommandRepl
 
