@@ -7,13 +7,7 @@ Limitations and Caveats
 Limitations
 ***********
 
-We are actively addressing the following limitations: 
-
-* Currently LeanDojo cannot extract premise information from Lean 4.
-* LeanDojo does not support interacting with proofs in files with the :code:`prelude` keyword.
-
-
-We have no plans for the following limitations in the near future but welcome contributions:
+LeanDojo has the following limitations. Addressing them won't be our priority in the near future, but we welcome contributions:
 
 * You cannot use LeanDojo to interact with theorems in the `lean4 <https://github.com/leanprover/lean4>`_ repo itself.
 * Lean 4 currently does not support interrupting a tactic after timeout. 
