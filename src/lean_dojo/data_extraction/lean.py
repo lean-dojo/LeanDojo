@@ -8,7 +8,6 @@ import urllib
 import webbrowser
 from pathlib import Path
 from loguru import logger
-from github import Github
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple
 
@@ -21,9 +20,6 @@ from ..utils import (
     get_latest_commit,
 )
 from ..constants import LEAN3_URL, LEAN4_URL, LEAN4_NIGHTLY_URL
-
-
-github = Github()
 
 
 def _convert_tag_to_commit_hash(url: str, tag: str) -> str:
