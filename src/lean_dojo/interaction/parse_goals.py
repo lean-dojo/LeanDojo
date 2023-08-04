@@ -27,7 +27,7 @@ class Declaration:
     ident: str
     lean_type: str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert _SPACE_REGEX.search(self.ident) is None
 
 
@@ -55,7 +55,7 @@ class Goal:
     conclusion: str
 
     @classmethod
-    def from_pp(cls, pp) -> "Goal":
+    def from_pp(cls, pp: str) -> "Goal":
         """Parse a pretty-printed goal."""
         assert pp.count("⊢") == 1
         ctx, concl = pp.split("⊢")

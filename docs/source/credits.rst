@@ -4,7 +4,7 @@ Credits and Acknowledgements
 Contributors
 ************
 
-Please feel free to reach out if your code has been merged into LeanDojo and you would 
+Please feel free to reach out if your code has been merged into `the LeanDojo repo <https://github.com/lean-dojo/LeanDojo>`_ and you would 
 like your name to appear on this page.
 
 Developers
@@ -24,9 +24,9 @@ Advisors
 Related Tools
 *************
 
-LeanDojo builds on numerous existing tools for interacting with and extracting data from proof assistants. 
+LeanDojo draws on numerous existing tools for interacting with and extracting data from proof assistants. 
 The author benefited a lot from the lessons he learned when designing and implementing 
-`CoqGym <https://github.com/princeton-vl/CoqGym/tree/master/ASTactic>`_. 
+`CoqGym <https://github.com/princeton-vl/CoqGym>`_. 
 LeanDojo's interaction implementation partially incorporates `lean-gym <https://github.com/openai/lean-gym>`_'s code but 
 fixes some critical issues and expanded its functionality. When prototyping the data extraction part of LeanDojo, the author 
 found `Jason Rute <https://jasonrute.github.io/>`_'s `lean_proof_recording <https://github.com/jasonrute/lean_proof_recording>`_ helpful.
@@ -55,7 +55,7 @@ Lean 4
 Coq
 ---
 
-* `CoqGym <https://github.com/princeton-vl/CoqGym/tree/master/ASTactic>`_
+* `CoqGym <https://github.com/princeton-vl/CoqGym>`_
 * `GamePad <https://github.com/ml4tp/gamepad>`_
 
 Isabelle

@@ -21,7 +21,7 @@ Installation
 ************
 
 LeanDojo is available on `PyPI <https://pypi.org/project/lean-dojo/>`_ and can be installed via :code:`pip install lean-dojo`.
-Or you can install the most recent version by running :code:`pip install .` locally in the root directory of `LeanDojo's GitHub repo <https://github.com/lean-dojo/LeanDojo>`_.
+Alternatively, you can install the most recent version by running :code:`pip install .` locally in the root directory of `LeanDojo's GitHub repo <https://github.com/lean-dojo/LeanDojo>`_.
 
 
 .. _extracting-data-from-lean3:
@@ -29,7 +29,7 @@ Or you can install the most recent version by running :code:`pip install .` loca
 Extracting Data from Lean 3
 ***************************
 LeanDojo enables extracting data from any repo in any recent version of Lean 3 (at least :code:`v3.42.1`). 
-We'll use `lean-example <https://github.com/yangky11/lean-example>`_ as a simple example,
+We use `lean-example <https://github.com/yangky11/lean-example>`_ as a simple example,
 which has a single Lean file with the theorem:
 
 .. code-block:: lean
@@ -39,7 +39,7 @@ which has a single Lean file with the theorem:
 
    theorem hello_world (a b c : ℕ) : a + b + c = a + c + b :=
    begin
-   rw [add_assoc, add_comm b, ←add_assoc]
+     rw [add_assoc, add_comm b, ←add_assoc]
    end
 
 We use LeanDojo to trace the repo in Python by specifying its URL and a commit hash:
@@ -51,7 +51,7 @@ We use LeanDojo to trace the repo in Python by specifying its URL and a commit h
    repo = LeanGitRepo("https://github.com/yangky11/lean-example", "5a0360e49946815cb53132638ccdd46fb1859e2a")
    trace(repo, dst_dir="traced_lean-example")
 
-After ~10 minutes, it generates a :file:`traced_lean-example` directory with the subdirectories below.
+After ~10 minutes (depending on how many CPUs you have), it generates a :file:`traced_lean-example` directory with the subdirectories below.
 Please check out :ref:`troubleshooting` if you encounter any issue.
 
 ::
@@ -77,91 +77,91 @@ The most important one is :file:`*.trace.xml`. For example, below is :file:`trac
 .. code-block::
    :caption: example.trace.xml
 
-   <?xml version="1.0" ?>
-   <TracedFile path="lean-example/src/example.lean" md5="c0cebeb0e7374edc9405ef40dc5689d8">
-        <FileNode start="(0, 1)" end="(5, 4)" id="1">
-                <ImportsNode start="(1, 1)" end="(1, 1)" id="2"/>
-                <CommandsNode start="(1, 1)" end="(1, 1)" id="3">
-                        <OpenNode start="(1, 1)" end="(1, 30)" id="4">
-                                <GroupNode start="(1, 6)" end="(1, 6)" id="5">
-                                        <IdentNode start="(1, 6)" end="(1, 6)" id="6" ident="nat"/>
-                                        <ExplicitNode start="(1, 10)" end="(1, 11)" id="7">
-                                                <IdentNode start="(1, 11)" end="(1, 11)" id="8" ident="add_assoc"/>
-                                                <IdentNode start="(1, 21)" end="(1, 21)" id="9" ident="add_comm"/>
-                                        </ExplicitNode>
-                                </GroupNode>
-                        </OpenNode>
-                        <TheoremNode start="(3, 1)" end="(6, 4)" id="10" name="hello_world" full_name="hello_world">
-                                <IdentNode start="(3, 9)" end="(3, 9)" id="11" ident="hello_world"/>
-                                <BindersNode start="(3, 21)" end="(3, 21)" id="12">
-                                        <OtherNode start="(3, 22)" end="(3, 22)" id="14" kind="binder_0">
-                                                <VarsNode start="(3, 22)" end="(3, 22)" id="13">
-                                                        <IdentNode start="(3, 22)" end="(3, 22)" id="15" ident="a"/>
-                                                        <IdentNode start="(3, 24)" end="(3, 24)" id="16" ident="b"/>
-                                                        <IdentNode start="(3, 26)" end="(3, 26)" id="17" ident="c"/>
-                                                </VarsNode>
-                                                <NotationNode start="(3, 30)" end="(3, 31)" id="18" value="exprℕ"/>
-                                        </OtherNode>
-                                </BindersNode>
-                                <NotationNode start="(3, 45)" end="(3, 56)" id="29" value="expr = ">
-                                        <NotationNode start="(3, 41)" end="(3, 44)" id="23" value="expr + ">
-                                                <NotationNode start="(3, 37)" end="(3, 40)" id="21" value="expr + ">
-                                                        <IdentNode start="(3, 35)" end="(3, 36)" id="19" ident="a"/>
-                                                        <IdentNode start="(3, 39)" end="(3, 40)" id="20" ident="b"/>
-                                                </NotationNode>
-                                                <IdentNode start="(3, 43)" end="(3, 44)" id="22" ident="c"/>
-                                        </NotationNode>
-                                        <NotationNode start="(3, 53)" end="(3, 56)" id="28" value="expr + ">
-                                                <NotationNode start="(3, 49)" end="(3, 52)" id="26" value="expr + ">
-                                                        <IdentNode start="(3, 47)" end="(3, 48)" id="24" ident="a"/>
-                                                        <IdentNode start="(3, 51)" end="(3, 52)" id="25" ident="c"/>
-                                                </NotationNode>
-                                                <IdentNode start="(3, 55)" end="(3, 56)" id="27" ident="b"/>
-                                        </NotationNode>
-                                </NotationNode>
-                                <NotationNode start="(4, 1)" end="(6, 4)" id="47" value="begin">
-                                        <BeginNode start="(4, 1)" end="(6, 4)" id="30">
-                                                <TacticNode start="(5, 3)" end="(5, 41)" id="31" tactic="rw [add_assoc, add_comm b, ←add_assoc]" state_before="a b c : ℕ ⊢ a + b + c = a + c + b" state_after="no goals">
-                                                        <ParseNode start="(5, 6)" end="(5, 41)" id="32">
-                                                                <TokenNode start="(5, 6)" end="(5, 6)" id="33" token="["/>
-                                                                <ExprNode start="(5, 7)" end="(5, 16)" id="35">
-                                                                        <IdentNode start="(5, 7)" end="(5, 16)" id="34" ident="add_assoc" expr="2" full_name="nat.add_assoc" def_path="lean/library/init/data/nat/lemmas.lean" def_pos="(22, 17)"/>
-                                                                </ExprNode>
-                                                                <TokenNode start="(5, 16)" end="(5, 16)" id="36" token=","/>
-                                                                <ExprNode start="(5, 18)" end="(5, 28)" id="40">
-                                                                        <AppNode start="(5, 18)" end="(5, 28)" id="39">
-                                                                               <IdentNode start="(5, 18)" end="(5, 26)" id="37" ident="add_comm" expr="1" full_name="nat.add_comm" def_path="lean/library/init/data/nat/lemmas.lean" def_pos="(15, 17)"/>
-                                                                               <IdentNode start="(5, 27)" end="(5, 28)" id="38" ident="b"/>
-                                                                        </AppNode>
-                                                                </ExprNode>
-                                                                <TokenNode start="(5, 28)" end="(5, 28)" id="41" token=","/>
-                                                                <TokenNode start="(5, 30)" end="(5, 30)" id="42" token="&amp;lt;-"/>
-                                                                <ExprNode start="(5, 31)" end="(5, 40)" id="44">
-                                                                        <IdentNode start="(5, 31)" end="(5, 40)" id="43" ident="add_assoc" expr="0" full_name="nat.add_assoc" def_path="lean/library/init/data/nat/lemmas.lean" def_pos="(22, 17)"/>
-                                                                </ExprNode>
-                                                                <TokenNode start="(5, 40)" end="(5, 40)" id="45" token="]"/>
-                                                        </ParseNode>
-                                                        <ParseNode start="(6, 1)" end="(5, 41)" id="46"/>
-                                                </TacticNode>
-                                        </BeginNode>
-                                </NotationNode>
-                        </TheoremNode>
-                </CommandsNode>
-        </FileNode>
-        <Exprs>
-                <ConstExpr tags="0" full_name="nat.add_assoc" levels="[]" def_path="lean/library/init/data/nat/lemmas.lean" def_pos="(22, 17)"/>
-                <ConstExpr tags="1" full_name="nat.add_comm" levels="[]" def_path="lean/library/init/data/nat/lemmas.lean" def_pos="(15, 17)"/>
-                <ConstExpr tags="2" full_name="nat.add_assoc" levels="[]" def_path="lean/library/init/data/nat/lemmas.lean" def_pos="(22, 17)"/>
-        </Exprs>
-        <Comments/>
+   <TracedFile path="src/example.lean" md5="c0cebeb0e7374edc9405ef40dc5689d8">
+     <FileNode start="(0, 1)" end="(5, 4)" id="1">
+       <ImportsNode start="(1, 1)" end="(1, 1)" id="2"/>
+       <CommandsNode start="(1, 1)" end="(1, 1)" id="3">
+         <OpenNode start="(1, 1)" end="(1, 30)" id="4" namespaces="[]">
+           <GroupNode start="(1, 6)" end="(1, 6)" id="5">
+             <IdentNode start="(1, 6)" end="(1, 6)" id="6" ident="nat"/>
+             <ExplicitNode start="(1, 10)" end="(1, 11)" id="7">
+               <IdentNode start="(1, 11)" end="(1, 11)" id="8" ident="add_assoc"/>
+               <IdentNode start="(1, 21)" end="(1, 21)" id="9" ident="add_comm"/>
+             </ExplicitNode>
+           </GroupNode>
+         </OpenNode>
+         <TheoremNode start="(3, 1)" end="(6, 4)" id="10" name="hello_world" full_name="hello_world">
+           <IdentNode start="(3, 9)" end="(3, 9)" id="11" ident="hello_world"/>
+           <BindersNode start="(3, 21)" end="(3, 21)" id="12">
+             <OtherNode start="(3, 22)" end="(3, 22)" id="14" kind="binder_0">
+               <VarsNode start="(3, 22)" end="(3, 22)" id="13">
+                 <IdentNode start="(3, 22)" end="(3, 22)" id="15" ident="a"/>
+                 <IdentNode start="(3, 24)" end="(3, 24)" id="16" ident="b"/>
+                 <IdentNode start="(3, 26)" end="(3, 26)" id="17" ident="c"/>
+               </VarsNode>
+               <NotationNode start="(3, 30)" end="(3, 31)" id="18" value="exprℕ"/>
+             </OtherNode>
+           </BindersNode>
+           <NotationNode start="(3, 45)" end="(3, 56)" id="29" value="expr = ">
+             <NotationNode start="(3, 41)" end="(3, 44)" id="23" value="expr + ">
+               <NotationNode start="(3, 37)" end="(3, 40)" id="21" value="expr + ">
+                 <IdentNode start="(3, 35)" end="(3, 36)" id="19" ident="a"/>
+                 <IdentNode start="(3, 39)" end="(3, 40)" id="20" ident="b"/>
+               </NotationNode>
+               <IdentNode start="(3, 43)" end="(3, 44)" id="22" ident="c"/>
+             </NotationNode>
+             <NotationNode start="(3, 53)" end="(3, 56)" id="28" value="expr + ">
+               <NotationNode start="(3, 49)" end="(3, 52)" id="26" value="expr + ">
+                 <IdentNode start="(3, 47)" end="(3, 48)" id="24" ident="a"/>
+                 <IdentNode start="(3, 51)" end="(3, 52)" id="25" ident="c"/>
+               </NotationNode>
+               <IdentNode start="(3, 55)" end="(3, 56)" id="27" ident="b"/>
+             </NotationNode>
+           </NotationNode>
+           <NotationNode start="(4, 1)" end="(6, 4)" id="47" value="begin">
+             <BeginNode start="(4, 1)" end="(6, 4)" id="30">
+               <TacticNode start="(5, 3)" end="(5, 41)" id="31" tactic="rw [add_assoc, add_comm b, ←add_assoc]" state_before="a b c : ℕ&#10;⊢ a + b + c = a + c + b" state_after="no goals">
+                 <ParseNode start="(5, 6)" end="(5, 41)" id="32">
+                   <TokenNode start="(5, 6)" end="(5, 6)" id="33" token="["/>
+                   <ExprNode start="(5, 7)" end="(5, 16)" id="35">
+                     <IdentNode start="(5, 7)" end="(5, 16)" id="34" ident="add_assoc" expr="2" full_name="nat.add_assoc" def_path="_target/deps/lean/library/init/data/nat/lemmas.lean" def_pos="(22, 17)"/>
+                   </ExprNode>
+                   <TokenNode start="(5, 16)" end="(5, 16)" id="36" token=","/>
+                   <ExprNode start="(5, 18)" end="(5, 28)" id="40">
+                     <AppNode start="(5, 18)" end="(5, 28)" id="39">
+                       <IdentNode start="(5, 18)" end="(5, 26)" id="37" ident="add_comm" expr="1" full_name="nat.add_comm" def_path="_target/deps/lean/library/init/data/nat/lemmas.lean" def_pos="(15, 17)"/>
+                       <IdentNode start="(5, 27)" end="(5, 28)" id="38" ident="b"/>
+                     </AppNode>
+                   </ExprNode>
+                   <TokenNode start="(5, 28)" end="(5, 28)" id="41" token=","/>
+                   <TokenNode start="(5, 30)" end="(5, 30)" id="42" token="&amp;lt;-"/>
+                   <ExprNode start="(5, 31)" end="(5, 40)" id="44">
+                     <IdentNode start="(5, 31)" end="(5, 40)" id="43" ident="add_assoc" expr="0" full_name="nat.add_assoc" def_path="_target/deps/lean/library/init/data/nat/lemmas.lean" def_pos="(22, 17)"/>
+                   </ExprNode>
+                   <TokenNode start="(5, 40)" end="(5, 40)" id="45" token="]"/>
+                 </ParseNode>
+                 <ParseNode start="(6, 1)" end="(5, 41)" id="46"/>
+               </TacticNode>
+             </BeginNode>
+           </NotationNode>
+         </TheoremNode>
+       </CommandsNode>
+     </FileNode>
+     <Exprs>
+       <ConstExpr tags="0" full_name="nat.add_assoc" levels="[]" def_path="_target/deps/lean/library/init/data/nat/lemmas.lean" def_pos="(22, 17)"/>
+       <ConstExpr tags="1" full_name="nat.add_comm" levels="[]" def_path="_target/deps/lean/library/init/data/nat/lemmas.lean" def_pos="(15, 17)"/>
+       <ConstExpr tags="2" full_name="nat.add_assoc" levels="[]" def_path="_target/deps/lean/library/init/data/nat/lemmas.lean" def_pos="(22, 17)"/>
+     </Exprs>
+     <Comments/>
    </TracedFile>
+
 
 It contains a lot of information not readily available in the original :file:`*.lean` files. 
 For example, by looking at 
 
 .. code-block::
 
-   <IdentNode start="(5, 7)" end="(5, 16)" id="34" ident="add_assoc" expr="2" full_name="nat.add_assoc" def_path="lean/library/init/data/nat/lemmas.lean" def_pos="(22, 17)"/>
+   <IdentNode start="(5, 7)" end="(5, 16)" id="34" ident="add_assoc" expr="2" full_name="nat.add_assoc" def_path="_target/deps/lean/library/init/data/nat/lemmas.lean" def_pos="(22, 17)"/>
 
 , we know that the :code:`add_assoc` used in line 5 column 7–16 of :file:`example.lean` 
 has the full name :code:`nat.add_assoc` and is defined at line 22 column 17 of :file:`lean/library/init/data/nat/lemmas.lean`. 
@@ -172,7 +172,7 @@ Interacting with Lean 3
 ***********************
 
 LeanDojo can also be used for programmatic interaction with Lean. Below we prove the :code:`hello_world` 
-theorem in the previous example. Note that the `lean-example <https://github.com/yangky11/lean-example>`_ repo
+theorem in the previous example. The `lean-example <https://github.com/yangky11/lean-example>`_ repo
 has to be traced before interacting with any theorem in it. So the code below will first take some time 
 to trace the repo if you haven't followed the steps in :ref:`extracting-data-from-lean3`. The tracing has to be done 
 only once, and the traced repo will be cached for future use. Some repos do not need to be traced locally and 
@@ -225,8 +225,8 @@ We use LeanDojo to trace the repo in Python by specifying its URL and a commit h
    repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "7d711f6da4584ecb7d4f057715e1f72ba175c910")
    trace(repo, dst_dir="traced_lean4-example")
 
-After a few minutes or hours (depending on #CPUs), it generates a :file:`traced_lean4-example` directory with the subdirectories below.
-The directory structure is different from that of Lean 3 because Lean 4 uses a different build system.
+After a few minutes or one hour (depending on #CPUs), it generates a :file:`traced_lean4-example` directory with the subdirectories below.
+The directory structure is different from that of Lean 3, as Lean 4 uses a different build system.
 Please check out :ref:`troubleshooting` if you encounter any issue.
 
 ::
@@ -337,7 +337,7 @@ For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Ex
                  </NullNode4>
                  <NullNode4 start="(5, 28)" end="(5, 33)">
                    <AtomNode4 start="(5, 28)" end="(5, 29)" leading="" trailing=" " val=":"/>
-                   <IdentNode4 start="(5, 30)" end="(5, 33)" leading="" trailing="" raw_val="Nat" val="Nat"/>
+                   <IdentNode4 start="(5, 30)" end="(5, 33)" leading="" trailing="" raw_val="Nat" val="Nat" full_name="Nat" mod_name="Init.Prelude" def_start="(1038, 11)" def_end="(1038, 14)"/>
                  </NullNode4>
                  <NullNode4/>
                  <AtomNode4 start="(5, 33)" end="(5, 34)" leading="" trailing=" &#10;  " val=")"/>
@@ -383,13 +383,13 @@ For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Ex
                          <NullNode4 start="(7, 7)" end="(7, 40)">
                            <OtherNode4 start="(7, 7)" end="(7, 16)" kind="Lean.Parser.Tactic.rwRule">
                              <NullNode4/>
-                             <IdentNode4 start="(7, 7)" end="(7, 16)" leading="" trailing="" raw_val="add_assoc" val="add_assoc"/>
+                             <IdentNode4 start="(7, 7)" end="(7, 16)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_start="(138, 19)" def_end="(138, 28)"/>
                            </OtherNode4>
                            <AtomNode4 start="(7, 16)" end="(7, 17)" leading="" trailing=" " val=","/>
                            <OtherNode4 start="(7, 18)" end="(7, 28)" kind="Lean.Parser.Tactic.rwRule">
                              <NullNode4/>
                              <OtherNode4 start="(7, 18)" end="(7, 28)" kind="Lean.Parser.Term.app">
-                               <IdentNode4 start="(7, 18)" end="(7, 26)" leading="" trailing=" " raw_val="add_comm" val="add_comm"/>
+                               <IdentNode4 start="(7, 18)" end="(7, 26)" leading="" trailing=" " raw_val="add_comm" val="add_comm" full_name="Nat.add_comm" mod_name="Init.Data.Nat.Basic" def_start="(131, 19)" def_end="(131, 27)"/>
                                <NullNode4 start="(7, 27)" end="(7, 28)">
                                  <IdentNode4 start="(7, 27)" end="(7, 28)" leading="" trailing="" raw_val="b" val="b"/>
                                </NullNode4>
@@ -404,7 +404,7 @@ For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Ex
                                  </OtherNode4>
                                </OtherNode4>
                              </NullNode4>
-                             <IdentNode4 start="(7, 31)" end="(7, 40)" leading="" trailing="" raw_val="add_assoc" val="add_assoc"/>
+                             <IdentNode4 start="(7, 31)" end="(7, 40)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_start="(138, 19)" def_end="(138, 28)"/>
                            </OtherNode4>
                          </NullNode4>
                          <AtomNode4 start="(7, 40)" end="(7, 41)" leading="" trailing="&#10;" val="]"/>

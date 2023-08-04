@@ -9,9 +9,8 @@ Limitations
 
 LeanDojo has the following limitations. Addressing them won't be our priority in the near future, but we welcome contributions:
 
-* You cannot use LeanDojo to interact with theorems in the `lean4 <https://github.com/leanprover/lean4>`_ repo itself.
-* Lean 4 currently does not support interrupting a tactic after timeout. 
-* LeanDojo only supports interacting with Lean using tactics. Currently, it does not support term-based proofs or mixing tactics and terms.
+* LeanDojo cannot interact with theorems in the `lean4 <https://github.com/leanprover/lean4>`_ repo itself.
+* LeanDojo does not support term-based proofs or proofs that mixes tactics and terms.
 * Entering all tactic-style proofs in mathlib 3 to LeanDojo, we found ~1.4% of them are misjudged as incorrect. The errors fall into a few categories documented in `test_unexpected_errors.py <https://github.com/lean-dojo/LeanDojo/blob/main/tests/interaction/test_unexpected_errors.py>`_. We didn't perform this analysis on Lean 4.
 * Theorems extracted by LeanDojo are "syntactic theorems", i.e., they are Lean constants defined using keywords :code:`theorem` or :code:`lemma`. First, they are not guaranteed to be real theorems (Lean constants of type :code:`Prop`). Second, theorems defined in other ways (e.g., using :code:`def`) are not extracted.
 * Tracing mathlib 3 produces buggy :code:`IdentNode`. Their names start with :code:`user__`. So you can search for :code:`name="user__` in the generated :file:`*.trace.xml` files. We haven't figured out the exact reason underlying this bug, but it's likely to be related to Lean's parser and `mathlib's alias command <https://leanprover-community.github.io/mathlib_docs/tactic/alias.html>`_.
