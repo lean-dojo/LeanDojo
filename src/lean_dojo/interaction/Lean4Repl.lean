@@ -215,7 +215,7 @@ private def handleRunTac (req : Request) : TacticReplM Response := do
       ts.restore
 
       try
-        evalTactic stx
+        monadLift $ commitIfNoEx (evalTactic stx)
         let s ← getThe Core.State
         if s.messages.hasErrors then
           let messages := s.messages.toList.filter fun m => m.severity == MessageSeverity.error
