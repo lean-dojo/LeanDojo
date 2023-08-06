@@ -113,7 +113,7 @@ there can be hundreds of thousands of potential premises, which cannot fit into 
 any Transformer-based large language model. Therefore, it is difficult for these models to perform 
 premise selection effectively when generating tactics.
 
-We have presented a vastly simplified view of theorems and proofs in Lean. For more detail, Theorem Proving in Lean (`Lean 3 version <https://leanprover.github.io/theorem_proving_in_lean/>`_, `Lean 4 version <https://leanprover.github.io/theorem_proving_in_lean4/>`_)
+We have presented a vastly simplified view of theorems and proofs in Lean. For more detail, Theorem Proving in Lean (`3 <https://leanprover.github.io/theorem_proving_in_lean/>`_, `4 <https://leanprover.github.io/theorem_proving_in_lean4/>`_)
 is the definitive source. You may also refer to Sec. 3 of the LeanDojo paper. 
 In LeanDojo, theorems are implemented by the :class:`lean_dojo.data_extraction.lean.Theorem` class.
 
