@@ -38,7 +38,7 @@ pip install .
 ## Documentation
 
 * [Getting Started](https://leandojo.readthedocs.io/en/latest/getting-started.html)
-* [Demo](https://github.com/lean-dojo/LeanDojo/blob/main/scripts/demo.ipynb)
+* Demo: [Lean 3](https://github.com/lean-dojo/LeanDojo/blob/main/scripts/demo-lean3.ipynb), [Lean 4](https://github.com/lean-dojo/LeanDojo/blob/main/scripts/demo-lean4.ipynb)
 * [Full documentation](https://leandojo.readthedocs.io/en/latest/index.html)
 
 

@@ -459,4 +459,4 @@ can be downloaded from `our AWS S3 <https://lean-dojo.s3.amazonaws.com>`_ (see :
 Next Steps
 **********
 
-This example is just a glimpse of what LeanDojo can do. Please continue to the `demo <https://github.com/lean-dojo/LeanDojo/blob/main/scripts/demo.ipynb>`_ and the :ref:`user-guide`.
+This example is just a glimpse of what LeanDojo can do. Please continue to the demo (`Lean 3 <https://github.com/lean-dojo/LeanDojo/blob/main/scripts/demo-lean3.ipynb>`_, `Lean 4 <https://github.com/lean-dojo/LeanDojo/blob/main/scripts/demo-lean4.ipynb>`_) and the :ref:`user-guide`.

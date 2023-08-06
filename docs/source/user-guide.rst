@@ -198,7 +198,7 @@ Interacting with Lean
 *********************
 
 LeanDojo enables interacting with Lean programmatically using tactics. 
-Please see the `demo <https://github.com/lean-dojo/LeanDojo/blob/main/scripts/demo.ipynb>`_ and `dojo.py <https://github.com/lean-dojo/LeanDojo/blob/main/src/lean_dojo/interaction/dojo.py>`_.
+Please see the demo (`Lean 3 <https://github.com/lean-dojo/LeanDojo/blob/main/scripts/demo-lean3.ipynb>`_, `Lean 4 <https://github.com/lean-dojo/LeanDojo/blob/main/scripts/demo-lean4.ipynb>`_) and `dojo.py <https://github.com/lean-dojo/LeanDojo/blob/main/src/lean_dojo/interaction/dojo.py>`_.
 
 
 .. _caching:
