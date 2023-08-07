@@ -258,7 +258,7 @@ class TracedTactic:
                         )
                         prov = {"full_name": node.full_name}
                         def_path = (node.mod_name).replace(".", "/") + ".lean"
-                        prov["def_path"] = def_path
+                        prov["def_path"] = find_relative_path(str(lean_file.root_dir), def_path)
                         prov["def_pos"] = list(node.def_start)
                         prov["def_end_pos"] = list(node.def_end)
                         provenances.append(prov)
@@ -268,6 +268,36 @@ class TracedTactic:
             annot_tac.append(lean_file[cur : self.end])
 
             return "".join(annot_tac), provenances
+        
+
+
+def find_absolute_path(repo_path: str, file_path: str) -> str:
+    '''Find the absolute path of a file in a given repo folder.
+    Inputs: absolute path to the repo folder, partial path to the file.
+    Output: absolute path to the file.
+    Assumptions: the file is somewhere in the repo folder, though its exact location is unknown.
+    '''
+    for dirpath, _, filenames in os.walk(repo_path):
+        if os.path.basename(file_path) in filenames and dirpath.endswith(os.path.dirname(file_path)):
+            return dirpath + "/" + os.path.basename(file_path)
+    
+    return "Bad path"
+
+
+def find_relative_path(repo_path: str, file_path: str) -> str:
+    '''Find the relative path of a file in a given repo folder.
+    Inputs: absolute path to the repo folder, partial path to the file.
+    Output: relative path to the file from the repo folder.
+    Assumptions: the file is somewhere in the repo folder, though its exact location is unknown.
+    '''
+    if file_path.split(os.path.sep)[0] in os.listdir(repo_path):
+        return file_path
+    else:
+        abs_path = find_absolute_path(repo_path, file_path)
+        if abs_path == "Bad path":
+            return "Bad path"
+        else:
+            return os.path.relpath(abs_path, repo_path)
 
 
 @dataclass(frozen=True)
