@@ -8,6 +8,7 @@ import random
 import itertools
 import webbrowser
 import networkx as nx
+from collections import deque
 from tqdm import tqdm
 from lxml import etree
 from pathlib import Path
@@ -263,20 +264,19 @@ class TracedTactic:
                             graph = self.traced_theorem.traced_repo.traced_files_graph
                             start_node = str(self.traced_theorem.traced_file.path)
                             assert graph.has_node(start_node)
-                            visited_nodes = set()
-
-                            def dfs(node: str) -> str:
-                                visited_nodes.add(node)
-                                if node.endswith(def_path):
-                                    return node
-                                for next_node in graph.successors(node):
-                                    if next_node not in visited_nodes:
-                                        result = dfs(next_node)
-                                        if result is not None:
-                                            return result
+                            def bfs(start_node: str) -> str:
+                                visited_nodes = set()
+                                queue = deque([start_node])
+                                while queue:
+                                    curr_node = queue.popleft()
+                                    visited_nodes.add(curr_node)
+                                    if curr_node.endswith(def_path):
+                                        return curr_node
+                                    for next_node in graph.successors(curr_node):
+                                        if next_node not in visited_nodes:
+                                            queue.append(next_node)
                                 return None
-                            
-                            prov["def_path"] = dfs(start_node)
+                            prov["def_path"] = bfs(start_node)
                         prov["def_pos"] = list(node.def_start)
                         prov["def_end_pos"] = list(node.def_end)
                         provenances.append(prov)
