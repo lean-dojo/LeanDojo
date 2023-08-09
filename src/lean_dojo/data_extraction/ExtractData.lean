@@ -184,6 +184,7 @@ def toSrcDir (path : FilePath) (ext : String) : Option FilePath :=
       let comps := p.components
       assert! comps[1]! == "build"
       match comps with
+      | t0 :: "build" :: "lib" :: t1 => mkFilePath $ "lake-packages" :: t0 :: t1
       | _ :: _ :: _ :: tl => mkFilePath tl
       | _ => "invalid path"
     | none =>

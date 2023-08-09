@@ -259,24 +259,25 @@ class TracedTactic:
                         )
                         prov = {"full_name": node.full_name}
                         def_path = (node.mod_name).replace(".", "/") + ".lean"
-                        prov["def_path"] = def_path
-                        if self.traced_theorem is not None and self.traced_theorem.traced_repo is not None:
-                            graph = self.traced_theorem.traced_repo.traced_files_graph
-                            start_node = str(self.traced_theorem.traced_file.path)
-                            assert graph.has_node(start_node)
-                            def bfs(start_node: str) -> str:
-                                visited_nodes = set()
-                                queue = deque([start_node])
-                                while queue:
-                                    curr_node = queue.popleft()
-                                    visited_nodes.add(curr_node)
-                                    if curr_node.endswith(def_path):
-                                        return curr_node
-                                    for next_node in graph.successors(curr_node):
-                                        if next_node not in visited_nodes:
-                                            queue.append(next_node)
-                                return None
-                            prov["def_path"] = bfs(start_node)
+                        assert self.traced_theorem is not None 
+                        assert self.traced_theorem.traced_repo is not None
+                        graph = self.traced_theorem.traced_repo.traced_files_graph
+                        start_node = str(self.traced_theorem.traced_file.path)
+                        assert graph.has_node(start_node)
+                        def bfs(start_node: str) -> str:
+                            visited_nodes = set()
+                            queue = deque([start_node])
+                            while queue:
+                                curr_node = queue.popleft()
+                                visited_nodes.add(curr_node)
+                                if curr_node.endswith(def_path):
+                                    return curr_node
+                                for next_node in graph.successors(curr_node):
+                                    if next_node not in visited_nodes:
+                                        queue.append(next_node)
+                            return None
+                        prov["def_path"] = bfs(start_node)
+                        assert prov["def_path"] is not None, f"Unable to locate {node.full_name}"
                         prov["def_pos"] = list(node.def_start)
                         prov["def_end_pos"] = list(node.def_end)
                         provenances.append(prov)
@@ -1233,8 +1234,8 @@ def _build_dependency_graph(traced_files: List[TracedFile]) -> nx.DiGraph:
         tf_path_str = str(tf.path)
         for dep_path in tf.get_direct_dependencies():
             dep_path_str = str(dep_path)
-            if G.has_node(dep_path_str):
-                G.add_edge(tf_path_str, dep_path_str)
+            assert G.has_node(dep_path_str)
+            G.add_edge(tf_path_str, dep_path_str)
 
     assert nx.is_directed_acyclic_graph(G)
     return G

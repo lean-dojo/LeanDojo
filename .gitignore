@@ -135,8 +135,11 @@ dmypy.json
 scripts/helper.py
 test3.py
 test4.py
+testmathlib4.py
 
 # Products & demos
 leandojo_benchmark_4/
 traced_lean-example/
 traced_lean4-example/
+traced_mathlib4/
+archived/
