@@ -8,11 +8,11 @@ import random
 import itertools
 import webbrowser
 import networkx as nx
-from collections import deque
 from tqdm import tqdm
 from lxml import etree
 from pathlib import Path
 from loguru import logger
+from collections import deque
 from datetime import datetime
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any, Tuple, Generator, Union
@@ -259,11 +259,14 @@ class TracedTactic:
                         )
                         prov = {"full_name": node.full_name}
                         def_path = (node.mod_name).replace(".", "/") + ".lean"
-                        assert self.traced_theorem is not None 
-                        assert self.traced_theorem.traced_repo is not None
+                        assert (
+                            self.traced_theorem is not None
+                            and self.traced_theorem.traced_repo is not None
+                        )
                         graph = self.traced_theorem.traced_repo.traced_files_graph
                         start_node = str(self.traced_theorem.traced_file.path)
                         assert graph.has_node(start_node)
+
                         def bfs(start_node: str) -> str:
                             visited_nodes = set()
                             queue = deque([start_node])
@@ -276,8 +279,11 @@ class TracedTactic:
                                     if next_node not in visited_nodes:
                                         queue.append(next_node)
                             return None
+
                         prov["def_path"] = bfs(start_node)
-                        assert prov["def_path"] is not None, f"Unable to locate {node.full_name}"
+                        assert (
+                            prov["def_path"] is not None
+                        ), f"Unable to locate {node.full_name}"
                         prov["def_pos"] = list(node.def_start)
                         prov["def_end_pos"] = list(node.def_end)
                         provenances.append(prov)

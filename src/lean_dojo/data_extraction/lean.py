@@ -117,14 +117,18 @@ class LeanFile:
         endwith_newline = None
         num_bytes = []
 
-        for line in self.abs_path.open():
-            if line.endswith("\n"):
+        for line in self.abs_path.open("rb"):
+            if b"\r\n" in line:
+                raise RuntimeError(
+                    f"{self.abs_path} contains Windows-style line endings. This is discouraged (see https://github.com/leanprover-community/mathlib4/pull/6506)."
+                )
+            if line.endswith(b"\n"):
                 endwith_newline = True
                 line = line[:-1]
             else:
                 endwith_newline = False
-            code.append(line)
-            num_bytes.append(len(line.encode("utf-8")) + 1)
+            code.append(line.decode("utf-8"))
+            num_bytes.append(len(line) + 1)
 
         object.__setattr__(self, "code", code)
         object.__setattr__(self, "endwith_newline", endwith_newline)

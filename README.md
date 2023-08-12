@@ -51,7 +51,7 @@ pip install .
 ## Related Links
 
 * [LeanDojo Website](https://leandojo.org/): The official website of LeanDojo.
-* [LeanDojo Benchmark](https://zenodo.org/record/8016386) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8016386.svg)](https://doi.org/10.5281/zenodo.8016386): The dataset used in our paper, consisting of 96,962 theorems and proofs extracted from [mathlib](https://github.com/leanprover-community/mathlib/commits/8c1b484d6a214e059531e22f1be9898ed6c1fd47) by [generate-benchmark-lean3.ipynb](./scripts/generate-benchmark-lean3.ipynb). 
+* [LeanDojo Benchmark](https://zenodo.org/record/8016386) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8016386.svg)](https://doi.org/10.5281/zenodo.8016386): The dataset used in our paper, consisting of 96,962 theorems and proofs extracted from [mathlib](https://github.com/leanprover-community/mathlib/commits/32a7e535287f9c73f2e4d2aef306a39190f0b504) by [generate-benchmark-lean3.ipynb](./scripts/generate-benchmark-lean3.ipynb). 
 * [LeanDojo Benchmark 4](https://zenodo.org/record/8040110) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8040110.svg)](https://doi.org/10.5281/zenodo.8040110): The Lean 4 version of LeanDojo Benchmark, consisting of 91,766 theorems and proofs extracted from [mathlib4](https://github.com/leanprover-community/mathlib4/commit/5a919533f110b7d76410134a237ee374f24eaaad) by [generate-benchmark-lean4.ipynb](./scripts/generate-benchmark-lean4.ipynb).
 * [ReProver](https://github.com/lean-dojo/ReProver): The ReProver (Retrieval-Augmented Prover) model in our paper.
 * [LeanDojo ChatGPT Plugin](https://github.com/lean-dojo/LeanDojoChatGPT)
