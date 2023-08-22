@@ -15,7 +15,7 @@ LEAN4_URL = "https://github.com/leanprover/lean4"
 STD4_URL = "https://github.com/leanprover/std4"
 AESOP_URL = "https://github.com/JLimperg/aesop"
 MATHLIB4_URL = "https://github.com/leanprover-community/mathlib4"
-LEAN4_EXAMPLE_URL = "https://github.com/yangky11/lean4-example"
+LEAN4_EXAMPLE_URL = "https://github.com/yangky11/lean4-example/"
 URLS = [
     LEAN3_URL,
     MINIF2F_URL,

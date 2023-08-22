@@ -353,6 +353,8 @@ class LeanGitRepo:
             raise ValueError(f"{self.url} is not a Github URL")
         if not self.url.startswith("https://"):
             raise ValueError(f"{self.url} is not a valid URL")
+        url = re.fullmatch(r"(?P<url>.*?)/*", self.url)["url"]  # Remove trailing `/`.
+        object.__setattr__(self, "url", url)
         object.__setattr__(self, "name", os.path.split(self.url)[-1])
 
         # Convert tags to commit hashes

@@ -36,7 +36,8 @@ dependencies = [
   "types-toml",
   "networkx",
   "lxml",
-  "ray[default] >= 2.6",
+  "ray[default]",
+  "pydantic < 2",  # https://github.com/ray-project/ray/issues/37019
 ]
 
 [project.optional-dependencies]
