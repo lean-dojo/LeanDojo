@@ -2,8 +2,11 @@
 Many of them are configurable via :ref:`environment-variables`.
 """
 import os
+import re
+import subprocess
 import multiprocessing
 from pathlib import Path
+from typing import Tuple
 
 
 __version__ = "1.2.1"
@@ -79,3 +82,22 @@ if CONTAINER == "docker":
 MIN_LEAN3_VERSION = "v3.42.1"
 """The minimum version of Lean 3 that LeanDojo supports.
 """
+
+
+def check_git_version(min_version: Tuple[int, int, int]) -> Tuple[int, int, int]:
+    """Check the version of Git installed on the system."""
+    res = subprocess.run("git --version", shell=True, capture_output=True, check=True)
+    output = res.stdout.decode()
+    error = res.stderr.decode()
+    assert error == "", error
+    m = re.match(r"git version (?P<version>[0-9.]+)", output)
+    version = tuple(int(_) for _ in m["version"].split("."))
+
+    version_str = ".".join(str(_) for _ in version)
+    min_version_str = ".".join(str(_) for _ in min_version)
+    assert (
+        version >= min_version
+    ), f"Git version {version_str} is too old. Please upgrade to at least {min_version_str}."
+
+
+check_git_version((2, 25, 0))
