@@ -12,7 +12,7 @@ Requirements
 
 * Supported platforms: Linux, Windows (WSL), and macOS (experimental for Apple silicon)
 * Git >= 2.25
-* 3.9 <= Python <= 3.11
+* 3.9 <= Python <= 3.10
 * wget
 * `Docker <https://www.docker.com/>`_ strongly recommended. See :ref:`running-without-docker` if it is not an option for you.
 
