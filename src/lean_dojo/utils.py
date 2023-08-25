@@ -64,7 +64,7 @@ def ray_actor_pool(
     Args:
         actor_cls (type): A Ray Actor class (annotated by ``@ray.remote``).
         *args: Position arguments passed to ``actor_cls``.
-        **kwargs: Keyward arguments passed to ``actor_cls``.
+        **kwargs: Keyword arguments passed to ``actor_cls``.
 
     Yields:
         Generator[ActorPool, None, None]: A :class:`ray.util.actor_pool.ActorPool` object.
@@ -188,7 +188,7 @@ _SPACES_REGEX = re.compile(r"\s+", re.DOTALL)
 
 
 def normalize_spaces(s: str) -> str:
-    """Repalce any consecutive block of whitespace characters in ``s`` with a single whitespace."""
+    """Replace any consecutive block of whitespace characters in ``s`` with a single whitespace."""
     return _SPACES_REGEX.sub(" ", s).strip()
 
 
@@ -235,7 +235,7 @@ def read_url(url: str, num_retries: int = 1) -> str:
             if num_retries <= 0:
                 raise ex
             num_retries -= 1
-            logger.debug(f"Requset to {url} failed. Retrying...")
+            logger.debug(f"Request to {url} failed. Retrying...")
             time.sleep(2 - num_retries)
 
 

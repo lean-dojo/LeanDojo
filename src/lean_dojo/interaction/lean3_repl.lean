@@ -17,7 +17,7 @@ meta def put_str_ln' : Π (fmt : format), io unit := io.put_str_ln ∘ format.to
 
 meta def fail' {α} (fmt : format) : io α := io.fail $ format.to_string fmt
 
-/-- verion of io.run_tactic which does not suppress the exception msg -/
+/-- Version of io.run_tactic which does not suppress the exception msg -/
 meta def run_tactic'' {α} (tac : tactic α) : io α := do {
   io.run_tactic $ do {
     result ← tactic.capture tac,
