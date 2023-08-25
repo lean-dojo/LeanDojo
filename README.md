@@ -17,7 +17,7 @@ ______________________________________________________________________
 
 * Supported platforms: Linux, Windows (WSL), and macOS (:warning: experimental for Apple silicon)
 * Git >= 2.25
-* 3.9 <= Python <= 3.11
+* 3.9 <= Python <= 3.10
 * wget
 * Docker strongly recommended
 
