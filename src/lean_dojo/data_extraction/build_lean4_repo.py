@@ -7,7 +7,6 @@ import sys
 import shutil
 import itertools
 import subprocess
-from glob import glob
 from tqdm import tqdm
 from loguru import logger
 from time import sleep, monotonic
@@ -97,6 +96,23 @@ def launch_progressbar(paths: List[Union[str, Path]]) -> Generator[None, None, N
     p.kill()
 
 
+def check_files() -> None:
+    """Check if all *.lean files have been processed to produce *.ast.json and *.dep_paths files."""
+    cwd = Path.cwd()
+    jsons = {
+        p.with_suffix("").with_suffix("") for p in cwd.glob("**/build/ir/**/*.ast.json")
+    }
+    deps = {p.with_suffix("") for p in cwd.glob("**/build/ir/**/*.dep_paths")}
+    cs = {p.with_suffix("") for p in cwd.glob("**/build/ir/**/*.c")}
+    assert len(jsons) <= len(cs) and len(deps) <= len(cs)
+    missing_jsons = {p.with_suffix(".ast.json") for p in cs - jsons}
+    missing_deps = {p.with_suffix(".dep_paths") for p in cs - deps}
+    if len(missing_jsons) > 0 or len(missing_deps) > 0:
+        for p in missing_jsons.union(missing_deps):
+            logger.error(f"Missing {p}")
+        raise RuntimeError("Missing intermediate files.")
+
+
 def main() -> None:
     num_procs = int(os.environ["NUM_PROCS"])
     repo_name = sys.argv[1]
@@ -142,10 +158,7 @@ def main() -> None:
                 capture_output=True,
             )
 
-        num_json = len(glob("build/ir/**/*.ast.json", recursive=True))
-        num_dep = len(glob("build/ir/**/*.dep_paths", recursive=True))
-        num_c = len(glob("build/ir/**/*.c", recursive=True))
-        assert num_json == num_dep == num_c, f"{num_json} {num_dep} {num_c}"
+        check_files()
 
 
 if __name__ == "__main__":
