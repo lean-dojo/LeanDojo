@@ -62,7 +62,7 @@ TACTIC_CPU_LIMIT = int(os.getenv("TACTIC_CPU_LIMIT", 1))
 """
 
 TACTIC_MEMORY_LIMIT = os.getenv("TACTIC_MEMORY_LIMIT", "16g")
-"""Maxium memory when interacting with Lean.
+"""Maximum memory when interacting with Lean.
 """
 
 CONTAINER = os.getenv("CONTAINER", "docker")
