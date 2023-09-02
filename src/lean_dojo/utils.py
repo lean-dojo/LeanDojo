@@ -14,10 +14,11 @@ from pathlib import Path
 from loguru import logger
 from datetime import datetime
 from contextlib import contextmanager
+from github.Repository import Repository
 from ray.util.actor_pool import ActorPool
 from typing import Tuple, Union, List, Generator, Optional
 
-from .constants import NUM_PROCS, NUM_WORKERS, TMP_DIR, LEAN4_DEPS_DIR
+from .constants import GITHUB, NUM_WORKERS, TMP_DIR, LEAN4_DEPS_DIR
 
 
 @contextmanager
@@ -70,7 +71,7 @@ def ray_actor_pool(
         Generator[ActorPool, None, None]: A :class:`ray.util.actor_pool.ActorPool` object.
     """
     assert not ray.is_initialized()
-    ray.init(num_cpus=NUM_PROCS, num_gpus=0)
+    ray.init()
     pool = ActorPool([actor_cls.remote(*args, **kwargs) for _ in range(NUM_WORKERS)])
     try:
         yield pool
@@ -263,13 +264,22 @@ def parse_str_list(s: str) -> List[str]:
     return [_.strip()[1:-1] for _ in s[1:-1].split(",") if _ != ""]
 
 
+_URL_REGEX = re.compile(r"(?P<url>.*?)/*")
+
+
+def normalize_url(url: str) -> str:
+    return _URL_REGEX.fullmatch(url)["url"]  # Remove trailing `/`.
+
+
+def url_to_repo(url: str) -> Repository:
+    url = normalize_url(url)
+    return GITHUB.get_repo("/".join(url.split("/")[-2:]))
+
+
 def get_latest_commit(url: str) -> str:
     """Get the hash of the latest commit of the Git repo at ``url``."""
-    url = os.path.join(url, "commits")
-    html = read_url(url)
-    m = re.search(r"commits/(?P<commit>[a-z0-9]+)/commits_list_item", html)
-    assert len(m["commit"]) == 40
-    return m["commit"]
+    repo = url_to_repo(url)
+    return repo.get_branch(repo.default_branch).commit.sha
 
 
 def is_git_repo(path: Path) -> bool:

@@ -100,9 +100,7 @@ class DojoHardTimeoutError(Exception):
 
 
 class DojoInitError(Exception):
-    @property
-    def is_not_a_theorem(self) -> bool:
-        return "not_a_theorem" in str(self)
+    pass
 
 
 def _get_all_dependencies(
@@ -129,6 +127,7 @@ class Dojo:
 
     entry: Union[Theorem, Tuple[LeanGitRepo, Path, int]]
     hard_timeout: Optional[float]
+    additional_imports: List[str]
     repo: LeanGitRepo
     file_path: Path
     is_successful: Optional[bool] = None
@@ -139,6 +138,7 @@ class Dojo:
         self,
         entry: Union[Theorem, Tuple[LeanGitRepo, Path, int]],
         hard_timeout: Optional[float] = None,
+        additional_imports: List[str] = [],
     ):
         """Initialize Dojo.
 
@@ -151,6 +151,7 @@ class Dojo:
         """
         self.entry = entry
         self.hard_timeout = hard_timeout
+        self.additional_imports = additional_imports
 
         if self.uses_tactics:
             self.repo, self.file_path = entry.repo, entry.file_path
@@ -215,6 +216,7 @@ class Dojo:
                 raise DojoInitError(
                     f"Cannot find the *.ast.json file for {self.entry} in {traced_repo_path}."
                 )
+
             self._modify_file(traced_file)
 
             # The REPL code cannot be used to interact with its own dependencies.
@@ -230,7 +232,7 @@ class Dojo:
                 cmd = f"./build/release/stage1/bin/lean {self.file_path}"
             else:
                 self.container.run(
-                    f"lake build Lean4Repl",
+                    "lake build Lean4Repl",
                     mts,
                     as_current_user=True,
                     capture_output=True,
@@ -292,12 +294,10 @@ class Dojo:
                 path = Path("library/system/io.lean")
             else:
                 path = LEAN3_DEPS_DIR / "lean/library/system/io.lean"
+            return [path] + _get_all_dependencies(traced_repo_path, path, self.repo)
         else:
-            if self.repo.is_lean4:
-                path = Path("src/lean/Lean/Elab/Tactic.lean")
-            else:
-                path = LEAN4_DEPS_DIR / "lean4/src/lean/Lean/Elab/Tactic.lean"
-        return [path] + _get_all_dependencies(traced_repo_path, path, self.repo)
+            # We shouldn't be interacting with the Lean 4 repo itself anyway.
+            return []
 
     def _set_timer(self) -> None:
         if self.hard_timeout is not None:
@@ -394,6 +394,10 @@ class Dojo:
         else:
             return tactic_state
 
+    def _get_imports(self) -> str:
+        imports = ["Lean4Repl"] + self.additional_imports
+        return "\n".join(f"import {_}" for _ in imports) + "\n\n"
+
     def _modify_file(self, traced_file: TracedFile) -> None:
         logger.debug(f"Modifying {traced_file.lean_file.path}")
 
@@ -405,7 +409,7 @@ class Dojo:
             lean_file = traced_file.lean_file
             pos = Pos(line_nb=self.entry[2], column_nb=1)
             modified_code = (
-                "import Lean4Repl\n\n"
+                self._get_imports()
                 + lean_file[:pos]
                 + "set_option maxHeartbeats 0 in\n#lean_dojo_repl\n\n"
                 + lean_file[pos:]
@@ -445,7 +449,7 @@ class Dojo:
         lean_file = traced_file.lean_file
 
         if self.uses_lean4:
-            code_import = "import Lean4Repl\n\n"
+            code_import = self._get_imports()
             code_proof = "\nby\n  lean_dojo_repl\n  sorry\n"
             code_before_theorem = lean_file[: traced_theorem.start]
             code_thereom = lean_file[traced_theorem.start : proof_start]
@@ -591,10 +595,13 @@ class Dojo:
                 self._check_alive()
                 return line[len(_REPL_PROMPT) :].strip(), "\n".join(msg)
             elif "error: " in line:
-                if "error: deep recursion was detected" in line:
+                if (
+                    "error: deep recursion was detected" in line
+                    or "error: [fatal] not_a_theorem" in line
+                ):
                     self.is_crashed = True
                     raise DojoCrashError(line)
-                elif "error: [fatal] not_a_theorem" in line:
+                elif "error: unknown package" in line:
                     self.is_crashed = True
                     raise DojoInitError(line)
                 else:

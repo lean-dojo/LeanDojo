@@ -36,6 +36,7 @@ dependencies = [
   "types-toml",
   "networkx",
   "lxml",
+  "PyGithub",
   "ray[default] >= 2.6",
 ]
 

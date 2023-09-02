@@ -1,8 +1,7 @@
 import pytest
-import shutil
 
 from lean_dojo import *
-from lean_dojo.utils import get_latest_commit, working_directory
+from lean_dojo.utils import get_latest_commit
 
 
 LEAN3_URL = "https://github.com/leanprover-community/lean"
@@ -12,6 +11,7 @@ LEAN_LIQUID_URL = "https://github.com/leanprover-community/lean-liquid"
 PROOFNET_URL = "https://github.com/zhangir-azerbayev/ProofNet"
 LEAN_EXAMPLE_URL = "https://github.com/yangky11/lean-example"
 LEAN4_URL = "https://github.com/leanprover/lean4"
+MINIF2F_LEAN4_URL = "https://github.com/yangky11/miniF2F-lean4"
 STD4_URL = "https://github.com/leanprover/std4"
 AESOP_URL = "https://github.com/JLimperg/aesop"
 MATHLIB4_URL = "https://github.com/leanprover-community/mathlib4"
@@ -24,6 +24,7 @@ URLS = [
     PROOFNET_URL,
     LEAN_EXAMPLE_URL,
     LEAN4_URL,
+    MINIF2F_LEAN4_URL,
     STD4_URL,
     AESOP_URL,
     MATHLIB4_URL,

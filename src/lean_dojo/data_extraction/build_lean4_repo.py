@@ -144,7 +144,7 @@ def main() -> None:
 
     else:
         # Build the repo using lake.
-        run_cmd(f"lake build")
+        run_cmd("lake build")
 
         # Copy the Lean 4 stdlib into lake-packages.
         lean_prefix = run_cmd(f"lean --print-prefix", capture_output=True).strip()

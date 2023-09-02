@@ -1240,10 +1240,6 @@ def _build_dependency_graph(traced_files: List[TracedFile]) -> nx.DiGraph:
         tf_path_str = str(tf.path)
         for dep_path in tf.get_direct_dependencies():
             dep_path_str = str(dep_path)
-            if not G.has_node(dep_path_str):
-                import pdb
-
-                pdb.set_trace()
             assert G.has_node(dep_path_str)
             G.add_edge(tf_path_str, dep_path_str)
 

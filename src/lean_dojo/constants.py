@@ -5,8 +5,11 @@ import os
 import re
 import subprocess
 import multiprocessing
+from github import Auth
 from pathlib import Path
 from typing import Tuple
+from github import Github
+from loguru import logger
 
 
 __version__ = "1.2.2"
@@ -47,8 +50,26 @@ LEAN3_DEPS_DIR = Path("_target/deps")
 LEAN4_URL = "https://github.com/leanprover/lean4"
 """The URL of the Lean 4 repo."""
 
-LEAN4_NIGHTLY_URL = "https://github.com/leanprover/lean4-nightly"
-"""The URL of the Lean 4 nightly repo."""
+GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN", None)
+"""GiHub personal access token is optional. 
+If provided, it can increase the rate limit for GitHub API calls.
+"""
+
+if GITHUB_ACCESS_TOKEN:
+    logger.debug("Using GitHub personal access token for authentication")
+    GITHUB = Github(auth=Auth.Token(GITHUB_ACCESS_TOKEN))
+    GITHUB.get_user().login
+else:
+    logger.debug(
+        "Using GitHub without authentication. Don't be surprised if you hit the API rate limit."
+    )
+    GITHUB = Github()
+
+LEAN4_REPO = GITHUB.get_repo("leanprover/lean4")
+"""The GitHub Repo for Lean 4 itself."""
+
+LEAN4_NIGHTLY_REPO = GITHUB.get_repo("leanprover/lean4-nightly")
+"""The GitHub Repo for Lean 4 nightly releases."""
 
 LEAN4_DEPS_DIR = Path("lake-packages")
 """The directory where Lean 4 dependencies are stored."""

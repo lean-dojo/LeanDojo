@@ -9,30 +9,33 @@ import webbrowser
 from pathlib import Path
 from loguru import logger
 from dataclasses import dataclass, field
+from github.Repository import Repository
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple
 
 from ..utils import (
     execute,
     read_url,
     url_exists,
+    url_to_repo,
+    normalize_url,
     get_repo_info,
     working_directory,
     get_latest_commit,
 )
-from ..constants import LEAN3_URL, LEAN4_URL, LEAN4_NIGHTLY_URL
+from ..constants import LEAN3_URL, LEAN4_URL, LEAN4_REPO, LEAN4_NIGHTLY_REPO
 
 
-def _convert_tag_to_commit_hash(url: str, tag: str) -> str:
-    with working_directory():
-        execute(f"git clone -n {url}", capture_output=True)
-        repo_name = url.split("/")[-1]
-        with working_directory(repo_name):
-            output, _ = execute(
-                f"git rev-list -n 1 {tag} 2>/dev/null || git rev-list -n 1 origin/{tag} 2>/dev/null",
-                capture_output=True,
-            )
-            commit = output.strip()
-            return commit
+def _to_commit_hash(repo: Repository, label: str) -> str:
+    """Convert a tag or branch to a commit hash."""
+    for branch in repo.get_branches():
+        if branch.name == label:
+            return branch.commit.sha
+
+    for tag in repo.get_tags():
+        if tag.name == label:
+            return tag.commit.sha
+
+    raise ValueError(f"Invalid tag or branch: `{label}` for {repo}")
 
 
 @dataclass(eq=True, unsafe_hash=True)
@@ -261,42 +264,34 @@ class LeanFile:
 
 
 _COMMIT_REGEX = re.compile(r"[0-9a-z]+")
+_LEAN_VERSION_REGEX = re.compile(
+    r"leanprover-community/lean:(?P<version>\d+\.\d+\.\d+)"
+)
 
 
 def get_lean3_version_from_config(config: Dict[str, Any]) -> str:
     """Return the required Lean version given a ``leanpkg.toml`` config."""
-    m = re.fullmatch(
-        r"leanprover-community/lean:(?P<version>\d+\.\d+\.\d+)",
-        config["package"]["lean_version"],
-    )
+    m = _LEAN_VERSION_REGEX.fullmatch(config["package"]["lean_version"])
     assert m is not None, "Invalid config."
     return f"v{m['version']}"
-
-
-def _get_latest_lean4_nightly() -> str:
-    """Return the latest Lean 4 nightly version from https://github.com/leanprover/lean4-nightly/tags."""
-    url = os.path.join(LEAN4_NIGHTLY_URL, "tags")
-    html = read_url(url)
-    m = re.search(
-        r"/leanprover/lean4-nightly/releases/tag/(?P<version>.+?(?=\"))", html
-    )
-    return m["version"]
 
 
 def get_lean4_commit_from_config(config: str) -> str:
     """Return the required Lean commit given a ``lean-toolchain`` config."""
     config = config.strip()
     prefix = "leanprover/lean4:"
-    if config == f"{prefix}nightly":
-        version = _get_latest_lean4_nightly()
-    else:
-        assert config.startswith(prefix), f"Invalid Lean 4 version: {config}"
-        version = config[len(prefix) :]
 
-    url = os.path.join(LEAN4_NIGHTLY_URL, f"releases/tag/{version}")
-    html = read_url(url)
-    m = re.search(r"/leanprover/lean4-nightly/commit/(?P<commit>[0-9a-z]+)", html)
-    return m["commit"]
+    if config == f"{prefix}nightly":
+        latest_tag = next(LEAN4_NIGHTLY_REPO.get_tags())
+        return latest_tag.commit.sha
+
+    assert config.startswith(prefix), f"Invalid Lean 4 version: {config}"
+    version = config[len(prefix) :]
+
+    if version.startswith("nightly"):
+        return _to_commit_hash(LEAN4_NIGHTLY_REPO, version)
+    else:
+        return _to_commit_hash(LEAN4_REPO, version)
 
 
 URL = TAG = COMMIT = str
@@ -316,6 +311,11 @@ class RepoInfoCache:
 info_cache = RepoInfoCache()
 
 
+_GIT_REQUIREMENT_REGEX = re.compile(
+    r"require\s+(?P<name>\S+)\s+from\s+git\s+\"(?P<url>.+?)\"(\s+@\s+\"(?P<rev>\S+)\")?"
+)
+
+
 @dataclass(frozen=True)
 class LeanGitRepo:
     """Git repo of a Lean project."""
@@ -332,8 +332,8 @@ class LeanGitRepo:
     You can also use tags such as ``v3.5.0``. They will be converted to commit hashes.
     """
 
-    name: str = field(init=False, repr=False)
-    """The repo's name.
+    repo: str = field(init=False, repr=False)
+    """A :class:`github.Repository` object.
     """
 
     uses_lean3: bool = field(init=False, repr=False)
@@ -353,17 +353,16 @@ class LeanGitRepo:
             raise ValueError(f"{self.url} is not a Github URL")
         if not self.url.startswith("https://"):
             raise ValueError(f"{self.url} is not a valid URL")
-        url = re.fullmatch(r"(?P<url>.*?)/*", self.url)["url"]  # Remove trailing `/`.
-        object.__setattr__(self, "url", url)
-        object.__setattr__(self, "name", os.path.split(self.url)[-1])
+        object.__setattr__(self, "url", normalize_url(self.url))
+        object.__setattr__(self, "repo", url_to_repo(self.url))
 
-        # Convert tags to commit hashes
+        # Convert tags or branches to commit hashes
         if not (len(self.commit) == 40 and _COMMIT_REGEX.fullmatch(self.commit)):
             if (self.url, self.commit) in info_cache.tag2commit:
                 commit = info_cache.tag2commit[(self.url, self.commit)]
             else:
                 logger.debug(f"Querying the commit hash for {self.name} {self.commit}")
-                commit = _convert_tag_to_commit_hash(self.url, self.commit)
+                commit = _to_commit_hash(self.repo, self.commit)
                 assert _COMMIT_REGEX.fullmatch(commit), f"Invalid commit hash: {commit}"
                 info_cache.tag2commit[(self.url, self.commit)] = commit
             object.__setattr__(self, "commit", commit)
@@ -408,6 +407,10 @@ class LeanGitRepo:
         """Construct a :class:`LeanGitRepo` object from the path to a local Git repo."""
         url, commit = get_repo_info(path)
         return cls(url, commit)
+
+    @property
+    def name(self) -> str:
+        return self.repo.name
 
     @property
     def is_lean4(self) -> bool:
@@ -463,19 +466,23 @@ class LeanGitRepo:
             return self._get_lean4_dependencies(path)
 
     def _get_lean3_dependencies(
-        self, path: Union[str, Path, None] = None
+        self, path: Union[str, Path, None] = None, parents: List[str] = []
     ) -> Dict[str, "LeanGitRepo"]:
+        logger.debug(f"Querying the dependencies of {self}")
         if path is None:
             config = self.get_config("leanpkg.toml")
         else:
             config = toml.load(Path(path) / "leanpkg.toml")
 
-        version = get_lean3_version_from_config(config)
-        deps = {"lean": LeanGitRepo(LEAN3_URL, version)}
+        deps = {"lean": LeanGitRepo(LEAN3_URL, get_lean3_version_from_config(config))}
+
         if "dependencies" in config:
             for _, v in config["dependencies"].items():
                 r = LeanGitRepo(url=v["git"], commit=v["rev"])
+                assert r not in parents, f"Circular dependency: {r}"
                 deps[r.name] = r
+                for dd in r._get_lean3_dependencies(None, [r] + parents).values():
+                    deps[dd.name] = dd
 
         return deps
 
@@ -486,10 +493,9 @@ class LeanGitRepo:
         if re.search(_LOCAL_REQUIREMENT_REGEX, lakefile):
             raise ValueError("Local dependencies are not supported.")
 
-        _GIT_REQUIREMENT_REGEX = r"require\s+(?P<name>\S+)\s+from\s+git\s+\"(?P<url>.+?)\"(\s+@\s+(?P<rev>\S+))?"
         deps = []
 
-        for m in re.finditer(_GIT_REQUIREMENT_REGEX, lakefile):
+        for m in _GIT_REQUIREMENT_REGEX.finditer(lakefile):
             url = m["url"]
             if url.endswith(".git"):
                 url = url[:-4]
@@ -503,7 +509,7 @@ class LeanGitRepo:
                 commit = rev
             else:
                 logger.debug(f"Querying the commit hash for {url} {rev}")
-                commit = _convert_tag_to_commit_hash(url, rev)
+                commit = _to_commit_hash(url_to_repo(url), rev)
                 assert _COMMIT_REGEX.fullmatch(commit)
 
             deps.append((m["name"], LeanGitRepo(url, commit)))
@@ -511,8 +517,9 @@ class LeanGitRepo:
         return deps
 
     def _get_lean4_dependencies(
-        self, path: Union[str, Path, None] = None
+        self, path: Union[str, Path, None] = None, parents: List[str] = []
     ) -> Dict[str, "LeanGitRepo"]:
+        logger.debug(f"Querying the dependencies of {self}")
         if path is None:
             lakefile = self.get_config("lakefile.lean")
             toolchain = self.get_config("lean-toolchain")
@@ -524,7 +531,14 @@ class LeanGitRepo:
         deps = {"lean4": LeanGitRepo(LEAN4_URL, commit)}
 
         for name, repo in self._parse_lakefile_dependencies(lakefile):
-            deps[name] = repo
+            if name in deps:
+                assert deps[name] == repo
+            else:
+                deps[name] = repo
+            for dd_name, dd_repo in repo._get_lean4_dependencies(
+                None, [repo] + parents
+            ).items():
+                deps[dd_name] = dd_repo
 
         return deps
 

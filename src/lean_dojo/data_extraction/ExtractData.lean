@@ -237,9 +237,14 @@ private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : Info
         let some posAfter := ti.stx.getTailPos? true | pure ()
         match ti.stx with
         | .node _ _ _ =>
-          modifyGet fun trace => ((),
-            { trace with tactics := trace.tactics.push { stateBefore := stateBefore, stateAfter := stateAfter, pos := posBefore, endPos := posAfter } }
-          )
+          modify fun trace => { 
+            trace with tactics := trace.tactics.push { 
+              stateBefore := stateBefore, 
+              stateAfter := stateAfter, 
+              pos := posBefore, 
+              endPos := posAfter,
+             } 
+          }
         | _ => pure ()
     | _ => pure ()
   | _ => pure ()
@@ -264,16 +269,17 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
   let defPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.pos
   let defEndPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.endPos
 
-  modifyGet fun trace => ((),
-    { trace with premises := trace.premises.push {
-      fullName := toString fullName,
-      defPos := defPos,
-      defEndPos := defEndPos,
-      pos := posBefore,
-      endPos := posAfter,
-      modName := toString modName}
+  modify fun trace => { 
+      trace with premises := trace.premises.push {
+        fullName := toString fullName,
+        defPos := defPos,
+        defEndPos := defEndPos,
+        pos := posBefore,
+        endPos := posAfter,
+        modName := toString modName,
+      }
     }
-  )
+  
 
 
 private def visitInfo (ctx : ContextInfo) (i : Info) (parent : InfoTree) (env : Environment) : TraceM Unit := do
