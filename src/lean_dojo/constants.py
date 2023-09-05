@@ -3,6 +3,7 @@ Many of them are configurable via :ref:`environment-variables`.
 """
 import os
 import re
+import sys
 import subprocess
 import multiprocessing
 from github import Auth
@@ -12,7 +13,13 @@ from github import Github
 from loguru import logger
 
 
-__version__ = "1.2.2"
+__version__ = "1.2.4"
+
+logger.remove()
+if "VERBOSE" in os.environ or "DEBUG" in os.environ:
+    logger.add(sys.stderr, level="DEBUG")
+else:
+    logger.add(sys.stderr, level="INFO")
 
 CACHE_DIR = (
     Path(os.environ["CACHE_DIR"])
