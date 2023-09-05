@@ -13,7 +13,7 @@ from github import Github
 from loguru import logger
 
 
-__version__ = "1.2.2"
+__version__ = "1.2.4"
 
 logger.remove()
 if "VERBOSE" in os.environ or "DEBUG" in os.environ:
