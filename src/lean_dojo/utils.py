@@ -144,21 +144,6 @@ def camel_case(s: str) -> str:
     return _CAMEL_CASE_REGEX.sub(" ", s).title().replace(" ", "")
 
 
-def set_lean_dojo_logger(verbose: bool) -> None:
-    """Set loguru's logging level.
-
-    The effect of this function is global, and it should be called only once in the main function.
-
-    Args:
-        verbose (bool): Whether to print debug information.
-    """
-    logger.remove()
-    if verbose:
-        logger.add(sys.stderr, level="DEBUG")
-    else:
-        logger.add(sys.stderr, level="INFO")
-
-
 def get_repo_info(path: Path) -> Tuple[str, str]:
     """Get the URL and commit hash of the Git repo at ``path``.
 
