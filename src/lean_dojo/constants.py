@@ -10,7 +10,9 @@ from pathlib import Path
 from typing import Tuple
 from github import Github
 from loguru import logger
+from dotenv import load_dotenv
 
+load_dotenv()
 
 __version__ = "1.2.2"
 
