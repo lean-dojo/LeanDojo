@@ -282,7 +282,7 @@ def get_lean4_commit_from_config(config: str) -> str:
     prefix = "leanprover/lean4:"
 
     if config == f"{prefix}nightly":
-        latest_tag = next(LEAN4_NIGHTLY_REPO.get_tags())
+        latest_tag = LEAN4_NIGHTLY_REPO.get_tags()[0]
         return latest_tag.commit.sha
 
     assert config.startswith(prefix), f"Invalid Lean 4 version: {config}"
