@@ -29,7 +29,7 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
 ]
 dependencies = [
-  "dotenv",
+  "python-dotenv",
   "loguru",
   "filelock",
   "tqdm",
