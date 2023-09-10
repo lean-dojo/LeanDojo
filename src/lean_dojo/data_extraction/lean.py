@@ -277,9 +277,10 @@ def get_lean3_version_from_config(config: Dict[str, Any]) -> str:
     return f"v{m['version']}"
 
 
-def get_lean4_commit_from_config(config: str) -> str:
+def get_lean4_commit_from_config(config_dict: Dict[str, Any]) -> str:
     """Return the required Lean commit given a ``lean-toolchain`` config."""
-    config = config.strip()
+    assert "content" in config_dict, "config_dict must have a 'content' field"
+    config = config_dict["content"].strip()
     prefix = "leanprover/lean4:"
 
     if config == f"{prefix}nightly":
@@ -399,7 +400,7 @@ class LeanGitRepo:
             lean_version = get_lean3_version_from_config(config)
         else:
             config = self.get_config("lean-toolchain")
-            lean_version = get_lean4_commit_from_config(config["content"])
+            lean_version = get_lean4_commit_from_config(config)
         info_cache.lean_version[(self.url, self.commit)] = lean_version
         object.__setattr__(self, "lean_version", lean_version)
 
@@ -528,7 +529,7 @@ class LeanGitRepo:
             lakefile = { "content" :(Path(path) / "lakefile.lean").open().read()}
             toolchain = { "content" :(Path(path) / "lean-toolchain").open().read()}
 
-        commit = get_lean4_commit_from_config(toolchain["content"])
+        commit = get_lean4_commit_from_config(toolchain)
         deps = {"lean4": LeanGitRepo(LEAN4_URL, commit)}
 
         for name, repo in self._parse_lakefile_dependencies(lakefile["content"]):
