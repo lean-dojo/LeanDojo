@@ -12,7 +12,6 @@ from shutil import ignore_patterns
 from subprocess import TimeoutExpired
 from dataclasses import dataclass, field
 from typing import Union, Tuple, List, Dict, Any, Optional
-from container import DockerContainer, NativeContainer
 
 from ..constants import (
     TMP_DIR,
@@ -24,7 +23,7 @@ from ..constants import (
 )
 from ..utils import to_json_path
 from .parse_goals import parse_goals, Goal
-from ..container import get_container, Mount
+from ..container import get_container, Mount, NativeContainer, DockerContainer
 from ..data_extraction.traced_data import TracedFile
 from ..data_extraction.trace import get_traced_repo_path
 from ..data_extraction.lean import Theorem, LeanGitRepo, Pos
