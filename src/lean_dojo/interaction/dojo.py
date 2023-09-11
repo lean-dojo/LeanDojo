@@ -12,6 +12,7 @@ from shutil import ignore_patterns
 from subprocess import TimeoutExpired
 from dataclasses import dataclass, field
 from typing import Union, Tuple, List, Dict, Any, Optional
+from container import DockerContainer, NativeContainer
 
 from ..constants import (
     TMP_DIR,
@@ -154,10 +155,12 @@ class Dojo:
         self.additional_imports = additional_imports
 
         if self.uses_tactics:
+            assert isinstance(entry, Theorem)
             self.repo, self.file_path = entry.repo, entry.file_path
             self.is_successful = False
         else:
             assert self.uses_commands
+            assert isinstance(entry, tuple)
             self.repo, self.file_path, _ = entry
             self.file_path = Path(self.file_path)
             assert (
@@ -225,7 +228,7 @@ class Dojo:
             # Run the modified file in a container.
             self.container = get_container()
             logger.debug(f"Launching the proof using {type(self.container)}")
-            mts = [Mount(Path.cwd(), f"/workspace/{self.repo.name}")]
+            mts = [Mount(Path.cwd(), Path(f"/workspace/{self.repo.name}"))]
             if self.repo.uses_lean3:
                 cmd = f"lean {self.file_path}"
             elif self.repo.is_lean4:
@@ -237,6 +240,9 @@ class Dojo:
                     as_current_user=True,
                     capture_output=True,
                     work_dir=f"/workspace/{self.repo.name}",
+                    cpu_limit=None,
+                    memory_limit=None,
+                    envs={},
                 )
                 cmd = f"lake env lean {self.file_path}"
 
@@ -247,6 +253,7 @@ class Dojo:
                 memory_limit=TACTIC_MEMORY_LIMIT,
                 work_dir=f"/workspace/{self.repo.name}",
                 as_current_user=True,
+                envs={},
             )
 
             # Get the initial tactic state.
@@ -284,7 +291,7 @@ class Dojo:
             shutil.rmtree(self.tmp_dir)
             raise ex
 
-    def _locate_traced_file(self, traced_repo_path: Path) -> Path:
+    def _locate_traced_file(self, traced_repo_path: Path) -> TracedFile:
         json_path = to_json_path(traced_repo_path, self.file_path, self.uses_lean4)
         return TracedFile.from_traced_file(traced_repo_path, json_path, self.repo)
 
@@ -302,7 +309,7 @@ class Dojo:
     def _set_timer(self) -> None:
         if self.hard_timeout is not None:
             signal.signal(signal.SIGALRM, self._handle_hard_timeout)
-            signal.alarm(self.hard_timeout)
+            signal.alarm(int(self.hard_timeout))
 
     def _cancel_timer(self) -> None:
         if self.hard_timeout is not None:
@@ -339,6 +346,9 @@ class Dojo:
     def _cleanup_container(self) -> None:
         """Clean up the container."""
         logger.debug("Cleaning up the container.")
+        assert isinstance(self.container, DockerContainer) or isinstance(
+            self.container, NativeContainer
+        )
         self.container.cleanup()
 
     def _cleanup_proc(self) -> None:
@@ -407,6 +417,7 @@ class Dojo:
         else:
             # Interaction through commands (supported only in Lean 4 via CommandElabM).
             lean_file = traced_file.lean_file
+            assert isinstance(self.entry, Tuple)
             pos = Pos(line_nb=self.entry[2], column_nb=1)
             modified_code = (
                 self._get_imports()
@@ -440,6 +451,7 @@ class Dojo:
 
     def _modify_proof(self, traced_file: TracedFile) -> str:
         # Modify the proof and set up the `repl` tactic.
+        assert isinstance(self.entry, Theorem)
         traced_theorem = traced_file.get_traced_theorem(self.entry)
         if traced_theorem is None:
             raise DojoInitError(
@@ -549,6 +561,8 @@ class Dojo:
             Dict[str, Any]: _description_
         """
         logger.debug(f"Request: {req}")
+        if self.proc.stdin is None:
+            raise RuntimeError("self.proc.stdin is not initialized")
         self._check_alive()
         self.proc.stdin.write(req + "\n")
         try:
@@ -585,6 +599,8 @@ class Dojo:
         Returns:
             str: _description_
         """
+        if self.proc.stdout is None:
+            raise RuntimeError("self.proc.stout is not initialized")
         msg = []
         while True:
             line = self.proc.stdout.readline().strip()
