@@ -45,7 +45,7 @@ class TacticState:
     message: Optional[str] = field(default=None, compare=False)
     goals: List[Goal] = field(init=False, compare=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         goals = parse_goals(self.pp)
         assert len(goals) == self.pp.count("⊢")
         object.__setattr__(self, "goals", goals)
@@ -190,7 +190,7 @@ class Dojo:
     def uses_lean3(self) -> bool:
         return self.repo.uses_lean3
 
-    def __enter__(self) -> Tuple["Dojo", State]:
+    def __enter__(self) -> Tuple["Dojo", Union[State, CommandState]]:
         """Initialize Dojo."""
         logger.debug(f"Initializing Dojo for {self.entry}")
 
@@ -269,6 +269,10 @@ class Dojo:
                     raise ex
 
             assert res["error"] is None
+
+            self.start_time = time.monotonic()
+            self._set_timer()
+
             # logger.debug(f"Response: {res}")
             if self.uses_tactics:
                 assert res["tacticState"] != "no goals"
@@ -276,14 +280,11 @@ class Dojo:
                     self._post_process(res["tacticState"]),
                     res["sid"],
                 )
+                return self, init_state
             else:
                 assert self.uses_commands
-                init_state = CommandState(res["sid"])
-
-            self.start_time = time.monotonic()
-            self._set_timer()
-
-            return self, init_state
+                init_state_cmd = CommandState(int(res["sid"]))
+                return self, init_state_cmd
 
         except Exception as ex:
             os.chdir(self.origin_dir)
@@ -315,7 +316,7 @@ class Dojo:
             signal.alarm(0)
             signal.signal(signal.SIGALRM, signal.SIG_DFL)
 
-    def _handle_hard_timeout(self, signum, frame) -> None:
+    def _handle_hard_timeout(self, signum: Any, frame: Any) -> None:
         logger.debug(f"Hard timeout in {self}")
         self.has_timedout = True
         raise DojoHardTimeoutError()
@@ -328,12 +329,12 @@ class Dojo:
         signal.signal(signal.SIGINT, self.old_sigint)
         signal.signal(signal.SIGTERM, self.old_sigterm)
 
-    def _exit_gracefully(self, signum, frame):
+    def _exit_gracefully(self, signum: Any, frame: Any) -> None:
         logger.debug("Exiting gracefully.")
         self._cleanup()
         sys.exit(-1)
 
-    def _cleanup(self):
+    def _cleanup(self) -> None:
         logger.debug("Cleaning up.")
         try:
             self._cleanup_container()
@@ -416,7 +417,6 @@ class Dojo:
         else:
             # Interaction through commands (supported only in Lean 4 via CommandElabM).
             lean_file = traced_file.lean_file
-            assert isinstance(self.entry, Tuple)
             pos = Pos(line_nb=self.entry[2], column_nb=1)
             modified_code = (
                 self._get_imports()
@@ -481,8 +481,7 @@ class Dojo:
             modified_code = (
                 code_import + code_before_proof + code_proof + lean_file[proof_end:]
             )
-
-        return modified_code
+        return str(modified_code)
 
     def run_tac(self, state: TacticState, tactic: str) -> TacticResult:
         if not isinstance(state, TacticState):
@@ -533,14 +532,14 @@ class Dojo:
         else:
             return CommandState(res["sid"], res["message"])
 
-    def query_env(self, state: TacticState):
+    def query_env(self, state: TacticState) -> Any:
         if self.uses_lean4:
             raise NotImplementedError
         req = json.dumps(["query_env", [state.id]])
         res = self._submit_request(req)
         return res["environment"]
 
-    def query_decl(self, state: TacticState, name: str):
+    def query_decl(self, state: TacticState, name: str) -> Any:
         if self.uses_lean4:
             raise NotImplementedError
         req = json.dumps(["query_decl", [state.id, name]])
@@ -570,13 +569,13 @@ class Dojo:
             raise DojoCrashError("EOF")
         # logger.debug(f"Response: {res}")
         try:
-            res = json.loads(res)
+            result: Dict[str, Any] = json.loads(res)
         except json.decoder.JSONDecodeError:
             raise DojoCrashError(f"Invalid JSON: {res}")
 
         assert "message" not in res
-        res["message"] = msg
-        return res
+        result["message"] = msg
+        return result
 
     def _check_alive(self) -> None:
         exit_code = self.proc.poll()
@@ -600,7 +599,7 @@ class Dojo:
         """
         if self.proc.stdout is None:
             raise RuntimeError("self.proc.stout is not initialized")
-        msg = []
+        msg: List[str] = []
         while True:
             line = self.proc.stdout.readline().strip()
             logger.debug(line)
