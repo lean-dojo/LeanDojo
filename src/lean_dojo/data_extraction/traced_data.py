@@ -1231,7 +1231,9 @@ def _save_xml_to_disk(tf: TracedFile) -> None:
         oup.write(tf.to_xml())
 
 
-def _build_dependency_graph(traced_files: List[TracedFile], root_dir: Path, repo: LeanGitRepo) -> nx.DiGraph:
+def _build_dependency_graph(
+    traced_files: List[TracedFile], root_dir: Path, repo: LeanGitRepo
+) -> nx.DiGraph:
     G = nx.DiGraph()
 
     for tf in traced_files:
@@ -1244,9 +1246,11 @@ def _build_dependency_graph(traced_files: List[TracedFile], root_dir: Path, repo
         for dep_path in tf.get_direct_dependencies():
             dep_path_str = str(dep_path)
             if not G.has_node(dep_path_str):
-                xml_to_index = (str(root_dir) + "/" + dep_path_str.replace("/src/", "/lib/")).replace(".lean", ".trace.xml")
+                xml_to_index = (
+                    str(root_dir) + "/" + dep_path_str.replace("/src/", "/lib/")
+                ).replace(".lean", ".trace.xml")
                 new_traced_file = TracedFile.from_xml(root_dir, xml_to_index, repo)
-                G.add_node(str(new_traced_file.path), traced_file=new_traced_file) 
+                G.add_node(str(new_traced_file.path), traced_file=new_traced_file)
             G.add_edge(tf_path_str, dep_path_str)
 
     assert nx.is_directed_acyclic_graph(G)
@@ -1472,7 +1476,11 @@ class TracedRepo:
 
         # exclude all imported lake-packages
         if LOAD_TRACED_DEPENDENCIES_RECURSIVELY:
-            xml_paths = [xml_path for xml_path in xml_paths if not "lake-packages" in str(xml_path)]
+            xml_paths = [
+                xml_path
+                for xml_path in xml_paths
+                if not "lake-packages" in str(xml_path)
+            ]
 
         if NUM_WORKERS <= 1:
             traced_files = [
