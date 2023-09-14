@@ -83,8 +83,8 @@ LEAN4_NIGHTLY_REPO = GITHUB.get_repo("leanprover/lean4-nightly")
 LEAN4_DEPS_DIR = Path("lake-packages")
 """The directory where Lean 4 dependencies are stored."""
 
-LOAD_TRACED_DEPENDENCIES_RECURSIVELY = bool(
-    os.getenv("LOAD_TRACED_DEPENDENCIES_RECURSIVELY", False)
+LOAD_TRACED_DEPENDENCIES_RECURSIVELY = (
+    os.getenv("LOAD_TRACED_DEPENDENCIES_RECURSIVELY", "False").lower() == "true"
 )
 """Whether to load traced dependencies recursively."""
 
