@@ -16,7 +16,6 @@ from typing import Union, Tuple, List, Dict, Any, Optional
 from ..constants import (
     TMP_DIR,
     LEAN3_DEPS_DIR,
-    LEAN4_DEPS_DIR,
     TACTIC_TIMEOUT,
     TACTIC_CPU_LIMIT,
     TACTIC_MEMORY_LIMIT,
