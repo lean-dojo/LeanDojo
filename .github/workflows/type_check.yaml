@@ -1,0 +1,18 @@
+name: Typechecker
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+jobs:
+  types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: pip install ".[all]"
+      - name: Type Check (mypy)
+        run: mypy src/lean_dojo/interaction 

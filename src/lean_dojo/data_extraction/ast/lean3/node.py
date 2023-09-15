@@ -1144,6 +1144,8 @@ class ClassInductiveNode(Node):
         elif isinstance(children[1], IdentNode):
             assert isinstance(children[0], ModifiersNode)
             return children[1]
+        else:
+            raise Exception("Unexpected children: " + str(children))
 
 
 @dataclass(frozen=True)

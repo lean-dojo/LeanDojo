@@ -22,7 +22,7 @@ from ..constants import (
 )
 from ..utils import to_json_path
 from .parse_goals import parse_goals, Goal
-from ..container import get_container, Mount
+from ..container import get_container, Mount, NativeContainer, DockerContainer
 from ..data_extraction.traced_data import TracedFile
 from ..data_extraction.trace import get_traced_repo_path
 from ..data_extraction.lean import Theorem, LeanGitRepo, Pos
@@ -44,7 +44,7 @@ class TacticState:
     message: Optional[str] = field(default=None, compare=False)
     goals: List[Goal] = field(init=False, compare=False, repr=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         goals = parse_goals(self.pp)
         assert len(goals) == self.pp.count("⊢")
         object.__setattr__(self, "goals", goals)
@@ -153,10 +153,12 @@ class Dojo:
         self.additional_imports = additional_imports
 
         if self.uses_tactics:
+            assert isinstance(entry, Theorem)
             self.repo, self.file_path = entry.repo, entry.file_path
             self.is_successful = False
         else:
             assert self.uses_commands
+            assert isinstance(entry, tuple)
             self.repo, self.file_path, _ = entry
             self.file_path = Path(self.file_path)
             assert (
@@ -224,7 +226,7 @@ class Dojo:
             # Run the modified file in a container.
             self.container = get_container()
             logger.debug(f"Launching the proof using {type(self.container)}")
-            mts = [Mount(Path.cwd(), f"/workspace/{self.repo.name}")]
+            mts = [Mount(Path.cwd(), Path(f"/workspace/{self.repo.name}"))]
             if self.repo.uses_lean3:
                 cmd = f"lean {self.file_path}"
             elif self.repo.is_lean4:
@@ -236,6 +238,9 @@ class Dojo:
                     as_current_user=True,
                     capture_output=True,
                     work_dir=f"/workspace/{self.repo.name}",
+                    cpu_limit=None,
+                    memory_limit=None,
+                    envs={},
                 )
                 cmd = f"lake env lean {self.file_path}"
 
@@ -246,6 +251,7 @@ class Dojo:
                 memory_limit=TACTIC_MEMORY_LIMIT,
                 work_dir=f"/workspace/{self.repo.name}",
                 as_current_user=True,
+                envs={},
             )
 
             # Get the initial tactic state.
@@ -262,16 +268,17 @@ class Dojo:
                     raise ex
 
             assert res["error"] is None
+
             # logger.debug(f"Response: {res}")
             if self.uses_tactics:
                 assert res["tacticState"] != "no goals"
-                init_state = TacticState(
+                init_state: State = TacticState(
                     self._post_process(res["tacticState"]),
                     res["sid"],
                 )
             else:
                 assert self.uses_commands
-                init_state = CommandState(res["sid"])
+                init_state = CommandState(int(res["sid"]))
 
             self.start_time = time.monotonic()
             self._set_timer()
@@ -283,7 +290,7 @@ class Dojo:
             shutil.rmtree(self.tmp_dir)
             raise ex
 
-    def _locate_traced_file(self, traced_repo_path: Path) -> Path:
+    def _locate_traced_file(self, traced_repo_path: Path) -> TracedFile:
         json_path = to_json_path(traced_repo_path, self.file_path, self.uses_lean4)
         return TracedFile.from_traced_file(traced_repo_path, json_path, self.repo)
 
@@ -301,14 +308,14 @@ class Dojo:
     def _set_timer(self) -> None:
         if self.hard_timeout is not None:
             signal.signal(signal.SIGALRM, self._handle_hard_timeout)
-            signal.alarm(self.hard_timeout)
+            signal.alarm(int(self.hard_timeout))
 
     def _cancel_timer(self) -> None:
         if self.hard_timeout is not None:
             signal.alarm(0)
             signal.signal(signal.SIGALRM, signal.SIG_DFL)
 
-    def _handle_hard_timeout(self, signum, frame) -> None:
+    def _handle_hard_timeout(self, signum: Any, frame: Any) -> None:
         logger.debug(f"Hard timeout in {self}")
         self.has_timedout = True
         raise DojoHardTimeoutError()
@@ -321,12 +328,12 @@ class Dojo:
         signal.signal(signal.SIGINT, self.old_sigint)
         signal.signal(signal.SIGTERM, self.old_sigterm)
 
-    def _exit_gracefully(self, signum, frame):
+    def _exit_gracefully(self, signum: Any, frame: Any) -> None:
         logger.debug("Exiting gracefully.")
         self._cleanup()
         sys.exit(-1)
 
-    def _cleanup(self):
+    def _cleanup(self) -> None:
         logger.debug("Cleaning up.")
         try:
             self._cleanup_container()
@@ -338,6 +345,9 @@ class Dojo:
     def _cleanup_container(self) -> None:
         """Clean up the container."""
         logger.debug("Cleaning up the container.")
+        assert isinstance(self.container, DockerContainer) or isinstance(
+            self.container, NativeContainer
+        )
         self.container.cleanup()
 
     def _cleanup_proc(self) -> None:
@@ -439,6 +449,7 @@ class Dojo:
 
     def _modify_proof(self, traced_file: TracedFile) -> str:
         # Modify the proof and set up the `repl` tactic.
+        assert isinstance(self.entry, Theorem)
         traced_theorem = traced_file.get_traced_theorem(self.entry)
         if traced_theorem is None:
             raise DojoInitError(
@@ -469,8 +480,7 @@ class Dojo:
             modified_code = (
                 code_import + code_before_proof + code_proof + lean_file[proof_end:]
             )
-
-        return modified_code
+        return str(modified_code)
 
     def run_tac(self, state: TacticState, tactic: str) -> TacticResult:
         if not isinstance(state, TacticState):
@@ -521,14 +531,14 @@ class Dojo:
         else:
             return CommandState(res["sid"], res["message"])
 
-    def query_env(self, state: TacticState):
+    def query_env(self, state: TacticState) -> Any:
         if self.uses_lean4:
             raise NotImplementedError
         req = json.dumps(["query_env", [state.id]])
         res = self._submit_request(req)
         return res["environment"]
 
-    def query_decl(self, state: TacticState, name: str):
+    def query_decl(self, state: TacticState, name: str) -> Any:
         if self.uses_lean4:
             raise NotImplementedError
         req = json.dumps(["query_decl", [state.id, name]])
@@ -548,6 +558,8 @@ class Dojo:
             Dict[str, Any]: _description_
         """
         logger.debug(f"Request: {req}")
+        if self.proc.stdin is None:
+            raise RuntimeError("self.proc.stdin is not initialized")
         self._check_alive()
         self.proc.stdin.write(req + "\n")
         try:
@@ -556,13 +568,13 @@ class Dojo:
             raise DojoCrashError("EOF")
         # logger.debug(f"Response: {res}")
         try:
-            res = json.loads(res)
+            result: Dict[str, Any] = json.loads(res)
         except json.decoder.JSONDecodeError:
             raise DojoCrashError(f"Invalid JSON: {res}")
 
         assert "message" not in res
-        res["message"] = msg
-        return res
+        result["message"] = msg
+        return result
 
     def _check_alive(self) -> None:
         exit_code = self.proc.poll()
@@ -584,7 +596,9 @@ class Dojo:
         Returns:
             str: _description_
         """
-        msg = []
+        if self.proc.stdout is None:
+            raise RuntimeError("self.proc.stout is not initialized")
+        msg: List[str] = []
         while True:
             line = self.proc.stdout.readline().strip()
             logger.debug(line)
