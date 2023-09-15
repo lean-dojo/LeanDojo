@@ -190,7 +190,7 @@ class Dojo:
     def uses_lean3(self) -> bool:
         return self.repo.uses_lean3
 
-    def __enter__(self) -> Tuple["Dojo", Union[State, CommandState]]:
+    def __enter__(self) -> Tuple["Dojo", State]:
         """Initialize Dojo."""
         logger.debug(f"Initializing Dojo for {self.entry}")
 
@@ -270,21 +270,21 @@ class Dojo:
 
             assert res["error"] is None
 
-            self.start_time = time.monotonic()
-            self._set_timer()
-
             # logger.debug(f"Response: {res}")
             if self.uses_tactics:
                 assert res["tacticState"] != "no goals"
-                init_state = TacticState(
+                init_state: State = TacticState(
                     self._post_process(res["tacticState"]),
                     res["sid"],
                 )
-                return self, init_state
             else:
                 assert self.uses_commands
-                init_state_cmd = CommandState(int(res["sid"]))
-                return self, init_state_cmd
+                init_state = CommandState(int(res["sid"]))
+
+            self.start_time = time.monotonic()
+            self._set_timer()
+
+            return self, init_state
 
         except Exception as ex:
             os.chdir(self.origin_dir)

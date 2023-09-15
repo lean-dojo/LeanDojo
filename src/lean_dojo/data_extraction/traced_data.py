@@ -158,20 +158,17 @@ class TracedTactic:
     @property
     def tactic(self) -> str:
         """The raw tactic string."""
-        assert isinstance(self.ast, TacticNode)
         return self.ast.tactic
 
     @property
     def state_before(self) -> str:
         """Pretty-printed state before applying the tactic."""
-        assert isinstance(self.ast, TacticNode)
         assert self.ast.state_before is not None
         return self.ast.state_before
 
     @property
     def state_after(self) -> str:
         """Pretty-printed state after applying the tactic."""
-        assert isinstance(self.ast, TacticNode)
         assert self.ast.state_after is not None
         return self.ast.state_after
 

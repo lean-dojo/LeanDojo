@@ -13,6 +13,6 @@ jobs:
         with:
           python-version: '3.10'
       - name: Install dependencies
-        run: pip install .
+        run: pip install ".[all]"
       - name: Type Check (mypy)
         run: mypy src/lean_dojo/interaction 

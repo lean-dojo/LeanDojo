@@ -38,7 +38,6 @@ dependencies = [
   "networkx",
   "lxml",
   "PyGithub",
-  "mypy",
   "ray[default] >= 2.6",
 ]
 
