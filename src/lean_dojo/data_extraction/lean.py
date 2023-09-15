@@ -11,6 +11,7 @@ from loguru import logger
 from dataclasses import dataclass, field
 from github.Repository import Repository
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple
+from urllib import error
 
 from ..utils import (
     execute,
@@ -205,7 +206,7 @@ class LeanFile:
 
         raise ValueError(f"Invalid byte index {byte_idx} in {self.path}.")
 
-    def offset(self, pos: Pos, delta: int) -> int:
+    def offset(self, pos: Pos, delta: int) -> Pos:
         """Off set a position by a given number."""
         line_nb, column_nb = pos
         num_columns = len(self.get_line(line_nb)) - column_nb + 1
@@ -276,9 +277,10 @@ def get_lean3_version_from_config(config: Dict[str, Any]) -> str:
     return f"v{m['version']}"
 
 
-def get_lean4_commit_from_config(config: str) -> str:
+def get_lean4_commit_from_config(config_dict: Dict[str, Any]) -> str:
     """Return the required Lean commit given a ``lean-toolchain`` config."""
-    config = config.strip()
+    assert "content" in config_dict, "config_dict must have a 'content' field"
+    config = config_dict["content"].strip()
     prefix = "leanprover/lean4:"
 
     if config == f"{prefix}nightly":
@@ -332,7 +334,7 @@ class LeanGitRepo:
     You can also use tags such as ``v3.5.0``. They will be converted to commit hashes.
     """
 
-    repo: str = field(init=False, repr=False)
+    repo: Repository = field(init=False, repr=False)
     """A :class:`github.Repository` object.
     """
 
@@ -481,7 +483,7 @@ class LeanGitRepo:
                 r = LeanGitRepo(url=v["git"], commit=v["rev"])
                 assert r not in parents, f"Circular dependency: {r}"
                 deps[r.name] = r
-                for dd in r._get_lean3_dependencies(None, [r] + parents).values():
+                for dd in r._get_lean3_dependencies(None, [r.name] + parents).values():
                     deps[dd.name] = dd
 
         return deps
@@ -524,19 +526,19 @@ class LeanGitRepo:
             lakefile = self.get_config("lakefile.lean")
             toolchain = self.get_config("lean-toolchain")
         else:
-            lakefile = (Path(path) / "lakefile.lean").open().read()
-            toolchain = (Path(path) / "lean-toolchain").open().read()
+            lakefile = {"content": (Path(path) / "lakefile.lean").open().read()}
+            toolchain = {"content": (Path(path) / "lean-toolchain").open().read()}
 
         commit = get_lean4_commit_from_config(toolchain)
         deps = {"lean4": LeanGitRepo(LEAN4_URL, commit)}
 
-        for name, repo in self._parse_lakefile_dependencies(lakefile):
+        for name, repo in self._parse_lakefile_dependencies(lakefile["content"]):
             if name in deps:
                 assert deps[name] == repo
             else:
                 deps[name] = repo
             for dd_name, dd_repo in repo._get_lean4_dependencies(
-                None, [repo] + parents
+                None, [name] + parents
             ).items():
                 deps[dd_name] = dd_repo
 
@@ -549,7 +551,7 @@ class LeanGitRepo:
         license_url = f"{url}/{self.commit}/LICENSE"
         try:
             return read_url(license_url)
-        except urllib.error.HTTPError:
+        except error.HTTPError:
             return None
 
     def _get_config_url(self, filename: str) -> str:
@@ -564,7 +566,7 @@ class LeanGitRepo:
         if filename == "leanpkg.toml":
             return toml.loads(content)
         elif filename in ("lean-toolchain", "lakefile.lean"):
-            return content
+            return {"content": content}
         else:
             raise ValueError(f"Unsupported config file: {filename}")
 
