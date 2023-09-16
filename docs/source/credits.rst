@@ -4,8 +4,9 @@ Credits and Acknowledgements
 Contributors
 ************
 
-Please feel free to reach out if your code has been merged into `the LeanDojo repo <https://github.com/lean-dojo/LeanDojo>`_ and you would 
-like your name to appear on this page.
+If your code has been merged into `the LeanDojo repo <https://github.com/lean-dojo/LeanDojo>`_ and you would 
+like your name to appear on this page, please feel free to edit this page and open a PR.
+
 
 Developers
 ----------
