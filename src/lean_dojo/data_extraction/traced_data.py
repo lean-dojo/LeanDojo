@@ -1231,23 +1231,31 @@ def _save_xml_to_disk(tf: TracedFile) -> None:
 
 
 def _build_dependency_graph(
-    traced_files: List[TracedFile], root_dir: Path, repo: LeanGitRepo
+    seed_files: List[TracedFile], root_dir: Path, repo: LeanGitRepo
 ) -> nx.DiGraph:
     G = nx.DiGraph()
 
-    for tf in traced_files:
+    for tf in seed_files:
         tf_path_str = str(tf.path)
         assert not G.has_node(tf_path_str)
         G.add_node(tf_path_str, traced_file=tf)
 
-    for tf in traced_files:
+    traced_files = seed_files.copy()
+    i = 0
+
+    while i < len(traced_files):
+        tf = traced_files[i]
         tf_path_str = str(tf.path)
+
         for dep_path in tf.get_direct_dependencies():
             dep_path_str = str(dep_path)
             if not G.has_node(dep_path_str):
                 xml_path = to_xml_path(root_dir, dep_path, repo.uses_lean4)
                 tf_dep = TracedFile.from_xml(root_dir, xml_path, repo)
-                G.add_node(str(tf_dep.path), traced_file=tf_dep)
+                assert tf_dep.path == tf.path
+                G.add_node(dep_path_str, traced_file=tf_dep)
+                traced_files.append(tf_dep)
+
             G.add_edge(tf_path_str, dep_path_str)
 
     assert nx.is_directed_acyclic_graph(G)
