@@ -17,9 +17,6 @@ from datetime import datetime
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any, Tuple, Generator, Union
 
-from ..constants import (
-    LOAD_TRACED_DEPENDENCIES_RECURSIVELY,
-)
 from ..utils import (
     is_git_repo,
     compute_md5,
@@ -33,6 +30,7 @@ from ..utils import (
 )
 from .ast.lean3.node import *
 from .ast.lean4.node import *
+from ..constants import LOAD_USED_DEPS_ONLY
 from .lean import LeanFile, LeanGitRepo, Theorem, Pos
 from .ast.lean3.expr import Expr, ConstExpr, parse_exprs_forest
 from ..constants import NUM_WORKERS, LEAN3_DEPS_DIR, LEAN4_DEPS_DIR
@@ -1247,11 +1245,9 @@ def _build_dependency_graph(
         for dep_path in tf.get_direct_dependencies():
             dep_path_str = str(dep_path)
             if not G.has_node(dep_path_str):
-                xml_to_index = (
-                    str(root_dir) + "/" + dep_path_str.replace("/src/", "/lib/")
-                ).replace(".lean", ".trace.xml")
-                new_traced_file = TracedFile.from_xml(root_dir, xml_to_index, repo)
-                G.add_node(str(new_traced_file.path), traced_file=new_traced_file)
+                xml_path = to_xml_path(root_dir, dep_path, repo.uses_lean4)
+                tf_dep = TracedFile.from_xml(root_dir, xml_path, repo)
+                G.add_node(str(tf_dep.path), traced_file=tf_dep)
             G.add_edge(tf_path_str, dep_path_str)
 
     assert nx.is_directed_acyclic_graph(G)
@@ -1358,7 +1354,7 @@ class TracedRepo:
             p.relative_to(self.root_dir) for p in self.root_dir.glob("**/*.dep_paths")
         }
 
-        if not LOAD_TRACED_DEPENDENCIES_RECURSIVELY:
+        if not LOAD_USED_DEPS_ONLY:
             assert len(json_files) == self.traced_files_graph.number_of_nodes()
 
         for path_str, tf_node in self.traced_files_graph.nodes.items():
@@ -1475,13 +1471,10 @@ class TracedRepo:
             f"Loading {len(xml_paths)} traced XML files from {root_dir} with {NUM_WORKERS} workers"
         )
 
-        # exclude all imported lake-packages
-        if LOAD_TRACED_DEPENDENCIES_RECURSIVELY:
-            xml_paths = [
-                xml_path
-                for xml_path in xml_paths
-                if not "lake-packages" in str(xml_path)
-            ]
+        # Start from files in the current repo as seeds.
+        # Only load dependency files that are actually used.
+        if LOAD_USED_DEPS_ONLY:
+            xml_paths = [p for p in xml_paths if not "lake-packages" in p.parts]
 
         if NUM_WORKERS <= 1:
             traced_files = [
