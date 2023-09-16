@@ -212,6 +212,7 @@ class TracedTactic:
         Returns:
             Tuple[str, List[Dict[str, Any]]]: The first return value is the tactic string marked by ``<a> ... </a>``. The second return value is a list of provenances.
         """
+        assert self.traced_theorem != None
         lean_file = self.traced_theorem.traced_file.lean_file
         annot_tac = []
         provenances = []
@@ -219,7 +220,7 @@ class TracedTactic:
 
         if self.uses_lean3:
 
-            def _callback3(node: IdentNode, _):
+            def _callback3(node: IdentNode, _) -> None:
                 nonlocal cur
 
                 if node.full_name is not None:
