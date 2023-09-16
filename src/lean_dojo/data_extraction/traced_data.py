@@ -17,6 +17,9 @@ from datetime import datetime
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any, Tuple, Generator, Union
 
+from ..constants import (
+    LOAD_TRACED_DEPENDENCIES_RECURSIVELY,
+)
 from ..utils import (
     is_git_repo,
     compute_md5,
@@ -1229,7 +1232,9 @@ def _save_xml_to_disk(tf: TracedFile) -> None:
         oup.write(tf.to_xml())
 
 
-def _build_dependency_graph(traced_files: List[TracedFile]) -> nx.DiGraph:
+def _build_dependency_graph(
+    traced_files: List[TracedFile], root_dir: Path, repo: LeanGitRepo
+) -> nx.DiGraph:
     G = nx.DiGraph()
 
     for tf in traced_files:
@@ -1241,7 +1246,12 @@ def _build_dependency_graph(traced_files: List[TracedFile]) -> nx.DiGraph:
         tf_path_str = str(tf.path)
         for dep_path in tf.get_direct_dependencies():
             dep_path_str = str(dep_path)
-            assert G.has_node(dep_path_str)
+            if not G.has_node(dep_path_str):
+                xml_to_index = (
+                    str(root_dir) + "/" + dep_path_str.replace("/src/", "/lib/")
+                ).replace(".lean", ".trace.xml")
+                new_traced_file = TracedFile.from_xml(root_dir, xml_to_index, repo)
+                G.add_node(str(new_traced_file.path), traced_file=new_traced_file)
             G.add_edge(tf_path_str, dep_path_str)
 
     assert nx.is_directed_acyclic_graph(G)
@@ -1348,7 +1358,8 @@ class TracedRepo:
             p.relative_to(self.root_dir) for p in self.root_dir.glob("**/*.dep_paths")
         }
 
-        assert len(json_files) == self.traced_files_graph.number_of_nodes()
+        if not LOAD_TRACED_DEPENDENCIES_RECURSIVELY:
+            assert len(json_files) == self.traced_files_graph.number_of_nodes()
 
         for path_str, tf_node in self.traced_files_graph.nodes.items():
             tf = tf_node["traced_file"]
@@ -1407,7 +1418,7 @@ class TracedRepo:
                 )
 
         dependencies = repo.get_dependencies(root_dir)
-        traced_files_graph = _build_dependency_graph(traced_files)
+        traced_files_graph = _build_dependency_graph(traced_files, root_dir, repo)
         traced_repo = cls(repo, dependencies, root_dir, traced_files_graph)
         traced_repo._update_traced_files()
         return traced_repo
@@ -1464,6 +1475,14 @@ class TracedRepo:
             f"Loading {len(xml_paths)} traced XML files from {root_dir} with {NUM_WORKERS} workers"
         )
 
+        # exclude all imported lake-packages
+        if LOAD_TRACED_DEPENDENCIES_RECURSIVELY:
+            xml_paths = [
+                xml_path
+                for xml_path in xml_paths
+                if not "lake-packages" in str(xml_path)
+            ]
+
         if NUM_WORKERS <= 1:
             traced_files = [
                 TracedFile.from_xml(root_dir, path, repo) for path in tqdm(xml_paths)
@@ -1480,7 +1499,7 @@ class TracedRepo:
                 )
 
         dependencies = repo.get_dependencies(root_dir)
-        traced_files_graph = _build_dependency_graph(traced_files)
+        traced_files_graph = _build_dependency_graph(traced_files, root_dir, repo)
         traced_repo = cls(repo, dependencies, root_dir, traced_files_graph)
         traced_repo._update_traced_files()
         return traced_repo
