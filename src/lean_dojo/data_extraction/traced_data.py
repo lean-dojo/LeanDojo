@@ -1479,7 +1479,7 @@ class TracedRepo:
             f"Loading {len(xml_paths)} traced XML files from {root_dir} with {NUM_WORKERS} workers"
         )
 
-        # Start from files in the current repo as seeds.
+        # Start from files in the target repo as seeds.
         # Only load dependency files that are actually used.
         if LOAD_USED_DEPS_ONLY:
             xml_paths = [p for p in xml_paths if not "lake-packages" in p.parts]

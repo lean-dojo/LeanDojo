@@ -84,7 +84,7 @@ LEAN4_DEPS_DIR = Path("lake-packages")
 """The directory where Lean 4 dependencies are stored."""
 
 LOAD_USED_DEPS_ONLY = "LOAD_USED_DEPS_ONLY" in os.environ
-"""Only load depdendency files that are actually used by the current repo."""
+"""Only load depdendency files that are actually used by the target repo."""
 
 TACTIC_TIMEOUT = int(os.getenv("TACTIC_TIMEOUT", 5000))
 """Maximum time (in milliseconds) before interrupting a tactic when interacting with Lean (only for Lean 3).
