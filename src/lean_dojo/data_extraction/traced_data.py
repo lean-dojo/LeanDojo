@@ -1257,6 +1257,8 @@ def _build_dependency_graph(
                 traced_files.append(tf_dep)
 
             G.add_edge(tf_path_str, dep_path_str)
+   
+        i += 1
 
     assert nx.is_directed_acyclic_graph(G)
     return G
