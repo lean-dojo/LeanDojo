@@ -451,7 +451,7 @@ class LeanGitRepo:
     def get_dependencies(
         self, path: Union[str, Path, None] = None
     ) -> Dict[str, "LeanGitRepo"]:
-        """Return the dependencies required by the current repo.
+        """Return the dependencies required by the target repo.
 
         Args:
             path (Union[str, Path, None], optional): Root directory of the repo if it is on the disk.

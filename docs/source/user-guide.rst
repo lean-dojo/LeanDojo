@@ -236,6 +236,7 @@ LeanDojo's behavior can be configured through the following environment variable
 * :code:`TACTIC_CPU_LIMIT`: Number of CPUs for executing tactics (see the `--cpus` flag of `docker run <https://docs.docker.com/engine/reference/commandline/run/#memory>`_) when interacting with Lean (only applicable when :code:`CONTAINER=docker`). Default to 1.
 * :code:`TACTIC_MEMORY_LIMIT`: Maximum memory when interacting with Lean (see the `--memory` flag of `docker run <https://docs.docker.com/engine/reference/commandline/run/#memory>`_) (only applicable when :code:`CONTAINER=docker`). Default to 16 GB.
 * :code:`GITHUB_ACCESS_TOKEN`: GitHub `personal access token <https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic>`_ for using the GitHub API. They are optional. If provided, they can increase the `API rate limit <https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting>`_.
+* :code:`LOAD_USED_DEPS_ONLY`: Setting it to any value will cause LeanDojo to load only the dependency files that are actually used by the target repo. Otherwise, for Lean 4, it will load all files in the dependency repos. Not set by default.
 * :code:`VERBOSE` or :code:`DEBUG`: Setting either of them to any value will cause LeanDojo to print debug information. Not set by default.
 
 LeanDojo supports `python-dotenv <https://pypi.org/project/python-dotenv/>`_. You can use it to manage environment variables in a :file:`.env` file.

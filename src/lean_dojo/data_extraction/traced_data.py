@@ -30,6 +30,7 @@ from ..utils import (
 )
 from .ast.lean3.node import *
 from .ast.lean4.node import *
+from ..constants import LOAD_USED_DEPS_ONLY
 from .lean import LeanFile, LeanGitRepo, Theorem, Pos
 from .ast.lean3.expr import Expr, ConstExpr, parse_exprs_forest
 from ..constants import NUM_WORKERS, LEAN3_DEPS_DIR, LEAN4_DEPS_DIR
@@ -1229,20 +1230,35 @@ def _save_xml_to_disk(tf: TracedFile) -> None:
         oup.write(tf.to_xml())
 
 
-def _build_dependency_graph(traced_files: List[TracedFile]) -> nx.DiGraph:
+def _build_dependency_graph(
+    seed_files: List[TracedFile], root_dir: Path, repo: LeanGitRepo
+) -> nx.DiGraph:
     G = nx.DiGraph()
 
-    for tf in traced_files:
+    for tf in seed_files:
         tf_path_str = str(tf.path)
         assert not G.has_node(tf_path_str)
         G.add_node(tf_path_str, traced_file=tf)
 
-    for tf in traced_files:
+    traced_files = seed_files.copy()
+    i = 0
+
+    while i < len(traced_files):
+        tf = traced_files[i]
         tf_path_str = str(tf.path)
+
         for dep_path in tf.get_direct_dependencies():
             dep_path_str = str(dep_path)
-            assert G.has_node(dep_path_str)
+            if not G.has_node(dep_path_str):
+                xml_path = to_xml_path(root_dir, dep_path, repo.uses_lean4)
+                tf_dep = TracedFile.from_xml(root_dir, xml_path, repo)
+                assert tf_dep.path == tf.path
+                G.add_node(dep_path_str, traced_file=tf_dep)
+                traced_files.append(tf_dep)
+
             G.add_edge(tf_path_str, dep_path_str)
+
+        i += 1
 
     assert nx.is_directed_acyclic_graph(G)
     return G
@@ -1348,7 +1364,8 @@ class TracedRepo:
             p.relative_to(self.root_dir) for p in self.root_dir.glob("**/*.dep_paths")
         }
 
-        assert len(json_files) == self.traced_files_graph.number_of_nodes()
+        if not LOAD_USED_DEPS_ONLY:
+            assert len(json_files) == self.traced_files_graph.number_of_nodes()
 
         for path_str, tf_node in self.traced_files_graph.nodes.items():
             tf = tf_node["traced_file"]
@@ -1407,7 +1424,7 @@ class TracedRepo:
                 )
 
         dependencies = repo.get_dependencies(root_dir)
-        traced_files_graph = _build_dependency_graph(traced_files)
+        traced_files_graph = _build_dependency_graph(traced_files, root_dir, repo)
         traced_repo = cls(repo, dependencies, root_dir, traced_files_graph)
         traced_repo._update_traced_files()
         return traced_repo
@@ -1464,6 +1481,11 @@ class TracedRepo:
             f"Loading {len(xml_paths)} traced XML files from {root_dir} with {NUM_WORKERS} workers"
         )
 
+        # Start from files in the target repo as seeds.
+        # Only load dependency files that are actually used.
+        if LOAD_USED_DEPS_ONLY:
+            xml_paths = [p for p in xml_paths if not "lake-packages" in p.parts]
+
         if NUM_WORKERS <= 1:
             traced_files = [
                 TracedFile.from_xml(root_dir, path, repo) for path in tqdm(xml_paths)
@@ -1480,7 +1502,7 @@ class TracedRepo:
                 )
 
         dependencies = repo.get_dependencies(root_dir)
-        traced_files_graph = _build_dependency_graph(traced_files)
+        traced_files_graph = _build_dependency_graph(traced_files, root_dir, repo)
         traced_repo = cls(repo, dependencies, root_dir, traced_files_graph)
         traced_repo._update_traced_files()
         return traced_repo
