@@ -833,7 +833,7 @@ class OtherNode4(Node4):
 def is_potential_premise_lean4(node: Node4) -> bool:
     """Check if ``node`` is a theorem/definition that can be used as a premise."""
     # TODO: Add more.
-    if type(node) in (CommandTheoremNode4,):
+    if type(node) in (CommandTheoremNode4, CommandDefNode4):
         return True
     return False
 

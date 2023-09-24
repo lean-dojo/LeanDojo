@@ -1103,9 +1103,7 @@ class TracedFile:
                                     "kind": node.kind(),
                                 }
                             )
-                    elif node.full_name is not None and not node.name.startswith(
-                        "user__"
-                    ):
+                    elif not node.name.startswith("user__"):
                         results.append(
                             {
                                 "full_name": node.full_name,
@@ -1147,9 +1145,7 @@ class TracedFile:
                                     "kind": node.kind(),
                                 }
                             )
-                    elif node.full_name is not None and not node.name.startswith(
-                        "user__"
-                    ):
+                    elif not node.name.startswith("user__"):
                         results.append(
                             {
                                 "full_name": node.full_name,
