@@ -256,9 +256,18 @@ def normalize_url(url: str) -> str:
     return _URL_REGEX.fullmatch(url)["url"]  # Remove trailing `/`.
 
 
-def url_to_repo(url: str) -> Repository:
+def url_to_repo(url: str, num_retries: int = 1) -> Repository:
     url = normalize_url(url)
-    return GITHUB.get_repo("/".join(url.split("/")[-2:]))
+
+    while True:
+        try:
+            return GITHUB.get_repo("/".join(url.split("/")[-2:]))
+        except Exception as ex:
+            if num_retries <= 0:
+                raise ex
+            num_retries -= 1
+            logger.debug(f'url_to_repo("{url}") failed. Retrying...')
+            time.sleep(2 - num_retries)
 
 
 def get_latest_commit(url: str) -> str:

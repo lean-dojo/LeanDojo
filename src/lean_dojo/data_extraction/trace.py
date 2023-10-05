@@ -132,6 +132,9 @@ def get_traced_repo_path(repo: LeanGitRepo) -> Path:
         with working_directory() as tmp_dir:
             logger.debug(f"Working in the temporary directory {tmp_dir}")
             _trace(repo)
+            import pdb
+
+            pdb.set_trace()
             traced_repo = TracedRepo.from_traced_files(tmp_dir / repo.name)
             traced_repo.save_to_disk()
             path = cache.store(tmp_dir)

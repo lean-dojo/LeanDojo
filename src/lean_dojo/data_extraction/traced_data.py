@@ -836,12 +836,14 @@ class TracedFile:
                     for ns in inside_sections_namespaces
                     if isinstance(ns, CommandNamespaceNode4)
                 )
-                if is_mutual_lean4(node):
-                    full_name = [_qualify_name(name, prefix) for name in node.name]
-                    object.__setattr__(node, "full_name", full_name)
-                elif node.name is not None:
-                    full_name = _qualify_name(node.name, prefix)
-                    object.__setattr__(node, "full_name", full_name)
+                full_name = (
+                    [_qualify_name(name, prefix) for name in node.name]
+                    if is_mutual_lean4(node)
+                    else _qualify_name(node.name, prefix)
+                )
+                object.__setattr__(node, "full_name", full_name)
+                if isinstance(node, CommandDeclarationNode4) and node.is_theorem:
+                    object.__setattr__(node.get_theorem_node(), "full_name", full_name)
             elif type(node) in (
                 TacticTacticseq1IndentedNode4,
                 TacticTacticseqbracketedNode4,
@@ -1122,10 +1124,12 @@ class TracedFile:
             def _callback4(node: Node4, _) -> None:
                 if is_potential_premise_lean4(node):
                     start, end = node.get_closure()
-                    if isinstance(node, CommandTheoremNode4):
+                    if isinstance(node, CommandDeclarationNode4) and node.is_theorem:
                         # We assume theorems are defined using keywords "theorem"
                         # or "lemma" but not, e.g., "def".
-                        proof_start, _ = node.get_proof_node().get_closure()
+                        proof_start, _ = (
+                            node.get_theorem_node().get_proof_node().get_closure()
+                        )
                         code = self.lean_file[start:proof_start].strip()
                         if code.endswith(":="):
                             code = code[:-2].strip()
@@ -1145,7 +1149,7 @@ class TracedFile:
                                     "kind": node.kind(),
                                 }
                             )
-                    elif not node.name.startswith("user__"):
+                    else:
                         results.append(
                             {
                                 "full_name": node.full_name,
