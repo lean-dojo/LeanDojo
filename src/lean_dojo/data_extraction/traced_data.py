@@ -27,6 +27,7 @@ from ..utils import (
     to_json_path,
     to_xml_path,
     get_line_creation_date,
+    get_module,
 )
 from .ast.lean3.node import *
 from .ast.lean4.node import *
@@ -260,7 +261,7 @@ class TracedTactic:
                             "<a>" + lean_file[node.start : node.end] + "</a>"
                         )
                         prov = {"full_name": node.full_name}
-                        def_path = (node.mod_name).replace(".", "/") + ".lean"
+                        def_path = node.mod_name.replace(".", "/") + ".lean"
                         assert (
                             self.traced_theorem is not None
                             and self.traced_theorem.traced_repo is not None
@@ -271,15 +272,20 @@ class TracedTactic:
 
                         def bfs(start_node: str) -> str:
                             visited_nodes = set()
-                            queue = deque([start_node])
+                            module = get_module(Path(start_node))
+                            queue = deque([(module, start_node)])
                             while queue:
-                                curr_node = queue.popleft()
+                                module, curr_node = queue.popleft()
                                 visited_nodes.add(curr_node)
-                                if curr_node.endswith(def_path):
+                                if module == node.mod_name:
+                                    assert curr_node.endswith(def_path)
                                     return curr_node
                                 for next_node in graph.successors(curr_node):
                                     if next_node not in visited_nodes:
-                                        queue.append(next_node)
+                                        module = graph.get_edge_data(
+                                            curr_node, next_node
+                                        )["module"]
+                                        queue.append((module, next_node))
                             return None
 
                         prov["def_path"] = bfs(start_node)
@@ -1042,28 +1048,28 @@ class TracedFile:
                 comments.append(c)
         return comments
 
-    def get_direct_dependencies(self) -> List[Path]:
-        """Return the paths of all modules imported by the current :file:`*.lean` file."""
+    def get_direct_dependencies(self) -> List[Tuple[str, Path]]:
+        """Return the names and paths of all modules imported by the current :file:`*.lean` file."""
         deps = set()
 
         if not self.has_prelude:  # Add the prelude as a dependency.
             if self.uses_lean3:
                 init_lean = Path("library/init/default.lean")
                 if self.root_dir.name == "lean":
-                    deps.add(init_lean)
+                    deps.add(("init", init_lean))
                 else:
-                    deps.add(LEAN3_DEPS_DIR / "lean" / init_lean)
+                    deps.add(("init", LEAN3_DEPS_DIR / "lean" / init_lean))
             else:
                 assert self.uses_lean4
                 init_lean = Path("src/lean/Init.lean")
                 if self.root_dir.name == "lean4":
-                    deps.add(init_lean)
+                    deps.add(("Init", init_lean))
                 else:
-                    deps.add(LEAN4_DEPS_DIR / "lean4" / init_lean)
+                    deps.add(("Init", LEAN4_DEPS_DIR / "lean4" / init_lean))
 
         def _callback(node: Union[ModuleNode, ModuleImportNode4], _) -> None:
             if node.module is not None and node.path is not None:
-                deps.add(node.path)
+                deps.add((node.module, node.path))
 
         node_cls = ModuleNode if self.uses_lean3 else ModuleImportNode4
         self.traverse_preorder(_callback, node_cls)
@@ -1247,7 +1253,7 @@ def _build_dependency_graph(
         tf = traced_files[i]
         tf_path_str = str(tf.path)
 
-        for dep_path in tf.get_direct_dependencies():
+        for dep_module, dep_path in tf.get_direct_dependencies():
             dep_path_str = str(dep_path)
             if not G.has_node(dep_path_str):
                 xml_path = to_xml_path(root_dir, dep_path, repo.uses_lean4)
@@ -1256,7 +1262,7 @@ def _build_dependency_graph(
                 G.add_node(dep_path_str, traced_file=tf_dep)
                 traced_files.append(tf_dep)
 
-            G.add_edge(tf_path_str, dep_path_str)
+            G.add_edge(tf_path_str, dep_path_str, module=dep_module)
 
         i += 1
 

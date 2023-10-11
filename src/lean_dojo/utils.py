@@ -349,3 +349,15 @@ def to_lean_path(root_dir: Path, path: Path, uses_lean4: bool) -> bool:
         # E.g., "build/ir/Mathlib/LinearAlgebra/Basics.lean"
         assert path.is_relative_to("build/ir"), path
         return path.relative_to("build/ir")
+
+
+def get_module(path: Path) -> str:
+    assert path.suffix == ".lean"
+    if path.is_relative_to(LEAN4_DEPS_DIR / "lean4/lib"):
+        return ".".join(
+            path.with_suffix("").relative_to(LEAN4_DEPS_DIR / "lean4/lib").parts[1:]
+        )
+    elif path.is_relative_to(LEAN4_DEPS_DIR):
+        return ".".join(path.with_suffix("").relative_to(LEAN4_DEPS_DIR).parts[1:])
+    else:
+        return ".".join(path.with_suffix("").parts)
