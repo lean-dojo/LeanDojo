@@ -256,9 +256,18 @@ def normalize_url(url: str) -> str:
     return _URL_REGEX.fullmatch(url)["url"]  # Remove trailing `/`.
 
 
-def url_to_repo(url: str) -> Repository:
+def url_to_repo(url: str, num_retries: int = 1) -> Repository:
     url = normalize_url(url)
-    return GITHUB.get_repo("/".join(url.split("/")[-2:]))
+
+    while True:
+        try:
+            return GITHUB.get_repo("/".join(url.split("/")[-2:]))
+        except Exception as ex:
+            if num_retries <= 0:
+                raise ex
+            num_retries -= 1
+            logger.debug(f'url_to_repo("{url}") failed. Retrying...')
+            time.sleep(2 - num_retries)
 
 
 def get_latest_commit(url: str) -> str:
@@ -340,3 +349,15 @@ def to_lean_path(root_dir: Path, path: Path, uses_lean4: bool) -> bool:
         # E.g., "build/ir/Mathlib/LinearAlgebra/Basics.lean"
         assert path.is_relative_to("build/ir"), path
         return path.relative_to("build/ir")
+
+
+def get_module(path: Path) -> str:
+    assert path.suffix == ".lean"
+    if path.is_relative_to(LEAN4_DEPS_DIR / "lean4/lib"):
+        return ".".join(
+            path.with_suffix("").relative_to(LEAN4_DEPS_DIR / "lean4/lib").parts[1:]
+        )
+    elif path.is_relative_to(LEAN4_DEPS_DIR):
+        return ".".join(path.with_suffix("").relative_to(LEAN4_DEPS_DIR).parts[1:])
+    else:
+        return ".".join(path.with_suffix("").parts)

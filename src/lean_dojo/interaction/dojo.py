@@ -111,9 +111,7 @@ def _get_all_dependencies(
     while stack != []:
         json_path = to_json_path(root_dir, stack.pop(), repo.uses_lean4)
         tf = TracedFile.from_traced_file(root_dir, json_path, repo)
-        deps = tf.get_direct_dependencies()
-
-        for d in deps:
+        for _, d in tf.get_direct_dependencies():
             if d not in all_deps:
                 all_deps.append(d)
                 stack.append(d)
