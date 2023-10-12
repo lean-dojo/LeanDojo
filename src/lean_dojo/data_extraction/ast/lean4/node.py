@@ -89,21 +89,25 @@ class Node4:
             if field.name in ("lean_file", "start", "end", "children"):
                 continue
             v = tree.attrib.get(field.name, None)
-            if v is not None:
-                assert isinstance(v, str)
-                v = unescape(v, entities={"&quot;": '"'})
-            if is_optional_type(field.type):
-                tp = remove_optional_type(field.type)
-                if tp is Pos and v is not None:
-                    kwargs[field.name] = Pos.from_str(v)
-                else:
-                    kwargs[field.name] = v
-            elif field.type is Path:
+            if v is None:
+                kwargs[field.name] = None
+                continue
+
+            assert isinstance(v, str)
+            v = unescape(v, entities={"&quot;": '"'})
+            tp = (
+                remove_optional_type(field.type)
+                if is_optional_type(field.type)
+                else field.type
+            )
+            if tp is Pos:
+                kwargs[field.name] = Pos.from_str(v)
+            elif tp is Path:
                 kwargs[field.name] = Path(v)
-            elif field.type is List[int]:
-                kwargs[field.name] = parse_int_list(tree.attrib[field.name])
-            elif field.type is List[str]:
-                kwargs[field.name] = parse_str_list(tree.attrib[field.name])
+            elif tp is List[int]:
+                kwargs[field.name] = parse_int_list(v)
+            elif tp is List[str]:
+                kwargs[field.name] = parse_str_list(v)
             else:
                 kwargs[field.name] = v  # type: ignore
 

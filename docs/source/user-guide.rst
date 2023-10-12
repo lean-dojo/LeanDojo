@@ -232,7 +232,7 @@ LeanDojo's behavior can be configured through the following environment variable
 * :code:`TMP_DIR`: Temporary directory used by LeanDojo for storing intermediate files. Default to the systems' global temporary directory.
 * :code:`NUM_PROCS`: Number of parallel processes for data extraction. Default to 32 or the number of CPUs (whichever is smaller).
 * :code:`TACTIC_TIMEOUT`: Maximum time (in milliseconds) before interrupting a tactic when interacting with Lean (only applicable to Lean 3). Default to 5000.
-* :code:`CONTAINER`: The container used for running LeanDojo. Default to :code:`docker` but also supports :code:`native`, i.e., running without any container. See :ref:`running-without-docker`.
+* :code:`CONTAINER`: The container used for running LeanDojo. Default to :code:`native`, i.e., running without any container, but also supports :code:`docker`. See :ref:`running-within-docker`.
 * :code:`TACTIC_CPU_LIMIT`: Number of CPUs for executing tactics (see the `--cpus` flag of `docker run <https://docs.docker.com/engine/reference/commandline/run/#memory>`_) when interacting with Lean (only applicable when :code:`CONTAINER=docker`). Default to 1.
 * :code:`TACTIC_MEMORY_LIMIT`: Maximum memory when interacting with Lean (see the `--memory` flag of `docker run <https://docs.docker.com/engine/reference/commandline/run/#memory>`_) (only applicable when :code:`CONTAINER=docker`). Default to 16 GB.
 * :code:`GITHUB_ACCESS_TOKEN`: GitHub `personal access token <https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic>`_ for using the GitHub API. They are optional. If provided, they can increase the `API rate limit <https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting>`_.
@@ -242,23 +242,26 @@ LeanDojo's behavior can be configured through the following environment variable
 LeanDojo supports `python-dotenv <https://pypi.org/project/python-dotenv/>`_. You can use it to manage environment variables in a :file:`.env` file.
 
 
-.. _running-without-docker:
+.. _running-within-docker:
 
-Advanced: Running without Docker
-********************************
+Advanced: Running within Docker (Important for Lean 3) 
+******************************************************
 
-By default, LeanDojo performs data extraction and interaction by running Lean in a 
-Docker container. This is strongly recommended because LeanDojo builds Lean from its C++ code, which requires certain dependencies that can be hard to get right.
-However, there are scenarios where running without Docker is desirable, e.g., 
+By default, LeanDojo performs data extraction and interaction by running Lean directly (:code:`CONTAINER=native`). 
+However, this may be problematic for Lean 3, as LeanDojo builds a modified version of Lean 3 from its C++ code, which requires certain dependencies that can be hard to get right.
+Therefore, if you use LeanDojo with Lean 3, we strongly recommend setting the environment variable :code:`CONTAINER` to :code:`docker`, which instructs LeanDojo to run relevant parts in a Docker container.
+You will need Docker installed on your machine, but you do not need to build or launch Docker containers manually. LeanDojo will do it for you.
+
+That said, there are scenarios where running within Docker is not an option, e.g., 
 when you are on a remote server that does not have Docker installed, or 
 when your server requires wrapping the entire job as a Docker container and you want to 
 avoid the troubles caused by `running Docker within Docker <https://stackoverflow.com/questions/27879713/is-it-ok-to-run-docker-from-inside-docker>`_.
 
-There are two steps to run LeanDojo without Docker:
+If you want to use LeanDojo with Lean 3 but cannot use Docker, follow these steps to run it without Docker:
 
 * See if you can follow the CMake instructions to build `Lean 3 <https://github.com/leanprover-community/lean/blob/master/doc/make/index.md#generic-build-instructions>`_ or `Lean 4 <https://leanprover.github.io/lean4/doc/make/index.html>`_ from source. Resolve any dependency issues.
 * Make sure you can build the Lean repo you want by :code:`leanpkg build` (Lean 3) or :code:`lake build` (Lean 4).
-* When running LeanDojo, always set the :code:`CONTAINER` environment variable to :code:`native`.
+
 
 
 Questions and Bugs

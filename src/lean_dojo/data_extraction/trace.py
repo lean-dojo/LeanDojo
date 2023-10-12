@@ -21,7 +21,7 @@ from ..constants import (
 )
 from .lean import LeanGitRepo
 from .traced_data import TracedRepo
-from ..container import create_mounts, get_container
+from ..container import create_mounts, get_container, NativeContainer
 
 
 MODIFIED_LEAN3_PATCH_PATH = Path(__file__).with_name(
@@ -77,17 +77,28 @@ def _trace_lean3(repo: LeanGitRepo) -> None:
 
     logger.debug(f"Tracing {repo}")
     container = get_container()
+    if isinstance(container, NativeContainer):
+        logger.warning(
+            "Docker is strongly recommended when using LeanDojo with Lean 3. See https://leandojo.readthedocs.io/en/latest/user-guide.html#advanced-running-within-docker."
+        )
     mts = {
         Path.cwd() / repo.name: f"/workspace/{repo.name}",
         LEAN3_BUILD_SCRIPT_PATH: f"/workspace/{LEAN3_BUILD_SCRIPT_PATH.name}",
     }
-    container.run(
-        f"python3 build_lean3_repo.py {repo.name}",
-        create_mounts(mts),
-        {"NUM_PROCS": NUM_PROCS},
-        as_current_user=True,
-        work_dir="/workspace",
-    )
+    try:
+        container.run(
+            f"python3 build_lean3_repo.py {repo.name}",
+            create_mounts(mts),
+            {"NUM_PROCS": NUM_PROCS},
+            as_current_user=True,
+            work_dir="/workspace",
+        )
+    except CalledProcessError as ex:
+        if isinstance(container, NativeContainer):
+            logger.error(
+                "Failed to build the modified Lean 3 without Docker. See https://leandojo.readthedocs.io/en/latest/user-guide.html#advanced-running-within-docker."
+            )
+        raise ex
 
 
 def _trace_lean4(repo: LeanGitRepo) -> None:

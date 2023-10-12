@@ -19,7 +19,8 @@ ______________________________________________________________________
 * Git >= 2.25
 * 3.9 <= Python < 3.11
 * wget
-* Docker strongly recommended
+* Docker strongly recommended when using LeanDojo with Lean 3
+* [elan](https://github.com/leanprover/elan) required when using LeanDojo without Docker
 
 
 ## Installation
