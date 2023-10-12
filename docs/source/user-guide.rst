@@ -259,8 +259,8 @@ avoid the troubles caused by `running Docker within Docker <https://stackoverflo
 
 If you want to use LeanDojo with Lean 3 but cannot use Docker, follow these steps to run it without Docker:
 
-* See if you can follow the CMake instructions to build `Lean 3 <https://github.com/leanprover-community/lean/blob/master/doc/make/index.md#generic-build-instructions>`_ or `Lean 4 <https://leanprover.github.io/lean4/doc/make/index.html>`_ from source. Resolve any dependency issues.
-* Make sure you can build the Lean repo you want by :code:`leanpkg build` (Lean 3) or :code:`lake build` (Lean 4).
+* See if you can follow the CMake instructions to build `Lean 3 <https://github.com/leanprover-community/lean/blob/master/doc/make/index.md#generic-build-instructions>`_ from source. Resolve any dependency issues.
+* Make sure you can build the Lean 3 repo you want by :code:`leanpkg build`.
 
 
 
