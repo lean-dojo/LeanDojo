@@ -223,6 +223,10 @@ class Dojo:
 
             # Run the modified file in a container.
             self.container = get_container()
+            if isinstance(self.container, NativeContainer):
+                logger.warning(
+                    "Docker is strongly recommended when using LeanDojo with Lean 3. See https://leandojo.readthedocs.io/en/latest/user-guide.html#advanced-running-within-docker."
+                )
             logger.debug(f"Launching the proof using {type(self.container)}")
             mts = [Mount(Path.cwd(), Path(f"/workspace/{self.repo.name}"))]
             if self.repo.uses_lean3:

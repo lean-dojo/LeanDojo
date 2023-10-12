@@ -91,7 +91,7 @@ class Node4:
             v = tree.attrib.get(field.name, None)
             if v is None:
                 kwargs[field.name] = None
-                continue 
+                continue
 
             assert isinstance(v, str)
             v = unescape(v, entities={"&quot;": '"'})

@@ -14,8 +14,8 @@ Requirements
 * Git >= 2.25
 * 3.9 <= Python < 3.11
 * wget
-* `Docker <https://www.docker.com/>`_ strongly recommended. See :ref:`running-without-docker` if it is not an option for you.
-
+* `Docker <https://www.docker.com/>`_ strongly recommended when using LeanDojo with Lean 3. See :ref:`running-within-docker` if it is not an option for you
+* `elan <https://github.com/leanprover/elan>`_ required when using LeanDojo without Docker
 
 Installation
 ************
@@ -42,7 +42,9 @@ which has a single Lean file with the theorem:
      rw [add_assoc, add_comm b, ←add_assoc]
    end
 
-We use LeanDojo to trace the repo in Python by specifying its URL and a commit hash:
+When using LeanDojo with Lean 3, you are strongly encouraged to have Docker installed and 
+set the environment variable :code:`CONTAINER` to :code:`docker`. Now we launch a Python 
+REPL session by :code:`CONTAINER=docker ipython` and use LeanDojo to trace the repo in Python by specifying its URL and a commit hash:
 
 .. code-block:: python
 
