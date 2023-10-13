@@ -244,8 +244,8 @@ LeanDojo supports `python-dotenv <https://pypi.org/project/python-dotenv/>`_. Yo
 
 .. _running-within-docker:
 
-Advanced: Running within Docker (Important for Lean 3) 
-******************************************************
+Running within Docker (Important for Lean 3) 
+********************************************
 
 By default, LeanDojo performs data extraction and interaction by running Lean directly (:code:`CONTAINER=native`). 
 However, this may be problematic for Lean 3, as LeanDojo builds a modified version of Lean 3 from its C++ code, which requires certain dependencies that can be hard to get right.
