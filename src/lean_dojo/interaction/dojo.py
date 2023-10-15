@@ -493,7 +493,7 @@ class Dojo:
 
         tsid = state.id
         if self.uses_lean4:
-            req = json.dumps({"sid": tsid, "cmd": tactic})
+            req = json.dumps({"sid": tsid, "cmd": tactic}, ensure_ascii=False)
         else:
             req = json.dumps(["run_tac", [tsid, tactic]])
         res = self._submit_request(req)
@@ -525,7 +525,7 @@ class Dojo:
 
         csid = state.id
         assert self.uses_lean4
-        req = json.dumps({"sid": csid, "cmd": command})
+        req = json.dumps({"sid": csid, "cmd": command}, ensure_ascii=False)
         res = self._submit_request(req)
 
         if res["error"] is not None:
