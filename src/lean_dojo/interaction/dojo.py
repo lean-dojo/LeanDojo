@@ -574,7 +574,6 @@ class Dojo:
         except json.decoder.JSONDecodeError:
             raise DojoCrashError(f"Invalid JSON: {res}")
 
-        assert "message" not in res
         result["message"] = msg
         return result
 
