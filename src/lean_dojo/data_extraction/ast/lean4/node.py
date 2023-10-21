@@ -41,7 +41,7 @@ class Node4:
 
     @classmethod
     def kind(cls: type) -> str:
-        return cls.__name__[:-4].lower()
+        return cls.__name__[:-5].lower()
 
     def traverse_preorder(
         self,
