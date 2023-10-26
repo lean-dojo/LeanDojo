@@ -18,7 +18,7 @@ Related Links
 
 * `LeanDojo Website <https://leandojo.org/>`_: The official website of LeanDojo.
 * `LeanDojo Benchmark <https://zenodo.org/doi/10.5281/zenodo.8016385>`_: The Lean 3 dataset used in `our paper <https://arxiv.org/abs/2306.15626>`_, consisting of 98,734 theorems and proofs extracted from `mathlib <https://github.com/leanprover-community/mathlib/commits/19c869efa56bbb8b500f2724c0b77261edbfa28c>`_ by `generate-benchmark-lean3.ipynb <https://github.com/lean-dojo/LeanDojo/blob/main/scripts/generate-benchmark-lean3.ipynb>`_.
-* `LeanDojo Benchmark 4 <https://zenodo.org/doi/10.5281/zenodo.8040109>`_: The Lean 4 version of LeanDojo Benchmark, consisting of 102,357 theorems and proofs extracted from `mathlib4 <https://github.com/leanprover-community/mathlib4/commit/3ce43c18f614b76e161f911b75a3e1ef641620ff>`_ by `generate-benchmark-lean4.ipynb <https://github.com/lean-dojo/LeanDojo/blob/main/scripts/generate-benchmark-lean4.ipynb>`_.
+* `LeanDojo Benchmark 4 <https://zenodo.org/doi/10.5281/zenodo.8040109>`_: The Lean 4 version of LeanDojo Benchmark, consisting of 102,514 theorems and proofs extracted from `mathlib4 <https://github.com/leanprover-community/mathlib4/commit/3ce43c18f614b76e161f911b75a3e1ef641620ff>`_ by `generate-benchmark-lean4.ipynb <https://github.com/lean-dojo/LeanDojo/blob/main/scripts/generate-benchmark-lean4.ipynb>`_.
 * `ReProver <https://github.com/lean-dojo/ReProver>`_: The ReProver (Retrieval-Augmented Prover) model in our paper.
 * `LeanInfer <https://github.com/lean-dojo/LeanInfer>`_: Native neural network inference for running ReProver directly in Lean 4.
 
