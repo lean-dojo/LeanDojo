@@ -533,9 +533,7 @@ class LeanGitRepo:
         deps = {"lean4": LeanGitRepo(LEAN4_URL, commit)}
 
         for name, repo in self._parse_lakefile_dependencies(lakefile["content"]):
-            if name in deps:
-                assert deps[name] == repo
-            else:
+            if name not in deps:
                 deps[name] = repo
             for dd_name, dd_repo in repo._get_lean4_dependencies(
                 None, [name] + parents
