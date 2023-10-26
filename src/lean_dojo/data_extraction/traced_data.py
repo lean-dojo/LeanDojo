@@ -1092,7 +1092,9 @@ class TracedFile:
                         # We assume theorems are defined using keywords "theorem"
                         # or "lemma" but not, e.g., "def".
                         proof_start, _ = node.get_proof_node().get_closure()
-                        code = self.lean_file[start:proof_start].strip()
+                        code = get_code_without_comments(
+                            self.lean_file, start, proof_start, self.comments
+                        )
                         if code.endswith(":="):
                             code = code[:-2].strip()
                     else:
@@ -1136,7 +1138,9 @@ class TracedFile:
                         proof_start, _ = (
                             node.get_theorem_node().get_proof_node().get_closure()
                         )
-                        code = self.lean_file[start:proof_start].strip()
+                        code = get_code_without_comments(
+                            self.lean_file, start, proof_start, self.comments
+                        )
                         if code.endswith(":="):
                             code = code[:-2].strip()
                     else:
