@@ -441,7 +441,9 @@ class TracedTheorem:
     def get_theorem_statement(self) -> str:
         """Return the theorem statement."""
         proof_start, _ = self.locate_proof()
-        return get_code_without_comments(self.traced_file.lean_file, self.ast.start, proof_start, self.comments)
+        return get_code_without_comments(
+            self.traced_file.lean_file, self.ast.start, proof_start, self.comments
+        )
 
     def get_single_tactic_proof(self) -> Optional[str]:
         """Wrap the proof into a single (potentially very long) tactic."""
