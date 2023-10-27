@@ -21,6 +21,7 @@ ______________________________________________________________________
 * wget
 * [elan](https://github.com/leanprover/elan)
 * Docker strongly recommended when using LeanDojo with Lean 3
+* Recommended: Generate a [GitHub personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic) and set the environment variable `GITHUB_ACCESS_TOKEN` to it
 
 
 ## Installation
