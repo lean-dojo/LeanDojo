@@ -16,7 +16,7 @@ Requirements
 * get
 * `elan <https://github.com/leanprover/elan>`_
 * `Docker <https://www.docker.com/>`_ strongly recommended when using LeanDojo with Lean 3. See :ref:`running-within-docker` if it is not an option for you
-
+* Recommended: Generate a `GitHub personal access token <https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic>`_ and set the environment variable :code:`GITHUB_ACCESS_TOKEN` to it
 
 Installation
 ************
