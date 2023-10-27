@@ -426,6 +426,23 @@ class TracedTheorem:
             end = self.end
         return start, end
 
+    def get_tactic_proof(self) -> Optional[str]:
+        """Return the tactic-style proof (if any)."""
+        if not self.has_tactic_proof():
+            return None
+        node = self.get_proof_node()
+        start, end = node.get_closure()
+        proof = get_code_without_comments(node.lean_file, start, end, self.comments)
+        if not re.match(r"^(by|begin)\s", proof):
+            return None
+        else:
+            return proof
+
+    def get_theorem_statement(self) -> str:
+        """Return the theorem statement."""
+        proof_start, _ = self.locate_proof()
+        return get_code_without_comments(self.traced_file.lean_file, self.ast.start, proof_start, self.comments)
+
     def get_single_tactic_proof(self) -> Optional[str]:
         """Wrap the proof into a single (potentially very long) tactic."""
         if not self.has_tactic_proof():

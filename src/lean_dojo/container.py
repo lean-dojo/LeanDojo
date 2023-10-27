@@ -316,7 +316,8 @@ class DockerContainer(Container):
 
         signal.signal(signal.SIGINT, old_sigint)
         signal.signal(signal.SIGTERM, old_sigterm)
-        cid_file.unlink()
+        if cid_file.exists():
+            cid_file.unlink()
 
     def run_interactive(
         self,
