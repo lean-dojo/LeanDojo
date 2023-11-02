@@ -19,5 +19,5 @@ def test_example_1(mathlib4_repo: LeanGitRepo) -> None:
 
         s5 = dojo.run_cmd(s0, "#print smul_sum")
         assert isinstance(s5, CommandState) and s5.message != ""
-        s6 = dojo.run_cmd(s0, "#print sum_smul_index_linearMap'")
+        s6 = dojo.run_cmd(s0, "#print linearEquivFunOnFinite")
         assert isinstance(s6, LeanError)
