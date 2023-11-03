@@ -273,6 +273,9 @@ class TracedTactic:
                         def bfs(start_node: str) -> str:
                             visited_nodes = set()
                             module = get_module(Path(start_node))
+                            import pdb
+
+                            pdb.set_trace()
                             queue = deque([(module, start_node)])
                             while queue:
                                 module, curr_node = queue.popleft()

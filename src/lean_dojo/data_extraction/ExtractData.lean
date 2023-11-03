@@ -2,6 +2,9 @@ import Lean
 
 open Lean Elab System
 
+set_option maxHeartbeats 2000000  -- 10x the default maxHeartbeats.
+
+
 instance : ToJson Substring where
   toJson s := toJson s.toString
 
@@ -17,31 +20,37 @@ deriving instance ToJson for Position
 namespace LeanDojo
 
 
-set_option maxHeartbeats 2000000  -- 10x the default maxHeartbeats.
-
-
+/--
+The trace of a tactic.
+-/
 structure TacticTrace where
   stateBefore: String
   stateAfter: String
-  pos: String.Pos
-  endPos: String.Pos
+  pos: String.Pos      -- Start position of the tactic.
+  endPos: String.Pos   -- End position of the tactic.
 deriving ToJson
 
 
+/--
+The trace of a premise.
+-/
 structure PremiseTrace where
-  fullName: String
-  defPos: Option Position
+  fullName: String            -- Fully-qualified name of the premise.
+  defPos: Option Position     -- Where the premise is defined.
   defEndPos: Option Position
-  modName: Option String
-  pos: Option Position
+  modName: Option String      -- In which module the premise is defined.
+  pos: Option Position        -- Where the premise is used.
   endPos: Option Position
 deriving ToJson
 
 
+/--
+The trace of a file.
+-/
 structure Trace where
-  commandASTs : Array Syntax
-  tactics: Array TacticTrace
-  premises: Array PremiseTrace
+  commandASTs : Array Syntax    -- The ASTs of the commands in the file.
+  tactics: Array TacticTrace    -- All tactics in the file.
+  premises: Array PremiseTrace  -- All premises in the file.
 deriving ToJson
 
 
@@ -237,13 +246,13 @@ private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : Info
         let some posAfter := ti.stx.getTailPos? true | pure ()
         match ti.stx with
         | .node _ _ _ =>
-          modify fun trace => { 
-            trace with tactics := trace.tactics.push { 
-              stateBefore := stateBefore, 
-              stateAfter := stateAfter, 
-              pos := posBefore, 
+          modify fun trace => {
+            trace with tactics := trace.tactics.push {
+              stateBefore := stateBefore,
+              stateAfter := stateAfter,
+              pos := posBefore,
               endPos := posAfter,
-             } 
+             }
           }
         | _ => pure ()
     | _ => pure ()
@@ -262,14 +271,17 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
     | some posInfo => fileMap.toPosition posInfo
     | none => none
 
-  let some modIdx := env.const2ModIdx.find? fullName | return ()
-  let modName := env.header.moduleNames[modIdx.toNat]!
+  let modName :=
+    if let some modIdx := env.const2ModIdx.find? fullName then
+      env.header.moduleNames[modIdx.toNat]!
+    else
+      env.header.mainModule
 
-  let decRanges ← findDeclarationRanges? fullName
+  let decRanges ← withEnv env $ findDeclarationRanges? fullName
   let defPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.pos
   let defEndPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.endPos
 
-  modify fun trace => { 
+  modify fun trace => {
       trace with premises := trace.premises.push {
         fullName := toString fullName,
         defPos := defPos,
@@ -279,7 +291,6 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
         modName := toString modName,
       }
     }
-  
 
 
 private def visitInfo (ctx : ContextInfo) (i : Info) (parent : InfoTree) (env : Environment) : TraceM Unit := do
@@ -332,13 +343,14 @@ unsafe def processFile (path : FilePath) : IO Unit := do
         println! "ERROR: {← msg.toString}"
     throw $ IO.userError "Errors during import; aborting"
 
-  let some modName := path.fileStem | throw $ IO.userError s!"Invalid path: {path}"
-  let env := env.setMainModule modName.toName
+  let env := env.setMainModule (← moduleNameOfFileName path none)
   let commandState := { Command.mkState env messages opts with infoState.enabled := true }
   let s ← IO.processCommands inputCtx parserState commandState
+  let env' := s.commandState.env
   let commands := s.commands.pop -- Remove EOI command.
   let trees := s.commandState.infoState.trees.toArray
-  let traceM := (traverseForest trees env).run' ⟨#[header] ++ commands, #[], #[]⟩
+
+  let traceM := (traverseForest trees env').run' ⟨#[header] ++ commands, #[], #[]⟩
   let (trace, _) ← traceM.run'.toIO {fileName := s!"{path}", fileMap := FileMap.ofString input} {env := env}
 
   let cwd ← IO.currentDir

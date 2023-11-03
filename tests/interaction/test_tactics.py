@@ -158,7 +158,7 @@ def test_example_11(mathlib4_repo: LeanGitRepo) -> None:
 def test_example_12(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
-        "Mathlib/Algebra/Hom/Ring.lean",
+        "Mathlib/Algebra/Hom/Ring/Defs.lean",
         "RingHom.coe_monoidHom_mk",
     )
     with Dojo(thm) as (dojo, s0):
@@ -232,7 +232,7 @@ def test_example_17(mathlib4_repo: LeanGitRepo) -> None:
 def test_example_18(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
-        "Mathlib/Algebra/Hom/Group.lean",
+        "Mathlib/Algebra/Hom/Group/Defs.lean",
         "MonoidHom.map_inv",
     )
     with Dojo(thm) as (dojo, s0):

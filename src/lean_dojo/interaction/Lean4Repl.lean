@@ -113,7 +113,7 @@ private def levels2Names : List Level → NameSet
   | _ :: us => levels2Names us
 
 
-def collectFromLevel : Level → NameSet
+private def collectFromLevel : Level → NameSet
 | Level.zero => NameSet.empty
 | Level.succ l => collectFromLevel l
 | Level.param n => NameSet.empty.insert n
