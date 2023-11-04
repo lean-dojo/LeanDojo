@@ -45,7 +45,7 @@ deriving ToJson
 
 
 /--
-The trace of a file.
+The trace of a Lean file.
 -/
 structure Trace where
   commandASTs : Array Syntax    -- The ASTs of the commands in the file.
@@ -64,7 +64,7 @@ private def addLine (s : String) : String :=
   if s.isEmpty then s else s ++ "\n"
 
 
--- Similar to `Meta.ppGoal` but use String instead of Format to make sure local declarations are separated by "\n".
+-- Similar to `Meta.ppGoal` but uses String instead of Format to make sure local declarations are separated by "\n".
 private def ppGoal (mvarId : MVarId) : MetaM String := do
   match (← getMCtx).findDecl? mvarId with
   | none          => return "unknown goal"
@@ -135,7 +135,9 @@ end Pp
 
 namespace Path
 
-
+/--
+Return the path of `path` relative to `parent`.
+-/
 def relativeTo (path parent : FilePath) : Option FilePath :=
   let rec componentsRelativeTo (pathComps parentComps : List String) : Option FilePath :=
     match pathComps, parentComps with
@@ -150,18 +152,25 @@ def relativeTo (path parent : FilePath) : Option FilePath :=
     componentsRelativeTo path.components parent.components
 
 
+/--
+Return if the path `path` is relative to `parent`.
+-/
 def isRelativeTo (path parent : FilePath) : Bool :=
   match relativeTo path parent  with
   | some _ => true
   | none => false
 
 
+/--
+Convert the path `path` to an absolute path.
+-/
 def toAbsolute (path : FilePath) : IO FilePath := do
   if path.isAbsolute then
     pure path
   else
     let cwd ← IO.currentDir
     pure $ cwd / path
+
 
 private def trim (path : FilePath) : FilePath :=
   assert! path.isRelative
@@ -170,6 +179,9 @@ private def trim (path : FilePath) : FilePath :=
   | _ => path
 
 
+/--
+Convert the path of a *.lean file to its corresponding file (e.g., *.olean) in the "build" directory.
+-/
 def toBuildDir (subDir : String) (path : FilePath) (ext : String) : Option FilePath :=
   let path' := (trim path).withExtension ext
   match relativeTo path' "lake-packages/lean4/src" with
@@ -182,7 +194,9 @@ def toBuildDir (subDir : String) (path : FilePath) (ext : String) : Option FileP
     | none => some $ "build" / subDir / path'
 
 
--- The reverse of `toBuildDir`.
+/--
+The reverse of `toBuildDir`.
+-/
 def toSrcDir (path : FilePath) (ext : String) : Option FilePath :=
   let path' := (trim path).withExtension ext
   match relativeTo path' "lake-packages/lean4/lib" with
@@ -204,7 +218,9 @@ def toSrcDir (path : FilePath) (ext : String) : Option FilePath :=
       | _ => "invalid path"
 
 
--- Create all parent directories of `p` if they don't exist.
+/--
+Create all parent directories of `p` if they don't exist.
+-/
 def makeParentDirs (p : FilePath) : IO Unit := do
   let some parent := p.parent | throw $ IO.userError s!"Unable to get the parent of {p}"
   IO.FS.createDirAll parent
@@ -216,6 +232,9 @@ end Path
 namespace Traversal
 
 
+/--
+Extract tactic information from `TacticInfo` in `InfoTree`.
+-/
 private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : InfoTree) : TraceM Unit := do
   match ti.stx.getKind with
   | ``Lean.Parser.Term.byTactic =>
@@ -259,6 +278,9 @@ private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : Info
   | _ => pure ()
 
 
+/--
+Extract premise information from `TermInfo` in `InfoTree`.
+-/
 private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := do
   let some fullName := ti.expr.constName? | return ()
   let fileMap ← getFileMap
@@ -316,6 +338,9 @@ private def traverseTopLevelTree (tree : InfoTree) (env : Environment) : TraceM 
   | _ => pure ()
 
 
+/--
+Process an array of `InfoTree` (one for each top-level command in the file).
+-/
 def traverseForest (trees : Array InfoTree) (env : Environment) : TraceM Trace := do
   for t in trees do
     traverseTopLevelTree t env
@@ -327,7 +352,10 @@ end Traversal
 
 open Traversal
 
--- Trace a *.lean file.
+
+/--
+Trace a *.lean file.
+-/
 unsafe def processFile (path : FilePath) : IO Unit := do
   println! path
   let input ← IO.FS.readFile path
@@ -401,7 +429,9 @@ end LeanDojo
 
 open LeanDojo
 
--- Whether a *.lean file should be traced.
+/--
+Whether a *.lean file should be traced.
+-/
 def shouldProcess (path : FilePath) : IO Bool := do
   if path.extension != "lean" then
     return false

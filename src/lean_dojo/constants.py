@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-__version__ = "1.3.1-alpha"
+__version__ = "1.4.0"
 
 logger.remove()
 if "VERBOSE" in os.environ or "DEBUG" in os.environ:
