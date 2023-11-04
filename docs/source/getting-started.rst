@@ -51,6 +51,7 @@ REPL session by :code:`CONTAINER=docker ipython` and use LeanDojo to trace the r
 
    from lean_dojo import LeanGitRepo, trace
 
+   assert os.environ["CONTAINER"] == "docker"
    repo = LeanGitRepo("https://github.com/yangky11/lean-example", "5a0360e49946815cb53132638ccdd46fb1859e2a")
    trace(repo, dst_dir="traced_lean-example")
 
@@ -185,6 +186,7 @@ can be downloaded from `our AWS S3 <https://lean-dojo.s3.amazonaws.com>`_ (see :
 
    from lean_dojo import *
 
+   assert os.environ["CONTAINER"] == "docker"
    repo = LeanGitRepo("https://github.com/yangky11/lean-example", "5a0360e49946815cb53132638ccdd46fb1859e2a")
    theorem = Theorem(repo, "src/example.lean", "hello_world")
 
@@ -225,7 +227,7 @@ We use LeanDojo to trace the repo in Python by specifying its URL and a commit h
 
    from lean_dojo import LeanGitRepo, trace
 
-   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "7d711f6da4584ecb7d4f057715e1f72ba175c910")
+   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "a61b40b90afba0ee5a3357665a86f7d0bb57461d")
    trace(repo, dst_dir="traced_lean4-example")
 
 After a few minutes or one hour (depending on #CPUs), it generates a :file:`traced_lean4-example` directory with the subdirectories below.
@@ -265,8 +267,8 @@ For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Ex
 .. code-block::
    :caption: Lean4Example.trace.xml
 
-   <TracedFile path="Lean4Example.lean" md5="f1870b0657e8f0ab375dcd02344519ee">
-     <FileNode4 start="(1, 1)" end="(7, 41)">
+   <TracedFile path="Lean4Example.lean" md5="f8eb6563cd78c62389ff6cf40f485a1e">
+     <FileNode4 start="(1, 1)" end="(7, 53)">
        <ModuleHeaderNode4>
          <NullNode4/>
          <NullNode4/>
@@ -283,7 +285,7 @@ For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Ex
            <AtomNode4 start="(1, 29)" end="(1, 30)" leading="" trailing="&#10;&#10;" val=")"/>
          </CommandOpenonlyNode4>
        </CommandOpenNode4>
-       <CommandDeclarationNode4 start="(3, 1)" end="(3, 21)">
+       <CommandDeclarationNode4 start="(3, 1)" end="(5, 41)" name="hello_world" full_name="hello_world">
          <CommandDeclmodifiersNode4>
            <NullNode4/>
            <NullNode4/>
@@ -292,127 +294,166 @@ For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Ex
            <NullNode4/>
            <NullNode4/>
          </CommandDeclmodifiersNode4>
-         <CommandDefNode4 start="(3, 1)" end="(3, 21)">
-           <AtomNode4 start="(3, 1)" end="(3, 4)" leading="" trailing=" " val="def"/>
-           <CommandDeclidNode4 start="(3, 5)" end="(3, 10)">
-             <IdentNode4 start="(3, 5)" end="(3, 10)" leading="" trailing=" " raw_val="hello" val="hello"/>
+         <CommandTheoremNode4 start="(3, 1)" end="(5, 41)" name="hello_world" full_name="hello_world" _is_private_decl="False">
+           <AtomNode4 start="(3, 1)" end="(3, 8)" leading="" trailing=" " val="theorem"/>
+           <CommandDeclidNode4 start="(3, 9)" end="(3, 20)">
+             <IdentNode4 start="(3, 9)" end="(3, 20)" leading="" trailing=" " raw_val="hello_world" val="hello_world"/>
              <NullNode4/>
            </CommandDeclidNode4>
-           <OtherNode4 kind="Lean.Parser.Command.optDeclSig">
-             <NullNode4/>
-             <NullNode4/>
-           </OtherNode4>
-           <CommandDeclvalsimpleNode4 start="(3, 11)" end="(3, 21)">
-             <AtomNode4 start="(3, 11)" end="(3, 13)" leading="" trailing=" " val=":="/>
-             <OtherNode4 start="(3, 14)" end="(3, 21)" kind="str">
-               <AtomNode4 start="(3, 14)" end="(3, 21)" leading="" trailing="&#10;&#10;" val="&amp;quot;world&amp;quot;"/>
-             </OtherNode4>
-             <NullNode4/>
-           </CommandDeclvalsimpleNode4>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-         </CommandDefNode4>
-       </CommandDeclarationNode4>
-       <CommandDeclarationNode4 start="(5, 1)" end="(7, 41)">
-         <CommandDeclmodifiersNode4>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-         </CommandDeclmodifiersNode4>
-         <CommandTheoremNode4 start="(5, 1)" end="(7, 41)" name="hello_world" full_name="hello_world" _is_private_decl="False">
-           <AtomNode4 start="(5, 1)" end="(5, 8)" leading="" trailing=" " val="theorem"/>
-           <CommandDeclidNode4 start="(5, 9)" end="(5, 20)">
-             <IdentNode4 start="(5, 9)" end="(5, 20)" leading="" trailing=" " raw_val="hello_world" val="hello_world"/>
-             <NullNode4/>
-           </CommandDeclidNode4>
-           <CommandDeclsigNode4 start="(5, 21)" end="(6, 26)">
-             <NullNode4 start="(5, 21)" end="(5, 34)">
-               <TermExplicitbinderNode4 start="(5, 21)" end="(5, 34)">
-                 <AtomNode4 start="(5, 21)" end="(5, 22)" leading="" trailing="" val="("/>
-                 <NullNode4 start="(5, 22)" end="(5, 27)">
-                   <IdentNode4 start="(5, 22)" end="(5, 23)" leading="" trailing=" " raw_val="a" val="a"/>
-                   <IdentNode4 start="(5, 24)" end="(5, 25)" leading="" trailing=" " raw_val="b" val="b"/>
-                   <IdentNode4 start="(5, 26)" end="(5, 27)" leading="" trailing=" " raw_val="c" val="c"/>
+           <CommandDeclsigNode4 start="(3, 21)" end="(4, 26)">
+             <NullNode4 start="(3, 21)" end="(3, 34)">
+               <TermExplicitbinderNode4 start="(3, 21)" end="(3, 34)">
+                 <AtomNode4 start="(3, 21)" end="(3, 22)" leading="" trailing="" val="("/>
+                 <NullNode4 start="(3, 22)" end="(3, 27)">
+                   <IdentNode4 start="(3, 22)" end="(3, 23)" leading="" trailing=" " raw_val="a" val="a"/>
+                   <IdentNode4 start="(3, 24)" end="(3, 25)" leading="" trailing=" " raw_val="b" val="b"/>
+                   <IdentNode4 start="(3, 26)" end="(3, 27)" leading="" trailing=" " raw_val="c" val="c"/>
                  </NullNode4>
-                 <NullNode4 start="(5, 28)" end="(5, 33)">
-                   <AtomNode4 start="(5, 28)" end="(5, 29)" leading="" trailing=" " val=":"/>
-                   <IdentNode4 start="(5, 30)" end="(5, 33)" leading="" trailing="" raw_val="Nat" val="Nat" full_name="Nat" mod_name="Init.Prelude" def_start="(1038, 11)" def_end="(1038, 14)"/>
+                 <NullNode4 start="(3, 28)" end="(3, 33)">
+                   <AtomNode4 start="(3, 28)" end="(3, 29)" leading="" trailing=" " val=":"/>
+                   <IdentNode4 start="(3, 30)" end="(3, 33)" leading="" trailing="" raw_val="Nat" val="Nat" full_name="Nat" mod_name="Init.Prelude" def_start="(1038, 11)" def_end="(1038, 14)"/>
                  </NullNode4>
                  <NullNode4/>
-                 <AtomNode4 start="(5, 33)" end="(5, 34)" leading="" trailing=" &#10;  " val=")"/>
+                 <AtomNode4 start="(3, 33)" end="(3, 34)" leading="" trailing="&#10;  " val=")"/>
                </TermExplicitbinderNode4>
              </NullNode4>
-             <TermTypespecNode4 start="(6, 3)" end="(6, 26)">
-               <AtomNode4 start="(6, 3)" end="(6, 4)" leading="" trailing=" " val=":"/>
-               <OtherNode4 start="(6, 5)" end="(6, 26)" kind="«term_=_»">
-                 <OtherNode4 start="(6, 5)" end="(6, 14)" kind="«term_+_»">
-                   <OtherNode4 start="(6, 5)" end="(6, 10)" kind="«term_+_»">
-                     <IdentNode4 start="(6, 5)" end="(6, 6)" leading="" trailing=" " raw_val="a" val="a"/>
-                     <AtomNode4 start="(6, 7)" end="(6, 8)" leading="" trailing=" " val="+"/>
-                     <IdentNode4 start="(6, 9)" end="(6, 10)" leading="" trailing=" " raw_val="b" val="b"/>
+             <TermTypespecNode4 start="(4, 3)" end="(4, 26)">
+               <AtomNode4 start="(4, 3)" end="(4, 4)" leading="" trailing=" " val=":"/>
+               <OtherNode4 start="(4, 5)" end="(4, 26)" kind="«term_=_»">
+                 <OtherNode4 start="(4, 5)" end="(4, 14)" kind="«term_+_»">
+                   <OtherNode4 start="(4, 5)" end="(4, 10)" kind="«term_+_»">
+                     <IdentNode4 start="(4, 5)" end="(4, 6)" leading="" trailing=" " raw_val="a" val="a"/>
+                     <AtomNode4 start="(4, 7)" end="(4, 8)" leading="" trailing=" " val="+"/>
+                     <IdentNode4 start="(4, 9)" end="(4, 10)" leading="" trailing=" " raw_val="b" val="b"/>
                    </OtherNode4>
-                   <AtomNode4 start="(6, 11)" end="(6, 12)" leading="" trailing=" " val="+"/>
-                   <IdentNode4 start="(6, 13)" end="(6, 14)" leading="" trailing=" " raw_val="c" val="c"/>
+                   <AtomNode4 start="(4, 11)" end="(4, 12)" leading="" trailing=" " val="+"/>
+                   <IdentNode4 start="(4, 13)" end="(4, 14)" leading="" trailing=" " raw_val="c" val="c"/>
                  </OtherNode4>
-                 <AtomNode4 start="(6, 15)" end="(6, 16)" leading="" trailing=" " val="="/>
-                 <OtherNode4 start="(6, 17)" end="(6, 26)" kind="«term_+_»">
-                   <OtherNode4 start="(6, 17)" end="(6, 22)" kind="«term_+_»">
-                     <IdentNode4 start="(6, 17)" end="(6, 18)" leading="" trailing=" " raw_val="a" val="a"/>
-                     <AtomNode4 start="(6, 19)" end="(6, 20)" leading="" trailing=" " val="+"/>
-                     <IdentNode4 start="(6, 21)" end="(6, 22)" leading="" trailing=" " raw_val="c" val="c"/>
+                 <AtomNode4 start="(4, 15)" end="(4, 16)" leading="" trailing=" " val="="/>
+                 <OtherNode4 start="(4, 17)" end="(4, 26)" kind="«term_+_»">
+                   <OtherNode4 start="(4, 17)" end="(4, 22)" kind="«term_+_»">
+                     <IdentNode4 start="(4, 17)" end="(4, 18)" leading="" trailing=" " raw_val="a" val="a"/>
+                     <AtomNode4 start="(4, 19)" end="(4, 20)" leading="" trailing=" " val="+"/>
+                     <IdentNode4 start="(4, 21)" end="(4, 22)" leading="" trailing=" " raw_val="c" val="c"/>
                    </OtherNode4>
-                   <AtomNode4 start="(6, 23)" end="(6, 24)" leading="" trailing=" " val="+"/>
-                   <IdentNode4 start="(6, 25)" end="(6, 26)" leading="" trailing=" " raw_val="b" val="b"/>
+                   <AtomNode4 start="(4, 23)" end="(4, 24)" leading="" trailing=" " val="+"/>
+                   <IdentNode4 start="(4, 25)" end="(4, 26)" leading="" trailing=" " raw_val="b" val="b"/>
                  </OtherNode4>
                </OtherNode4>
              </TermTypespecNode4>
            </CommandDeclsigNode4>
-           <CommandDeclvalsimpleNode4 start="(6, 27)" end="(7, 41)">
-             <AtomNode4 start="(6, 27)" end="(6, 29)" leading="" trailing=" " val=":="/>
-             <TermBytacticNode4 start="(6, 30)" end="(7, 41)">
-               <AtomNode4 start="(6, 30)" end="(6, 32)" leading="" trailing=" &#10;  " val="by"/>
-               <TacticTacticseqNode4 start="(7, 3)" end="(7, 41)">
-                 <TacticTacticseq1IndentedNode4 start="(7, 3)" end="(7, 41)">
-                   <NullNode4 start="(7, 3)" end="(7, 41)">
-                     <OtherNode4 start="(7, 3)" end="(7, 41)" kind="Lean.Parser.Tactic.rwSeq" state_before="a b c : Nat&#10;⊢ a + b + c = a + c + b" state_after="no goals" tactic="rw [add_assoc, add_comm b, ←add_assoc]">
-                       <AtomNode4 start="(7, 3)" end="(7, 5)" leading="" trailing=" " val="rw"/>
+           <CommandDeclvalsimpleNode4 start="(4, 27)" end="(5, 41)">
+             <AtomNode4 start="(4, 27)" end="(4, 29)" leading="" trailing=" " val=":="/>
+             <TermBytacticNode4 start="(4, 30)" end="(5, 41)">
+               <AtomNode4 start="(4, 30)" end="(4, 32)" leading="" trailing="&#10;  " val="by"/>
+               <TacticTacticseqNode4 start="(5, 3)" end="(5, 41)">
+                 <TacticTacticseq1IndentedNode4 start="(5, 3)" end="(5, 41)">
+                   <NullNode4 start="(5, 3)" end="(5, 41)">
+                     <OtherNode4 start="(5, 3)" end="(5, 41)" kind="Lean.Parser.Tactic.rwSeq" state_before="a b c : Nat&#10;⊢ a + b + c = a + c + b" state_after="no goals" tactic="rw [add_assoc, add_comm b, ←add_assoc]">
+                       <AtomNode4 start="(5, 3)" end="(5, 5)" leading="" trailing=" " val="rw"/>
                        <NullNode4/>
-                       <OtherNode4 start="(7, 6)" end="(7, 41)" kind="Lean.Parser.Tactic.rwRuleSeq">
-                         <AtomNode4 start="(7, 6)" end="(7, 7)" leading="" trailing="" val="["/>
-                         <NullNode4 start="(7, 7)" end="(7, 40)">
-                           <OtherNode4 start="(7, 7)" end="(7, 16)" kind="Lean.Parser.Tactic.rwRule">
+                       <OtherNode4 start="(5, 6)" end="(5, 41)" kind="Lean.Parser.Tactic.rwRuleSeq">
+                         <AtomNode4 start="(5, 6)" end="(5, 7)" leading="" trailing="" val="["/>
+                         <NullNode4 start="(5, 7)" end="(5, 40)">
+                           <OtherNode4 start="(5, 7)" end="(5, 16)" kind="Lean.Parser.Tactic.rwRule">
                              <NullNode4/>
-                             <IdentNode4 start="(7, 7)" end="(7, 16)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_start="(138, 19)" def_end="(138, 28)"/>
+                             <IdentNode4 start="(5, 7)" end="(5, 16)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_start="(138, 19)" def_end="(138, 28)"/>
                            </OtherNode4>
-                           <AtomNode4 start="(7, 16)" end="(7, 17)" leading="" trailing=" " val=","/>
-                           <OtherNode4 start="(7, 18)" end="(7, 28)" kind="Lean.Parser.Tactic.rwRule">
+                           <AtomNode4 start="(5, 16)" end="(5, 17)" leading="" trailing=" " val=","/>
+                           <OtherNode4 start="(5, 18)" end="(5, 28)" kind="Lean.Parser.Tactic.rwRule">
                              <NullNode4/>
-                             <OtherNode4 start="(7, 18)" end="(7, 28)" kind="Lean.Parser.Term.app">
-                               <IdentNode4 start="(7, 18)" end="(7, 26)" leading="" trailing=" " raw_val="add_comm" val="add_comm" full_name="Nat.add_comm" mod_name="Init.Data.Nat.Basic" def_start="(131, 19)" def_end="(131, 27)"/>
-                               <NullNode4 start="(7, 27)" end="(7, 28)">
-                                 <IdentNode4 start="(7, 27)" end="(7, 28)" leading="" trailing="" raw_val="b" val="b"/>
+                             <OtherNode4 start="(5, 18)" end="(5, 28)" kind="Lean.Parser.Term.app">
+                               <IdentNode4 start="(5, 18)" end="(5, 26)" leading="" trailing=" " raw_val="add_comm" val="add_comm" full_name="Nat.add_comm" mod_name="Init.Data.Nat.Basic" def_start="(131, 19)" def_end="(131, 27)"/>
+                               <NullNode4 start="(5, 27)" end="(5, 28)">
+                                 <IdentNode4 start="(5, 27)" end="(5, 28)" leading="" trailing="" raw_val="b" val="b"/>
                                </NullNode4>
                              </OtherNode4>
                            </OtherNode4>
-                           <AtomNode4 start="(7, 28)" end="(7, 29)" leading="" trailing=" " val=","/>
-                           <OtherNode4 start="(7, 30)" end="(7, 40)" kind="Lean.Parser.Tactic.rwRule">
-                             <NullNode4 start="(7, 30)" end="(7, 31)">
-                               <OtherNode4 start="(7, 30)" end="(7, 31)" kind="patternIgnore">
-                                 <OtherNode4 start="(7, 30)" end="(7, 31)" kind="token.«← »">
-                                   <AtomNode4 start="(7, 30)" end="(7, 31)" leading="" trailing="" val="←"/>
+                           <AtomNode4 start="(5, 28)" end="(5, 29)" leading="" trailing=" " val=","/>
+                           <OtherNode4 start="(5, 30)" end="(5, 40)" kind="Lean.Parser.Tactic.rwRule">
+                             <NullNode4 start="(5, 30)" end="(5, 31)">
+                               <OtherNode4 start="(5, 30)" end="(5, 31)" kind="patternIgnore">
+                                 <OtherNode4 start="(5, 30)" end="(5, 31)" kind="token.«← »">
+                                   <AtomNode4 start="(5, 30)" end="(5, 31)" leading="" trailing="" val="←"/>
                                  </OtherNode4>
                                </OtherNode4>
                              </NullNode4>
-                             <IdentNode4 start="(7, 31)" end="(7, 40)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_start="(138, 19)" def_end="(138, 28)"/>
+                             <IdentNode4 start="(5, 31)" end="(5, 40)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_start="(138, 19)" def_end="(138, 28)"/>
                            </OtherNode4>
                          </NullNode4>
-                         <AtomNode4 start="(7, 40)" end="(7, 41)" leading="" trailing="&#10;" val="]"/>
+                         <AtomNode4 start="(5, 40)" end="(5, 41)" leading="" trailing="&#10;&#10;" val="]"/>
                        </OtherNode4>
                        <NullNode4/>
+                     </OtherNode4>
+                   </NullNode4>
+                 </TacticTacticseq1IndentedNode4>
+               </TacticTacticseqNode4>
+             </TermBytacticNode4>
+             <NullNode4/>
+           </CommandDeclvalsimpleNode4>
+           <NullNode4/>
+           <NullNode4/>
+         </CommandTheoremNode4>
+       </CommandDeclarationNode4>
+       <CommandDeclarationNode4 start="(7, 1)" end="(7, 53)" name="foo" full_name="foo">
+         <CommandDeclmodifiersNode4>
+           <NullNode4/>
+           <NullNode4/>
+           <NullNode4/>
+           <NullNode4/>
+           <NullNode4/>
+           <NullNode4/>
+         </CommandDeclmodifiersNode4>
+         <CommandTheoremNode4 start="(7, 1)" end="(7, 53)" name="foo" full_name="foo" _is_private_decl="False">
+           <AtomNode4 start="(7, 1)" end="(7, 8)" leading="" trailing=" " val="theorem"/>
+           <CommandDeclidNode4 start="(7, 9)" end="(7, 12)">
+             <IdentNode4 start="(7, 9)" end="(7, 12)" leading="" trailing=" " raw_val="foo" val="foo"/>
+             <NullNode4/>
+           </CommandDeclidNode4>
+           <CommandDeclsigNode4 start="(7, 13)" end="(7, 43)">
+             <NullNode4 start="(7, 13)" end="(7, 22)">
+               <TermExplicitbinderNode4 start="(7, 13)" end="(7, 22)">
+                 <AtomNode4 start="(7, 13)" end="(7, 14)" leading="" trailing="" val="("/>
+                 <NullNode4 start="(7, 14)" end="(7, 15)">
+                   <IdentNode4 start="(7, 14)" end="(7, 15)" leading="" trailing=" " raw_val="a" val="a"/>
+                 </NullNode4>
+                 <NullNode4 start="(7, 16)" end="(7, 21)">
+                   <AtomNode4 start="(7, 16)" end="(7, 17)" leading="" trailing=" " val=":"/>
+                   <IdentNode4 start="(7, 18)" end="(7, 21)" leading="" trailing="" raw_val="Nat" val="Nat" full_name="Nat" mod_name="Init.Prelude" def_start="(1038, 11)" def_end="(1038, 14)"/>
+                 </NullNode4>
+                 <NullNode4/>
+                 <AtomNode4 start="(7, 21)" end="(7, 22)" leading="" trailing=" " val=")"/>
+               </TermExplicitbinderNode4>
+             </NullNode4>
+             <TermTypespecNode4 start="(7, 23)" end="(7, 43)">
+               <AtomNode4 start="(7, 23)" end="(7, 24)" leading="" trailing=" " val=":"/>
+               <OtherNode4 start="(7, 25)" end="(7, 43)" kind="«term_=_»">
+                 <OtherNode4 start="(7, 25)" end="(7, 30)" kind="«term_+_»">
+                   <IdentNode4 start="(7, 25)" end="(7, 26)" leading="" trailing=" " raw_val="a" val="a"/>
+                   <AtomNode4 start="(7, 27)" end="(7, 28)" leading="" trailing=" " val="+"/>
+                   <OtherNode4 start="(7, 29)" end="(7, 30)" kind="num">
+                     <AtomNode4 start="(7, 29)" end="(7, 30)" leading="" trailing=" " val="1"/>
+                   </OtherNode4>
+                 </OtherNode4>
+                 <AtomNode4 start="(7, 31)" end="(7, 32)" leading="" trailing=" " val="="/>
+                 <OtherNode4 start="(7, 33)" end="(7, 43)" kind="Lean.Parser.Term.app">
+                   <IdentNode4 start="(7, 33)" end="(7, 41)" leading="" trailing=" " raw_val="Nat.succ" val="Nat.succ" full_name="Nat.succ" mod_name="Init.Prelude" def_start="(1044, 5)" def_end="(1044, 9)"/>
+                   <NullNode4 start="(7, 42)" end="(7, 43)">
+                     <IdentNode4 start="(7, 42)" end="(7, 43)" leading="" trailing=" " raw_val="a" val="a"/>
+                   </NullNode4>
+                 </OtherNode4>
+               </OtherNode4>
+             </TermTypespecNode4>
+           </CommandDeclsigNode4>
+           <CommandDeclvalsimpleNode4 start="(7, 44)" end="(7, 53)">
+             <AtomNode4 start="(7, 44)" end="(7, 46)" leading="" trailing=" " val=":="/>
+             <TermBytacticNode4 start="(7, 47)" end="(7, 53)">
+               <AtomNode4 start="(7, 47)" end="(7, 49)" leading="" trailing=" " val="by"/>
+               <TacticTacticseqNode4 start="(7, 50)" end="(7, 53)">
+                 <TacticTacticseq1IndentedNode4 start="(7, 50)" end="(7, 53)">
+                   <NullNode4 start="(7, 50)" end="(7, 53)">
+                     <OtherNode4 start="(7, 50)" end="(7, 53)" kind="Lean.Parser.Tactic.tacticRfl" state_before="a : Nat&#10;⊢ a + 1 = Nat.succ a" state_after="no goals" tactic="rfl">
+                       <AtomNode4 start="(7, 50)" end="(7, 53)" leading="" trailing="&#10;" val="rfl"/>
                      </OtherNode4>
                    </NullNode4>
                  </TacticTacticseq1IndentedNode4>
@@ -443,7 +484,7 @@ can be downloaded from `our AWS S3 <https://lean-dojo.s3.amazonaws.com>`_ (see :
 
    from lean_dojo import *
 
-   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "7d711f6da4584ecb7d4f057715e1f72ba175c910")
+   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "a61b40b90afba0ee5a3357665a86f7d0bb57461d")
    theorem = Theorem(repo, "Lean4Example.lean", "hello_world")
 
    with Dojo(theorem) as (dojo, init_state):

@@ -113,8 +113,17 @@ private def levels2Names : List Level → NameSet
   | _ :: us => levels2Names us
 
 
+private def collectFromLevel : Level → NameSet
+| Level.zero => NameSet.empty
+| Level.succ l => collectFromLevel l
+| Level.param n => NameSet.empty.insert n
+| Level.max l1 l2 => (collectFromLevel l1).union $ collectFromLevel l2
+| Level.imax l1 l2 => (collectFromLevel l1).union $ collectFromLevel l2
+| Level.mvar _ => NameSet.empty
+
+
 private def collectLevelParams : Expr → NameSet
-  | .sort (Level.param n) => NameSet.empty.insert n
+  | .sort u => collectFromLevel u
   | .const _ us => levels2Names us
   | .app fm arg => (collectLevelParams fm).union $ collectLevelParams arg
   | .lam _ binderType body _ => (collectLevelParams binderType).union $ collectLevelParams body

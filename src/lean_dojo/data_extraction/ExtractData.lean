@@ -2,6 +2,9 @@ import Lean
 
 open Lean Elab System
 
+set_option maxHeartbeats 2000000  -- 10x the default maxHeartbeats.
+
+
 instance : ToJson Substring where
   toJson s := toJson s.toString
 
@@ -17,31 +20,37 @@ deriving instance ToJson for Position
 namespace LeanDojo
 
 
-set_option maxHeartbeats 2000000  -- 10x the default maxHeartbeats.
-
-
+/--
+The trace of a tactic.
+-/
 structure TacticTrace where
   stateBefore: String
   stateAfter: String
-  pos: String.Pos
-  endPos: String.Pos
+  pos: String.Pos      -- Start position of the tactic.
+  endPos: String.Pos   -- End position of the tactic.
 deriving ToJson
 
 
+/--
+The trace of a premise.
+-/
 structure PremiseTrace where
-  fullName: String
-  defPos: Option Position
+  fullName: String            -- Fully-qualified name of the premise.
+  defPos: Option Position     -- Where the premise is defined.
   defEndPos: Option Position
-  modName: Option String
-  pos: Option Position
+  modName: Option String      -- In which module the premise is defined.
+  pos: Option Position        -- Where the premise is used.
   endPos: Option Position
 deriving ToJson
 
 
+/--
+The trace of a Lean file.
+-/
 structure Trace where
-  commandASTs : Array Syntax
-  tactics: Array TacticTrace
-  premises: Array PremiseTrace
+  commandASTs : Array Syntax    -- The ASTs of the commands in the file.
+  tactics: Array TacticTrace    -- All tactics in the file.
+  premises: Array PremiseTrace  -- All premises in the file.
 deriving ToJson
 
 
@@ -55,7 +64,7 @@ private def addLine (s : String) : String :=
   if s.isEmpty then s else s ++ "\n"
 
 
--- Similar to `Meta.ppGoal` but use String instead of Format to make sure local declarations are separated by "\n".
+-- Similar to `Meta.ppGoal` but uses String instead of Format to make sure local declarations are separated by "\n".
 private def ppGoal (mvarId : MVarId) : MetaM String := do
   match (← getMCtx).findDecl? mvarId with
   | none          => return "unknown goal"
@@ -126,7 +135,9 @@ end Pp
 
 namespace Path
 
-
+/--
+Return the path of `path` relative to `parent`.
+-/
 def relativeTo (path parent : FilePath) : Option FilePath :=
   let rec componentsRelativeTo (pathComps parentComps : List String) : Option FilePath :=
     match pathComps, parentComps with
@@ -141,18 +152,25 @@ def relativeTo (path parent : FilePath) : Option FilePath :=
     componentsRelativeTo path.components parent.components
 
 
+/--
+Return if the path `path` is relative to `parent`.
+-/
 def isRelativeTo (path parent : FilePath) : Bool :=
   match relativeTo path parent  with
   | some _ => true
   | none => false
 
 
+/--
+Convert the path `path` to an absolute path.
+-/
 def toAbsolute (path : FilePath) : IO FilePath := do
   if path.isAbsolute then
     pure path
   else
     let cwd ← IO.currentDir
     pure $ cwd / path
+
 
 private def trim (path : FilePath) : FilePath :=
   assert! path.isRelative
@@ -161,6 +179,9 @@ private def trim (path : FilePath) : FilePath :=
   | _ => path
 
 
+/--
+Convert the path of a *.lean file to its corresponding file (e.g., *.olean) in the "build" directory.
+-/
 def toBuildDir (subDir : String) (path : FilePath) (ext : String) : Option FilePath :=
   let path' := (trim path).withExtension ext
   match relativeTo path' "lake-packages/lean4/src" with
@@ -173,7 +194,9 @@ def toBuildDir (subDir : String) (path : FilePath) (ext : String) : Option FileP
     | none => some $ "build" / subDir / path'
 
 
--- The reverse of `toBuildDir`.
+/--
+The reverse of `toBuildDir`.
+-/
 def toSrcDir (path : FilePath) (ext : String) : Option FilePath :=
   let path' := (trim path).withExtension ext
   match relativeTo path' "lake-packages/lean4/lib" with
@@ -195,7 +218,9 @@ def toSrcDir (path : FilePath) (ext : String) : Option FilePath :=
       | _ => "invalid path"
 
 
--- Create all parent directories of `p` if they don't exist.
+/--
+Create all parent directories of `p` if they don't exist.
+-/
 def makeParentDirs (p : FilePath) : IO Unit := do
   let some parent := p.parent | throw $ IO.userError s!"Unable to get the parent of {p}"
   IO.FS.createDirAll parent
@@ -207,6 +232,9 @@ end Path
 namespace Traversal
 
 
+/--
+Extract tactic information from `TacticInfo` in `InfoTree`.
+-/
 private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : InfoTree) : TraceM Unit := do
   match ti.stx.getKind with
   | ``Lean.Parser.Term.byTactic =>
@@ -237,19 +265,22 @@ private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : Info
         let some posAfter := ti.stx.getTailPos? true | pure ()
         match ti.stx with
         | .node _ _ _ =>
-          modify fun trace => { 
-            trace with tactics := trace.tactics.push { 
-              stateBefore := stateBefore, 
-              stateAfter := stateAfter, 
-              pos := posBefore, 
+          modify fun trace => {
+            trace with tactics := trace.tactics.push {
+              stateBefore := stateBefore,
+              stateAfter := stateAfter,
+              pos := posBefore,
               endPos := posAfter,
-             } 
+             }
           }
         | _ => pure ()
     | _ => pure ()
   | _ => pure ()
 
 
+/--
+Extract premise information from `TermInfo` in `InfoTree`.
+-/
 private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := do
   let some fullName := ti.expr.constName? | return ()
   let fileMap ← getFileMap
@@ -262,14 +293,17 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
     | some posInfo => fileMap.toPosition posInfo
     | none => none
 
-  let some modIdx := env.const2ModIdx.find? fullName | return ()
-  let modName := env.header.moduleNames[modIdx.toNat]!
+  let modName :=
+    if let some modIdx := env.const2ModIdx.find? fullName then
+      env.header.moduleNames[modIdx.toNat]!
+    else
+      env.header.mainModule
 
-  let decRanges ← findDeclarationRanges? fullName
+  let decRanges ← withEnv env $ findDeclarationRanges? fullName
   let defPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.pos
   let defEndPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.endPos
 
-  modify fun trace => { 
+  modify fun trace => {
       trace with premises := trace.premises.push {
         fullName := toString fullName,
         defPos := defPos,
@@ -279,7 +313,6 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
         modName := toString modName,
       }
     }
-  
 
 
 private def visitInfo (ctx : ContextInfo) (i : Info) (parent : InfoTree) (env : Environment) : TraceM Unit := do
@@ -305,6 +338,9 @@ private def traverseTopLevelTree (tree : InfoTree) (env : Environment) : TraceM 
   | _ => pure ()
 
 
+/--
+Process an array of `InfoTree` (one for each top-level command in the file).
+-/
 def traverseForest (trees : Array InfoTree) (env : Environment) : TraceM Trace := do
   for t in trees do
     traverseTopLevelTree t env
@@ -316,7 +352,10 @@ end Traversal
 
 open Traversal
 
--- Trace a *.lean file.
+
+/--
+Trace a *.lean file.
+-/
 unsafe def processFile (path : FilePath) : IO Unit := do
   println! path
   let input ← IO.FS.readFile path
@@ -332,13 +371,14 @@ unsafe def processFile (path : FilePath) : IO Unit := do
         println! "ERROR: {← msg.toString}"
     throw $ IO.userError "Errors during import; aborting"
 
-  let some modName := path.fileStem | throw $ IO.userError s!"Invalid path: {path}"
-  let env := env.setMainModule modName.toName
+  let env := env.setMainModule (← moduleNameOfFileName path none)
   let commandState := { Command.mkState env messages opts with infoState.enabled := true }
   let s ← IO.processCommands inputCtx parserState commandState
+  let env' := s.commandState.env
   let commands := s.commands.pop -- Remove EOI command.
   let trees := s.commandState.infoState.trees.toArray
-  let traceM := (traverseForest trees env).run' ⟨#[header] ++ commands, #[], #[]⟩
+
+  let traceM := (traverseForest trees env').run' ⟨#[header] ++ commands, #[], #[]⟩
   let (trace, _) ← traceM.run'.toIO {fileName := s!"{path}", fileMap := FileMap.ofString input} {env := env}
 
   let cwd ← IO.currentDir
@@ -389,7 +429,9 @@ end LeanDojo
 
 open LeanDojo
 
--- Whether a *.lean file should be traced.
+/--
+Whether a *.lean file should be traced.
+-/
 def shouldProcess (path : FilePath) : IO Bool := do
   if path.extension != "lean" then
     return false
