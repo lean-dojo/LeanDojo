@@ -303,7 +303,7 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
   let defPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.pos
   let defEndPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.endPos
 
-  if defPos != posBefore && defEndPos != posAfter then
+  if defPos != posBefore && defEndPos != posAfter then /- Don't include defintions as premises. -/
     modify fun trace => {
         trace with premises := trace.premises.push {
           fullName := toString fullName,
