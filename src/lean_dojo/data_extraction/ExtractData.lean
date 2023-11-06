@@ -303,16 +303,17 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
   let defPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.pos
   let defEndPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.endPos
 
-  modify fun trace => {
-      trace with premises := trace.premises.push {
-        fullName := toString fullName,
-        defPos := defPos,
-        defEndPos := defEndPos,
-        pos := posBefore,
-        endPos := posAfter,
-        modName := toString modName,
+  if defPos != posBefore && defEndPos != posAfter then /- Don't include defintions as premises. -/
+    modify fun trace => {
+        trace with premises := trace.premises.push {
+          fullName := toString fullName,
+          defPos := defPos,
+          defEndPos := defEndPos,
+          pos := posBefore,
+          endPos := posAfter,
+          modName := toString modName,
+        }
       }
-    }
 
 
 private def visitInfo (ctx : ContextInfo) (i : Info) (parent : InfoTree) (env : Environment) : TraceM Unit := do
