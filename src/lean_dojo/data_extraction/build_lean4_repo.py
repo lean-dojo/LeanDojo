@@ -108,6 +108,7 @@ def check_files() -> None:
     missing_jsons = {p.with_suffix(".ast.json") for p in cs - jsons}
     missing_deps = {p.with_suffix(".dep_paths") for p in cs - deps}
     if len(missing_jsons) > 0 or len(missing_deps) > 0:
+        import pdb; pdb.set_trace()
         for p in missing_jsons.union(missing_deps):
             logger.error(f"Missing {p}")
         raise RuntimeError("Missing intermediate files.")
