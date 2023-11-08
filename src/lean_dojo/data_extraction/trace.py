@@ -103,6 +103,7 @@ def _trace_lean3(repo: LeanGitRepo) -> None:
 
 def _trace_lean4(repo: LeanGitRepo) -> None:
     # Trace `repo` in the current working directory.
+    assert not repo.is_lean4, "Cannot trace the Lean 4 repo itself."
     repo.clone_and_checkout()
 
     logger.debug(f"Tracing {repo}")
@@ -112,13 +113,20 @@ def _trace_lean4(repo: LeanGitRepo) -> None:
         LEAN4_BUILD_SCRIPT_PATH: f"/workspace/{LEAN4_BUILD_SCRIPT_PATH.name}",
         LEAN4_DATA_EXTRACTOR_PATH: f"/workspace/{repo.name}/{LEAN4_DATA_EXTRACTOR_PATH.name}",
     }
-    container.run(
-        f"python3 build_lean4_repo.py {repo.name}",
-        create_mounts(mts),
-        {"NUM_PROCS": NUM_PROCS},
-        as_current_user=True,
-        work_dir="/workspace",
-    )
+    try:
+        container.run(
+            f"python3 build_lean4_repo.py {repo.name}",
+            create_mounts(mts),
+            {"NUM_PROCS": NUM_PROCS},
+            as_current_user=True,
+            work_dir="/workspace",
+        )
+    except CalledProcessError as ex:
+        if repo.is_lean4 and isinstance(container, NativeContainer):
+            logger.error(
+                "Failed to build Lean 4 without Docker. See https://leandojo.readthedocs.io/en/latest/user-guide.html#advanced-running-within-docker."
+            )
+        raise ex
 
 
 def is_available_in_cache(repo: LeanGitRepo) -> bool:

@@ -170,6 +170,7 @@ class IdentNode4(Node4):
 
     full_name: Optional[str] = None
     mod_name: Optional[str] = None
+    def_path: Optional[str] = None
     def_start: Optional[Pos] = None
     def_end: Optional[Pos] = None
 

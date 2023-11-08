@@ -118,47 +118,23 @@ def main() -> None:
     repo_name = sys.argv[1]
     os.chdir(repo_name)
 
+    # Build the repo using lake.
     logger.info(f"Building {repo_name}")
-    if repo_name == "lean4":
-        # Build Lean 4 from source.
+    run_cmd("lake build")
+
+    # Copy the Lean 4 stdlib into lake-packages.
+    lean_prefix = run_cmd(f"lean --print-prefix", capture_output=True).strip()
+    shutil.copytree(lean_prefix, "lake-packages/lean4")
+
+    # Run ExtractData.lean to extract ASTs, tactic states, and premise information.
+    logger.info(f"Tracing {repo_name}")
+    with launch_progressbar(["build", "lake-packages"]):
         run_cmd(
-            [
-                f"mkdir -p build/release",
-                f"cd build/release",
-                "cmake ../..",
-                f"make -j{num_procs}",
-                "cd ../..",
-                "rm build/release/stage1/src/lean",  # Remove symbolic link.
-                "rm build/release/stage0/src/lean",  # Remove symbolic link.
-                "mkdir lib && cp -r build/release/stage1/lib/lean lib/lean",
-                "mv src src_tmp && mkdir src && mv src_tmp src/lean",
-            ]
+            f"lake env lean --threads {num_procs} --run ExtractData.lean",
+            capture_output=True,
         )
 
-        logger.info(f"Tracing {repo_name}")
-        with launch_progressbar(["lib"]):
-            run_cmd(
-                f"./build/release/stage1/bin/lean --threads {num_procs} --run ExtractData.lean",
-                capture_output=True,
-            )
-
-    else:
-        # Build the repo using lake.
-        run_cmd("lake build")
-
-        # Copy the Lean 4 stdlib into lake-packages.
-        lean_prefix = run_cmd(f"lean --print-prefix", capture_output=True).strip()
-        shutil.copytree(lean_prefix, "lake-packages/lean4")
-
-        # Run ExtractData.lean to extract ASTs, tactic states, and premise information.
-        logger.info(f"Tracing {repo_name}")
-        with launch_progressbar(["build", "lake-packages"]):
-            run_cmd(
-                f"lake env lean --threads {num_procs} --run ExtractData.lean",
-                capture_output=True,
-            )
-
-        check_files()
+    check_files()
 
 
 if __name__ == "__main__":

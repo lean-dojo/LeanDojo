@@ -38,7 +38,8 @@ structure PremiseTrace where
   fullName: String            -- Fully-qualified name of the premise.
   defPos: Option Position     -- Where the premise is defined.
   defEndPos: Option Position
-  modName: Option String      -- In which module the premise is defined.
+  modName: String      -- In which module the premise is defined.
+  defPath: String      -- The path of the file where the premise is defined.
   pos: Option Position        -- Where the premise is used.
   endPos: Option Position
 deriving ToJson
@@ -156,7 +157,7 @@ def relativeTo (path parent : FilePath) : Option FilePath :=
 Return if the path `path` is relative to `parent`.
 -/
 def isRelativeTo (path parent : FilePath) : Bool :=
-  match relativeTo path parent  with
+  match relativeTo path parent with
   | some _ => true
   | none => false
 
@@ -226,6 +227,23 @@ def makeParentDirs (p : FilePath) : IO Unit := do
   IO.FS.createDirAll parent
 
 
+/--
+Return the *.lean file corresponding to a module name.
+-/
+def findLean (mod : Name) : IO FilePath := do
+  let modStr := mod.toString
+  if modStr.startsWith "«lake-packages»." then
+    return FilePath.mk (modStr.replace "«lake-packages»" "lake-packages" |>.replace "." "/") |>.withExtension "lean"
+  let olean ← findOLean mod
+  -- Remove a "build/lib/" substring from the path.
+  let lean := olean.toString.replace (toString (FilePath.mk "build" / "lib") ++ FilePath.pathSeparator.toString) ""
+  let mut path := FilePath.mk lean |>.withExtension "lean"
+  let leanLib ← getLibDir (← getBuildDir)
+  if let some p := relativeTo path leanLib then
+    path := "lake-packages/lean4/src/lean" / p
+  assert! ← path.pathExists
+  return path
+
 end Path
 
 
@@ -277,7 +295,6 @@ private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : Info
     | _ => pure ()
   | _ => pure ()
 
-
 /--
 Extract premise information from `TermInfo` in `InfoTree`.
 -/
@@ -302,16 +319,21 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
   let decRanges ← withEnv env $ findDeclarationRanges? fullName
   let defPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.pos
   let defEndPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.endPos
+  let mut defPath := toString $ ← Path.findLean modName
+  if defPath.startsWith "./" then
+    defPath := defPath.drop 2
 
-  modify fun trace => {
-      trace with premises := trace.premises.push {
-        fullName := toString fullName,
-        defPos := defPos,
-        defEndPos := defEndPos,
-        pos := posBefore,
-        endPos := posAfter,
-        modName := toString modName,
-      }
+  if defPos != posBefore ∧ defEndPos != posAfter then  -- Don't include defintions as premises.
+    modify fun trace => {
+        trace with premises := trace.premises.push {
+          fullName := toString fullName,
+          defPos := defPos,
+          defEndPos := defEndPos,
+          defPath := defPath,
+          modName := toString modName,
+          pos := posBefore,
+          endPos := posAfter,
+        }
     }
 
 
@@ -455,15 +477,13 @@ unsafe def main (args : List String) : IO Unit := do
   | [] =>
     -- Trace all *.lean files in the current directory whose corresponding *.olean file exists.
     let cwd ← IO.currentDir
+    assert! cwd.fileName != "lean4"
     println! "Extracting data at {cwd}"
     let _ ← System.FilePath.walkDir cwd fun dir => do
       for p in ← System.FilePath.readDir dir do
         if ← shouldProcess p.path then
           let _ ← IO.asTask $ IO.Process.run
-            (if cwd.fileName != "lean4" then
-              {cmd := "lake", args := #["env", "lean", "--run", "ExtractData.lean", p.path.toString]}
-            else
-              {cmd := "./build/release/stage1/bin/lean", args := #["--run", "ExtractData.lean", p.path.toString]})
+            {cmd := "lake", args := #["env", "lean", "--run", "ExtractData.lean", p.path.toString]}
           println! p.path
       pure true
   | path :: _ =>

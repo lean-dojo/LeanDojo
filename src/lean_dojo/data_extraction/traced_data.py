@@ -261,36 +261,7 @@ class TracedTactic:
                             "<a>" + lean_file[node.start : node.end] + "</a>"
                         )
                         prov = {"full_name": node.full_name}
-                        def_path = node.mod_name.replace(".", "/") + ".lean"
-                        assert (
-                            self.traced_theorem is not None
-                            and self.traced_theorem.traced_repo is not None
-                        )
-                        graph = self.traced_theorem.traced_repo.traced_files_graph
-                        start_node = str(self.traced_theorem.traced_file.path)
-                        assert graph.has_node(start_node)
-
-                        def bfs(start_node: str) -> str:
-                            visited_nodes = set()
-                            queue = deque([(node.mod_name, start_node)])
-                            while queue:
-                                module, curr_node = queue.popleft()
-                                visited_nodes.add(curr_node)
-                                if module == node.mod_name:
-                                    assert curr_node.endswith(def_path)
-                                    return curr_node
-                                for next_node in graph.successors(curr_node):
-                                    if next_node not in visited_nodes:
-                                        module = graph.get_edge_data(
-                                            curr_node, next_node
-                                        )["module"]
-                                        queue.append((module, next_node))
-                            return None
-
-                        prov["def_path"] = bfs(start_node)
-                        assert (
-                            prov["def_path"] is not None
-                        ), f"Unable to locate {node.full_name}"
+                        prov["def_path"] = node.def_path
                         prov["def_pos"] = list(node.def_start)
                         prov["def_end_pos"] = list(node.def_end)
                         provenances.append(prov)
@@ -896,6 +867,8 @@ class TracedFile:
                         object.__setattr__(node, "full_name", p["fullName"])
                     if p["modName"] is not None:
                         object.__setattr__(node, "mod_name", p["modName"])
+                    if p["defPath"] is not None:
+                        object.__setattr__(node, "def_path", p["defPath"])
                     if p["defPos"] is not None and p["defEndPos"] is not None:
                         def_start_line_nb, def_start_column_nb = (
                             p["defPos"]["line"],
