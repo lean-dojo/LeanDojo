@@ -323,16 +323,17 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
   if defPath.startsWith "./" then
     defPath := defPath.drop 2
 
-  modify fun trace => {
-      trace with premises := trace.premises.push {
-        fullName := toString fullName,
-        defPos := defPos,
-        defEndPos := defEndPos,
-        defPath := defPath,
-        modName := toString modName,
-        pos := posBefore,
-        endPos := posAfter,
-      }
+  if defPos != posBefore ∧ defEndPos != posAfter then  -- Don't include defintions as premises.
+    modify fun trace => {
+        trace with premises := trace.premises.push {
+          fullName := toString fullName,
+          defPos := defPos,
+          defEndPos := defEndPos,
+          defPath := defPath,
+          modName := toString modName,
+          pos := posBefore,
+          endPos := posAfter,
+        }
     }
 
 
@@ -476,15 +477,13 @@ unsafe def main (args : List String) : IO Unit := do
   | [] =>
     -- Trace all *.lean files in the current directory whose corresponding *.olean file exists.
     let cwd ← IO.currentDir
+    assert! cwd.fileName != "lean4"
     println! "Extracting data at {cwd}"
     let _ ← System.FilePath.walkDir cwd fun dir => do
       for p in ← System.FilePath.readDir dir do
         if ← shouldProcess p.path then
           let _ ← IO.asTask $ IO.Process.run
-            (if cwd.fileName != "lean4" then
-              {cmd := "lake", args := #["env", "lean", "--run", "ExtractData.lean", p.path.toString]}
-            else
-              {cmd := "./build/release/stage1/bin/lean", args := #["--run", "ExtractData.lean", p.path.toString]})
+            {cmd := "lake", args := #["env", "lean", "--run", "ExtractData.lean", p.path.toString]}
           println! p.path
       pure true
   | path :: _ =>

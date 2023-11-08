@@ -10,8 +10,6 @@ MINIF2F_URL = "https://github.com/facebookresearch/miniF2F"
 LEAN_LIQUID_URL = "https://github.com/leanprover-community/lean-liquid"
 PROOFNET_URL = "https://github.com/zhangir-azerbayev/ProofNet"
 LEAN_EXAMPLE_URL = "https://github.com/yangky11/lean-example"
-LEAN4_URL = "https://github.com/leanprover/lean4"
-MINIF2F_LEAN4_URL = "https://github.com/yangky11/miniF2F-lean4"
 STD4_URL = "https://github.com/leanprover/std4"
 AESOP_URL = "https://github.com/JLimperg/aesop"
 MATHLIB4_URL = "https://github.com/leanprover-community/mathlib4"
@@ -23,8 +21,6 @@ URLS = [
     LEAN_LIQUID_URL,
     PROOFNET_URL,
     LEAN_EXAMPLE_URL,
-    LEAN4_URL,
-    MINIF2F_LEAN4_URL,
     STD4_URL,
     AESOP_URL,
     MATHLIB4_URL,
@@ -42,12 +38,6 @@ def monkeysession():
 def lean_repo():
     commit = get_latest_commit(LEAN3_URL)
     return LeanGitRepo(LEAN3_URL, commit)
-
-
-@pytest.fixture(scope="session")
-def lean4_repo():
-    commit = get_latest_commit(LEAN4_URL)
-    return LeanGitRepo(LEAN4_URL, commit)
 
 
 @pytest.fixture(scope="session")
