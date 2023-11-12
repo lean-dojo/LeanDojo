@@ -49,6 +49,7 @@ REPL session by :code:`CONTAINER=docker ipython` and use LeanDojo to trace the r
 
 .. code-block:: python
 
+   import os
    from lean_dojo import LeanGitRepo, trace
 
    assert os.environ["CONTAINER"] == "docker"
@@ -184,6 +185,7 @@ can be downloaded from `our AWS S3 <https://lean-dojo.s3.amazonaws.com>`_ (see :
 
 .. code-block:: python
 
+   import os
    from lean_dojo import *
 
    assert os.environ["CONTAINER"] == "docker"
