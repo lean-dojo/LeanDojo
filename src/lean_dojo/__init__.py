@@ -1,7 +1,6 @@
 import os
 from .data_extraction.trace import (
     trace,
-    trace_local,
     get_traced_repo_path,
     is_available_in_cache,
 )

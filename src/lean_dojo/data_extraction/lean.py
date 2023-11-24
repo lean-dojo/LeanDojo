@@ -23,7 +23,17 @@ from ..utils import (
     working_directory,
     get_latest_commit,
 )
-from ..constants import LEAN3_URL, LEAN4_URL, LEAN4_REPO, LEAN4_NIGHTLY_REPO
+from ..constants import (
+    LEAN3_URL,
+    LEAN4_URL,
+    LEAN4_REPO,
+    LEAN4_NIGHTLY_REPO,
+    LEAN3_PACKAGES_DIR,
+    LEAN4_PACKAGES_DIR,
+    LEAN4_PACKAGES_DIR_OLD,
+    LEAN4_BUILD_DIR,
+    LEAN_BUILD_DIR_OLD,
+)
 
 
 def _to_commit_hash(repo: Repository, label: str) -> str:
@@ -265,16 +275,24 @@ class LeanFile:
 
 
 _COMMIT_REGEX = re.compile(r"[0-9a-z]+")
-_LEAN_VERSION_REGEX = re.compile(
+_LEAN3_VERSION_REGEX = re.compile(
     r"leanprover-community/lean:(?P<version>\d+\.\d+\.\d+)"
 )
+_LEAN4_VERSION_REGEX = re.compile(r"leanprover/lean4:v(?P<version>.+?)")
 
 
 def get_lean3_version_from_config(config: Dict[str, Any]) -> str:
     """Return the required Lean version given a ``leanpkg.toml`` config."""
-    m = _LEAN_VERSION_REGEX.fullmatch(config["package"]["lean_version"])
+    m = _LEAN3_VERSION_REGEX.fullmatch(config["package"]["lean_version"])
     assert m is not None, "Invalid config."
     return f"v{m['version']}"
+
+
+def get_lean4_version_from_config(toolchain: str) -> str:
+    """Return the required Lean version given a ``lean-toolchain`` config."""
+    m = _LEAN4_VERSION_REGEX.fullmatch(toolchain.strip())
+    assert m is not None, "Invalid config."
+    return m["version"]
 
 
 def get_lean4_commit_from_config(config_dict: Dict[str, Any]) -> str:
@@ -316,6 +334,22 @@ info_cache = RepoInfoCache()
 _GIT_REQUIREMENT_REGEX = re.compile(
     r"require\s+(?P<name>\S+)\s+from\s+git\s+\"(?P<url>.+?)\"(\s+@\s+\"(?P<rev>\S+)\")?"
 )
+
+
+def is_new_version(v) -> bool:
+    """Check if ``v`` is at least `4.3.0-rc2`."""
+    major, minor, patch = [int(_) for _ in v.split("-")[0].split(".")]
+    if major < 4 or (major == 4 and minor < 3):
+        return False
+    if (
+        major > 4
+        or (major == 4 and minor > 3)
+        or (major == 4 and minor == 3 and patch > 0)
+    ):
+        return True
+    assert major == 4 and minor == 3 and patch == 0
+    rc = int(v.split("-")[1][2:])
+    return rc >= 2
 
 
 @dataclass(frozen=True)
@@ -447,6 +481,29 @@ class LeanGitRepo:
                 f"git checkout {self.commit} && git submodule update --recursive",
                 capture_output=True,
             )
+
+    def get_packages_dir(self) -> Path:
+        """Return the path to the directory where Lean packages are stored."""
+        if self.uses_lean3:
+            return LEAN3_PACKAGES_DIR
+        else:
+            toolchain = self.get_config("lean-toolchain")
+            v = get_lean4_version_from_config(toolchain["content"])
+            if is_new_version(v):
+                return LEAN4_PACKAGES_DIR
+            else:
+                return LEAN4_PACKAGES_DIR_OLD
+
+    def get_build_dir(self) -> Path:
+        if self.uses_lean3:
+            return LEAN_BUILD_DIR_OLD
+        else:
+            toolchain = self.get_config("lean-toolchain")
+            v = get_lean4_version_from_config(toolchain["content"])
+            if is_new_version(v):
+                return LEAN4_BUILD_DIR
+            else:
+                return LEAN_BUILD_DIR_OLD
 
     def get_dependencies(
         self, path: Union[str, Path, None] = None

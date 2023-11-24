@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 
 logger.remove()
 if "VERBOSE" in os.environ or "DEBUG" in os.environ:
@@ -53,7 +53,7 @@ NUM_WORKERS = NUM_PROCS - 1
 LEAN3_URL = "https://github.com/leanprover-community/lean"
 """The URL of the Lean 3 repo."""
 
-LEAN3_DEPS_DIR = Path("_target/deps")
+LEAN3_PACKAGES_DIR = Path("_target/deps")
 """The directory where Lean 3 dependencies are stored."""
 
 LEAN4_URL = "https://github.com/leanprover/lean4"
@@ -80,11 +80,18 @@ LEAN4_REPO = GITHUB.get_repo("leanprover/lean4")
 LEAN4_NIGHTLY_REPO = GITHUB.get_repo("leanprover/lean4-nightly")
 """The GitHub Repo for Lean 4 nightly releases."""
 
-LEAN4_DEPS_DIR = Path("lake-packages")
-"""The directory where Lean 4 dependencies are stored."""
+LEAN4_PACKAGES_DIR_OLD = Path("lake-packages")
+"""The directory where Lean 4 dependencies are stored (before v4.3.0-rc2)."""
 
-LOAD_USED_DEPS_ONLY = "LOAD_USED_DEPS_ONLY" in os.environ
+LEAN4_PACKAGES_DIR = Path(".lake/packages")
+"""The directory where Lean 4 dependencies are stored (since v4.3.0-rc2)."""
+
+LOAD_USED_PACKAGES_ONLY = "LOAD_USED_PACKAGES_ONLY" in os.environ
 """Only load depdendency files that are actually used by the target repo."""
+
+LEAN4_BUILD_DIR = Path(".lake/build")
+
+LEAN_BUILD_DIR_OLD = Path("build")
 
 TACTIC_TIMEOUT = int(os.getenv("TACTIC_TIMEOUT", 5000))
 """Maximum time (in milliseconds) before interrupting a tactic when interacting with Lean (only for Lean 3).

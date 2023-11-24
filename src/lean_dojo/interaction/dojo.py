@@ -15,7 +15,7 @@ from typing import Union, Tuple, List, Dict, Any, Optional
 
 from ..constants import (
     TMP_DIR,
-    LEAN3_DEPS_DIR,
+    LEAN3_PACKAGES_DIR,
     TACTIC_TIMEOUT,
     TACTIC_CPU_LIMIT,
     TACTIC_MEMORY_LIMIT,
@@ -109,9 +109,9 @@ def _get_all_dependencies(
     stack = [lean_path]
 
     while stack != []:
-        json_path = to_json_path(root_dir, stack.pop(), repo.uses_lean4)
+        json_path = to_json_path(root_dir, stack.pop(), repo)
         tf = TracedFile.from_traced_file(root_dir, json_path, repo)
-        for _, d in tf.get_direct_dependencies():
+        for _, d in tf.get_direct_dependencies(repo):
             if d not in all_deps:
                 all_deps.append(d)
                 stack.append(d)
@@ -293,7 +293,7 @@ class Dojo:
             raise ex
 
     def _locate_traced_file(self, traced_repo_path: Path) -> TracedFile:
-        json_path = to_json_path(traced_repo_path, self.file_path, self.uses_lean4)
+        json_path = to_json_path(traced_repo_path, self.file_path, self.repo)
         return TracedFile.from_traced_file(traced_repo_path, json_path, self.repo)
 
     def _get_unsupported_deps(self, traced_repo_path: Path) -> List[Path]:
@@ -301,7 +301,7 @@ class Dojo:
             if self.repo.is_lean3:
                 path = Path("library/system/io.lean")
             else:
-                path = LEAN3_DEPS_DIR / "lean/library/system/io.lean"
+                path = LEAN3_PACKAGES_DIR / "lean/library/system/io.lean"
             return [path] + _get_all_dependencies(traced_repo_path, path, self.repo)
         else:
             # We shouldn't be interacting with the Lean 4 repo itself anyway.

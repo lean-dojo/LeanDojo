@@ -10,6 +10,7 @@ Limitations
 LeanDojo has the following limitations. Addressing them won't be our priority in the near future, but we welcome contributions:
 
 * LeanDojo cannot extract data from the `lean4 <https://github.com/leanprover/lean4>`_ repo itself nor interact with theorems in it.
+* Currently, LeanDojo cannot process Lean repos that use FFI, e.g., [LeanCopilot](https://github.com/lean-dojo/LeanCopilot).
 * LeanDojo does not support term-based proofs or proofs that mixes tactics and terms.
 * Entering all tactic-style proofs in mathlib 3 to LeanDojo, we found ~1.4% of them are misjudged as incorrect. The errors fall into a few categories documented in `test_unexpected_errors.py <https://github.com/lean-dojo/LeanDojo/blob/main/tests/interaction/test_unexpected_errors.py>`_. We didn't perform this analysis on Lean 4.
 * Theorems extracted by LeanDojo are "syntactic theorems", i.e., they are Lean constants defined using keywords :code:`theorem` or :code:`lemma`. First, they are not guaranteed to be real theorems (Lean constants of type :code:`Prop`). Second, theorems defined in other ways (e.g., using :code:`def`) are not extracted.
