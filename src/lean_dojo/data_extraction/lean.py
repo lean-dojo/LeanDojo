@@ -278,7 +278,7 @@ _COMMIT_REGEX = re.compile(r"[0-9a-z]+")
 _LEAN3_VERSION_REGEX = re.compile(
     r"leanprover-community/lean:(?P<version>\d+\.\d+\.\d+)"
 )
-_LEAN4_VERSION_REGEX = re.compile(r"leanprover/lean4:v(?P<version>.+?)")
+_LEAN4_VERSION_REGEX = re.compile(r"leanprover/lean4:(?P<version>v.+?)")
 
 
 def get_lean3_version_from_config(config: Dict[str, Any]) -> str:
@@ -337,7 +337,10 @@ _GIT_REQUIREMENT_REGEX = re.compile(
 
 
 def is_new_version(v) -> bool:
-    """Check if ``v`` is at least `4.3.0-rc2`."""
+    """Check if ``v`` is at least `v4.3.0-rc2`."""
+    if not v.startswith("v"):
+        return False
+    v = v[1:]
     major, minor, patch = [int(_) for _ in v.split("-")[0].split(".")]
     if major < 4 or (major == 4 and minor < 3):
         return False

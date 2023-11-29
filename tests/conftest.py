@@ -48,7 +48,7 @@ def lean4_example_repo():
 
 @pytest.fixture(scope="session")
 def std4_repo():
-    commit = "ccbe74d4406be21b91c04d62b4c93dec9adfc546"
+    commit = get_latest_commit(STD4_URL)
     return LeanGitRepo(STD4_URL, commit)
 
 
