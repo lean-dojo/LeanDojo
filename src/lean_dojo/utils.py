@@ -240,12 +240,19 @@ def normalize_url(url: str) -> str:
     return _URL_REGEX.fullmatch(url)["url"]  # Remove trailing `/`.
 
 
+URL_TO_REPO_CACHE = {}
+
+
 def url_to_repo(url: str, num_retries: int = 1) -> Repository:
     url = normalize_url(url)
+    if url in URL_TO_REPO_CACHE:
+        return URL_TO_REPO_CACHE[url]
 
     while True:
         try:
-            return GITHUB.get_repo("/".join(url.split("/")[-2:]))
+            repo = GITHUB.get_repo("/".join(url.split("/")[-2:]))
+            URL_TO_REPO_CACHE[url] = repo
+            return repo
         except Exception as ex:
             if num_retries <= 0:
                 raise ex
