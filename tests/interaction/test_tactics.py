@@ -158,7 +158,7 @@ def test_example_12(std4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         std4_repo,
         "Std/Data/List/Lemmas.lean",
-        "List.isSuffix.length_le",
+        "List.IsSuffix.length_le",
     )
     with Dojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact h.sublist.length_le")

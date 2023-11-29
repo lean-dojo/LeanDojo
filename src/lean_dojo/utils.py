@@ -2,7 +2,6 @@
 """
 import re
 import os
-import sys
 import ray
 import time
 import urllib
@@ -12,13 +11,12 @@ import tempfile
 import subprocess
 from pathlib import Path
 from loguru import logger
-from datetime import datetime
 from contextlib import contextmanager
 from github.Repository import Repository
 from ray.util.actor_pool import ActorPool
 from typing import Tuple, Union, List, Generator, Optional
 
-from .constants import GITHUB, NUM_WORKERS, TMP_DIR, LEAN4_DEPS_DIR
+from .constants import GITHUB, NUM_WORKERS, TMP_DIR
 
 
 @contextmanager
@@ -197,20 +195,6 @@ def remove_optional_type(tp: type) -> type:
         raise ValueError(f"{tp} is not Optional")
 
 
-def get_line_creation_date(repo_path: Path, file_path: Path, line_nb: int):
-    """Return the date of creation of the line ``line_nb`` in the file ``file_path`` of the Git repo ``repo_path``."""
-    with working_directory(repo_path):
-        output, _ = execute(
-            f"git log --pretty=short -u -L {line_nb},{line_nb}:{file_path}",
-            capture_output=True,
-        )
-        m = re.match(r"commit (?P<commit>[A-Za-z0-9]+)\n", output)
-        assert m is not None
-        commit = m["commit"]
-        output, _ = execute(f"git show -s --format=%ci {commit}", capture_output=True)
-        return datetime.strptime(output.strip(), "%Y-%m-%d %H:%M:%S %z")
-
-
 def read_url(url: str, num_retries: int = 1) -> str:
     """Read the contents of the URL ``url``. Retry if failed"""
     while True:
@@ -285,43 +269,45 @@ def is_git_repo(path: Path) -> bool:
         )
 
 
-def _from_lean_path(root_dir: Path, path: Path, uses_lean4: bool, ext: str) -> Path:
+def _from_lean_path(root_dir: Path, path: Path, repo, ext: str) -> Path:
     assert path.suffix == ".lean"
     if path.is_absolute():
         path = path.relative_to(root_dir)
 
-    if not uses_lean4:
+    if not repo.uses_lean4:
         return path.with_suffix(ext)
 
-    if root_dir.name == "lean4":
-        return Path("lib") / path.relative_to("src").with_suffix(ext)
-    elif path.is_relative_to(LEAN4_DEPS_DIR / "lean4/src"):
+    packages_dir = repo.get_packages_dir()
+    build_dir = repo.get_build_dir()
+
+    assert root_dir.name != "lean4"
+    if path.is_relative_to(packages_dir / "lean4/src"):
         # E.g., "lake-packages/lean4/src/lean/Init.lean"
-        p = path.relative_to(LEAN4_DEPS_DIR / "lean4/src").with_suffix(ext)
-        return LEAN4_DEPS_DIR / "lean4/lib" / p
-    elif path.is_relative_to(LEAN4_DEPS_DIR):
+        p = path.relative_to(packages_dir / "lean4/src").with_suffix(ext)
+        return packages_dir / "lean4/lib" / p
+    elif path.is_relative_to(packages_dir):
         # E.g., "lake-packages/std/Std.lean"
-        p = path.relative_to(LEAN4_DEPS_DIR).with_suffix(ext)
+        p = path.relative_to(packages_dir).with_suffix(ext)
         repo_name = p.parts[0]
-        return LEAN4_DEPS_DIR / repo_name / "build/ir" / p.relative_to(repo_name)
+        return packages_dir / repo_name / build_dir / "ir" / p.relative_to(repo_name)
     else:
         # E.g., "Mathlib/LinearAlgebra/Basics.lean"
-        return Path("build/ir") / path.with_suffix(ext)
+        return build_dir / "ir" / path.with_suffix(ext)
 
 
-def to_xml_path(root_dir: Path, path: Path, uses_lean4: bool) -> Path:
-    return _from_lean_path(root_dir, path, uses_lean4, ext=".trace.xml")
+def to_xml_path(root_dir: Path, path: Path, repo) -> Path:
+    return _from_lean_path(root_dir, path, repo, ext=".trace.xml")
 
 
-def to_dep_path(root_dir: Path, path: Path, uses_lean4: bool) -> Path:
-    return _from_lean_path(root_dir, path, uses_lean4, ext=".dep_paths")
+def to_dep_path(root_dir: Path, path: Path, repo) -> Path:
+    return _from_lean_path(root_dir, path, repo, ext=".dep_paths")
 
 
-def to_json_path(root_dir: Path, path: Path, uses_lean4: bool) -> Path:
-    return _from_lean_path(root_dir, path, uses_lean4, ext=".ast.json")
+def to_json_path(root_dir: Path, path: Path, repo) -> Path:
+    return _from_lean_path(root_dir, path, repo, ext=".ast.json")
 
 
-def to_lean_path(root_dir: Path, path: Path, uses_lean4: bool) -> bool:
+def to_lean_path(root_dir: Path, path: Path, repo) -> bool:
     if path.is_absolute():
         path = path.relative_to(root_dir)
 
@@ -331,33 +317,25 @@ def to_lean_path(root_dir: Path, path: Path, uses_lean4: bool) -> bool:
         assert path.suffix == ".dep_paths"
         path = path.with_suffix(".lean")
 
-    if not uses_lean4:
+    if not repo.uses_lean4:
         return path
 
-    if root_dir.name == "lean4":
-        return Path("src") / path.relative_to("lib")
-    elif path.is_relative_to(LEAN4_DEPS_DIR / "lean4/lib"):
+    packages_dir = repo.get_packages_dir()
+    build_dir = repo.get_build_dir()
+
+    assert root_dir.name != "lean4"
+    if path.is_relative_to(packages_dir / "lean4/lib"):
         # E.g., "lake-packages/lean4/lib/lean/Init.lean"
-        p = path.relative_to(LEAN4_DEPS_DIR / "lean4/lib")
-        return LEAN4_DEPS_DIR / "lean4/src" / p
-    elif path.is_relative_to(LEAN4_DEPS_DIR):
+        p = path.relative_to(packages_dir / "lean4/lib")
+        return packages_dir / "lean4/src" / p
+    elif path.is_relative_to(packages_dir):
         # E.g., "lake-packages/std/build/ir/Std.lean"
-        p = path.relative_to(LEAN4_DEPS_DIR)
+        p = path.relative_to(packages_dir)
         repo_name = p.parts[0]
-        return LEAN4_DEPS_DIR / repo_name / p.relative_to(Path(repo_name) / "build/ir")
-    else:
-        # E.g., "build/ir/Mathlib/LinearAlgebra/Basics.lean"
-        assert path.is_relative_to("build/ir"), path
-        return path.relative_to("build/ir")
-
-
-def get_module(path: Path) -> str:
-    assert path.suffix == ".lean"
-    if path.is_relative_to(LEAN4_DEPS_DIR / "lean4/lib"):
-        return ".".join(
-            path.with_suffix("").relative_to(LEAN4_DEPS_DIR / "lean4/lib").parts[1:]
+        return (
+            packages_dir / repo_name / p.relative_to(Path(repo_name) / build_dir / "ir")
         )
-    elif path.is_relative_to(LEAN4_DEPS_DIR):
-        return ".".join(path.with_suffix("").relative_to(LEAN4_DEPS_DIR).parts[1:])
     else:
-        return ".".join(path.with_suffix("").parts)
+        # E.g., ".lake/build/ir/Mathlib/LinearAlgebra/Basics.lean" or "build/ir/Mathlib/LinearAlgebra/Basics.lean"
+        assert path.is_relative_to(build_dir / "ir"), path
+        return path.relative_to(build_dir / "ir")

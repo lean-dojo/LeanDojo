@@ -188,7 +188,3 @@ def trace(repo: LeanGitRepo, dst_dir: Optional[Union[str, Path]] = None) -> Trac
         shutil.copytree(cached_path, dst_dir / cached_path.name)
 
     return traced_repo
-
-
-def trace_local(path: Path) -> TracedRepo:
-    raise NotImplementedError

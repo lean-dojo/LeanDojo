@@ -1,4 +1,6 @@
 import Lean
+import Lake
+
 
 open Lean Elab System
 
@@ -180,43 +182,57 @@ private def trim (path : FilePath) : FilePath :=
   | _ => path
 
 
+def packagesDir : FilePath :=
+  if Lake.defaultPackagesDir == "packages" then  -- Lean >= v4.3.0-rc2
+    ".lake" / Lake.defaultPackagesDir
+  else  -- Lean < v4.3.0-rc2
+    Lake.defaultPackagesDir
+
+
+def buildDir : FilePath :=
+  if Lake.defaultPackagesDir == "packages" then  -- Lean >= v4.3.0-rc2
+    ".lake/build"
+  else  -- Lean < v4.3.0-rc2
+   "build"
+
+
+def libDir : FilePath := buildDir / "lib"
+
+
 /--
 Convert the path of a *.lean file to its corresponding file (e.g., *.olean) in the "build" directory.
 -/
-def toBuildDir (subDir : String) (path : FilePath) (ext : String) : Option FilePath :=
+def toBuildDir (subDir : FilePath) (path : FilePath) (ext : String) : Option FilePath :=
   let path' := (trim path).withExtension ext
-  match relativeTo path' "lake-packages/lean4/src" with
-  | some p => some $ "lake-packages/lean4/lib" / p
-  | none => match relativeTo path' "lake-packages" with
+  match relativeTo path' $ packagesDir / "lean4/src" with
+  | some p => packagesDir / "lean4/lib" / p
+  | none => match relativeTo path' packagesDir with
     | some p =>
       match p.components with
       | [] => none
-      | hd :: tl => some $ "lake-packages" / hd / "build" / subDir / (mkFilePath tl)
-    | none => some $ "build" / subDir / path'
+      | hd :: tl => packagesDir / hd / buildDir / subDir / (mkFilePath tl)
+    | none => buildDir / subDir / path'
 
 
 /--
 The reverse of `toBuildDir`.
 -/
-def toSrcDir (path : FilePath) (ext : String) : Option FilePath :=
+-- proofwidgets/build/lib/ProofWidgets/Compat.lean
+-- proofwidgets/.lake/build/lib
+def toSrcDir! (path : FilePath) (ext : String) : FilePath :=
   let path' := (trim path).withExtension ext
-  match relativeTo path' "lake-packages/lean4/lib" with
-  | some p => some $ "lake-packages/lean4/src" / p
+  match relativeTo path' $ packagesDir / "lean4/lib" with
+  | some p =>  -- E.g., `.lake/packages/lean4/lib/lean/Init/Prelude.olean` -> `.lake/packages/lean4/src/lean/Init/Prelude.lean`
+    packagesDir / "lean4/src" / p
   | none =>
-    match relativeTo path' "lake-packages" with
-    | some p =>
-      let comps := p.components
-      assert! comps[1]! == "build"
-      match comps with
-      | t0 :: "build" :: "lib" :: t1 => mkFilePath $ "lake-packages" :: t0 :: t1
-      | _ :: _ :: _ :: tl => mkFilePath tl
-      | _ => "invalid path"
+    match relativeTo path' packagesDir with
+    | some p =>  -- E.g., `.lake/packages/aesop/.lake/build/lib/Aesop.olean`-> `.lake/packages/aesop/Aesop.lean`
+      let pkgName := p.components.head!
+      let sep := "build/lib/"
+      packagesDir / pkgName / (p.toString.splitOn sep |>.tail!.head!)
     | none =>
-    let comps := path'.components
-      assert! comps[0]! == "build"
-      match comps with
-      | _ :: _ :: tl => mkFilePath tl
-      | _ => "invalid path"
+      -- E.g., `.lake/build/lib/Mathlib/LinearAlgebra/Basic.olean` -> `Mathlib/LinearAlgebra/Basic.lean`
+      relativeTo path' libDir |>.get!
 
 
 /--
@@ -234,13 +250,16 @@ def findLean (mod : Name) : IO FilePath := do
   let modStr := mod.toString
   if modStr.startsWith "«lake-packages»." then
     return FilePath.mk (modStr.replace "«lake-packages»" "lake-packages" |>.replace "." "/") |>.withExtension "lean"
+  if modStr.startsWith "«.lake»." then
+    return FilePath.mk (modStr.replace "«.lake»" ".lake" |>.replace "." "/") |>.withExtension "lean"
   let olean ← findOLean mod
   -- Remove a "build/lib/" substring from the path.
-  let lean := olean.toString.replace (toString (FilePath.mk "build" / "lib") ++ FilePath.pathSeparator.toString) ""
+  let lean := olean.toString.replace ".lake/build/lib/" ""
+    |>.replace "build/lib/" "" |>.replace "lib/lean/Lake/" "lib/lean/lake/Lake/"
   let mut path := FilePath.mk lean |>.withExtension "lean"
   let leanLib ← getLibDir (← getBuildDir)
   if let some p := relativeTo path leanLib then
-    path := "lake-packages/lean4/src/lean" / p
+    path := packagesDir / "lean4/src/lean" / p
   assert! ← path.pathExists
   return path
 
@@ -404,15 +423,10 @@ unsafe def processFile (path : FilePath) : IO Unit := do
   let (trace, _) ← traceM.run'.toIO {fileName := s!"{path}", fileMap := FileMap.ofString input} {env := env}
 
   let cwd ← IO.currentDir
-  let is_lean := cwd.fileName == "lean4"
+  assert! cwd.fileName != "lean4"
 
   let some relativePath := Path.relativeTo path cwd | throw $ IO.userError s!"Invalid path: {path}"
-  let json_path := (
-    if is_lean then
-      mkFilePath $ "lib" :: (relativePath.withExtension "ast.json").components.tail!
-    else
-      (Path.toBuildDir "ir" relativePath "ast.json").get!
-  )
+  let json_path := Path.toBuildDir "ir" relativePath "ast.json" |>.get!
   Path.makeParentDirs json_path
   IO.FS.writeFile json_path (toJson trace).pretty
 
@@ -421,27 +435,23 @@ unsafe def processFile (path : FilePath) : IO Unit := do
   for dep in headerToImports header do
     let oleanPath ← findOLean dep.module
     if oleanPath.isRelative then
-      let some leanPath := Path.toSrcDir oleanPath "lean" | throw $ IO.userError s!"Invalid path: {oleanPath}"
+      let leanPath := Path.toSrcDir! oleanPath "lean"
+      assert! ← leanPath.pathExists
       s := s ++ "\n" ++ leanPath.toString
-    else if !(oleanPath.toString.endsWith "/lib/lean/Init.olean") then
-      s := s ++ "\n"
-      if !is_lean then
-        s := s ++ "lake-packages/lean4/"
+    else if ¬(oleanPath.toString.endsWith "/lib/lean/Init.olean") then
+      let mut p := (Path.packagesDir / "lean4").toString ++ FilePath.pathSeparator.toString
       let mut found := false
       for c in (oleanPath.withExtension "lean").components do
         if c == "lib" then
           found := true
-          s := s ++ "src"
+          p := p ++ "src"
           continue
         if found then
-          s := s ++ FilePath.pathSeparator.toString ++ c
+          p := p ++ FilePath.pathSeparator.toString ++ c
+      assert! ← FilePath.mk p |>.pathExists
+      s := s ++ "\n" ++ p
 
-  let dep_path := (
-    if is_lean then
-      mkFilePath $ "lib" :: (relativePath.withExtension "dep_paths").components.tail!
-    else
-      (Path.toBuildDir "ir" relativePath "dep_paths").get!
-  )
+  let dep_path := Path.toBuildDir "ir" relativePath "dep_paths" |>.get!
   Path.makeParentDirs dep_path
   IO.FS.writeFile dep_path s.trim
 
@@ -461,15 +471,9 @@ def shouldProcess (path : FilePath) : IO Bool := do
   let cwd ← IO.currentDir
   let some relativePath := Path.relativeTo path cwd |
     throw $ IO.userError s!"Invalid path: {path}"
-
-  if cwd.fileName == "lean4" then
-    let oleanPath := mkFilePath $ "lib" ::
-      (relativePath.withExtension "olean").components.tail!
-    return ← oleanPath.pathExists
-  else
-    let some oleanPath := Path.toBuildDir "lib" relativePath "olean" |
-      throw $ IO.userError s!"Invalid path: {path}"
-    return ← oleanPath.pathExists
+  let some oleanPath := Path.toBuildDir "lib" relativePath "olean" |
+    throw $ IO.userError s!"Invalid path: {path}"
+  return ← oleanPath.pathExists
 
 
 unsafe def main (args : List String) : IO Unit := do

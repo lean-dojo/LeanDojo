@@ -986,15 +986,17 @@ class CommandTheoremNode4(Node4):
         children = _parse_children(node_data, lean_file)
 
         assert isinstance(children[0], AtomNode4) and children[0].val == "theorem"
-        assert isinstance(children[1], CommandDeclidNode4)
-        decl_id_node = children[1]
-        ident_node = decl_id_node.children[0]
 
-        if isinstance(ident_node, IdentNode4):
-            name = ident_node.val
+        declid_node = children[1]
+        if isinstance(declid_node, CommandDeclidAntiquotNode4):
+            name = None
         else:
-            assert isinstance(ident_node, IdentAntiquotNode4)
-            name = ident_node.get_ident()
+            ident_node = declid_node.children[0]
+            if isinstance(ident_node, IdentNode4):
+                name = ident_node.val
+            else:
+                assert isinstance(ident_node, IdentAntiquotNode4)
+                name = ident_node.get_ident()
 
         assert isinstance(children[2], CommandDeclsigNode4)
         decl_val_node = children[3]

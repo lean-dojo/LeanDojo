@@ -12,8 +12,6 @@ from tqdm import tqdm
 from lxml import etree
 from pathlib import Path
 from loguru import logger
-from collections import deque
-from datetime import datetime
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any, Tuple, Generator, Union
 
@@ -26,15 +24,13 @@ from ..utils import (
     to_dep_path,
     to_json_path,
     to_xml_path,
-    get_line_creation_date,
-    get_module,
 )
 from .ast.lean3.node import *
 from .ast.lean4.node import *
-from ..constants import LOAD_USED_DEPS_ONLY
+from ..constants import NUM_WORKERS
+from ..constants import LOAD_USED_PACKAGES_ONLY
 from .lean import LeanFile, LeanGitRepo, Theorem, Pos
 from .ast.lean3.expr import Expr, ConstExpr, parse_exprs_forest
-from ..constants import NUM_WORKERS, LEAN3_DEPS_DIR, LEAN4_DEPS_DIR
 
 
 @dataclass(frozen=True)
@@ -307,26 +303,6 @@ class TracedTheorem:
         d["traced_file"] = None
         return d
 
-    def get_creation_date(self) -> datetime:
-        """Return the date on which the theorem was added to the repo."""
-        if self.root_dir.name == self.repo.name:
-            dirname = self.root_dir
-        elif self.uses_lean3:
-            dirname = self.root_dir / LEAN3_DEPS_DIR / self.repo.name
-        elif self.repo.name == "lean4":
-            # Cannot determine creation date of theorems in lean4 repo.
-            return datetime.min
-        else:
-            traced_repo = self.traced_file.traced_repo
-            for name, dep in traced_repo.dependencies.items():
-                if dep == self.repo:
-                    dirname = self.root_dir / LEAN4_DEPS_DIR / name
-                    break
-            else:
-                raise RuntimeError(f"Cannot find the dependency {self.repo}.")
-        assert dirname.exists()
-        return get_line_creation_date(dirname, self.file_path, self.start.line_nb)
-
     @property
     def start(self) -> Pos:
         """Start position in :file:`*.lean` file."""
@@ -568,6 +544,10 @@ class TracedFile:
     """Root directory (in absolute path) of the corresponding traced repo.
     """
 
+    repo: LeanGitRepo
+    """The Lean repo this traced file belongs to.
+    """
+
     lean_file: LeanFile
     """Lean source file of this traced file.
     """
@@ -662,13 +642,15 @@ class TracedFile:
         ], f"{json_path} is not a *.ast.json file"
 
         if repo.uses_lean3:
-            return cls._from_lean3_traced_file(root_dir, json_path)
+            return cls._from_lean3_traced_file(root_dir, json_path, repo)
         else:
             assert repo.uses_lean4, f"repo {repo} uses neither Lean 3 nor Lean 4"
-            return cls._from_lean4_traced_file(root_dir, json_path)
+            return cls._from_lean4_traced_file(root_dir, json_path, repo)
 
     @classmethod
-    def _from_lean3_traced_file(cls, root_dir: Path, json_path: Path) -> "TracedFile":
+    def _from_lean3_traced_file(
+        cls, root_dir: Path, json_path: Path, repo: LeanGitRepo
+    ) -> "TracedFile":
         lean_path = json_path.with_suffix("").with_suffix(".lean").relative_to(root_dir)
         lean_file = LeanFile(root_dir, lean_path, uses_lean4=False)
         data = json.load(json_path.open())
@@ -693,11 +675,13 @@ class TracedFile:
 
         comments = [Comment.from_lean3_data(d, lean_file) for d in data["comments"]]
 
-        return cls(root_dir, lean_file, ast, exprs, comments)
+        return cls(root_dir, repo, lean_file, ast, exprs, comments)
 
     @classmethod
-    def _from_lean4_traced_file(cls, root_dir: Path, json_path: Path) -> "TracedFile":
-        lean_path = to_lean_path(root_dir, json_path, uses_lean4=True)
+    def _from_lean4_traced_file(
+        cls, root_dir: Path, json_path: Path, repo: LeanGitRepo
+    ) -> "TracedFile":
+        lean_path = to_lean_path(root_dir, json_path, repo)
         lean_file = LeanFile(root_dir, lean_path, uses_lean4=True)
 
         data = json.load(json_path.open())
@@ -722,7 +706,7 @@ class TracedFile:
             comments,
         )
 
-        return cls(root_dir, lean_file, ast, None, comments)
+        return cls(root_dir, repo, lean_file, ast, None, comments)
 
     @classmethod
     def _post_process_lean3(
@@ -967,11 +951,11 @@ class TracedFile:
 
     def _get_repo_and_relative_path(self) -> Tuple[LeanGitRepo, Path]:
         """Return the repo this file belongs to, as well as the file's path relative to it."""
-        deps_dir = LEAN3_DEPS_DIR if self.uses_lean3 else LEAN4_DEPS_DIR
+        packages_dir = self.traced_repo.repo.get_packages_dir()
 
-        if self.path.is_relative_to(deps_dir):
+        if self.path.is_relative_to(packages_dir):
             # The theorem belongs to one of the dependencies.
-            p = self.path.relative_to(deps_dir)
+            p = self.path.relative_to(packages_dir)
             name = p.parts[0]
             repo = self.traced_repo.dependencies[name]
             return repo, p.relative_to(name)
@@ -1039,24 +1023,25 @@ class TracedFile:
                 comments.append(c)
         return comments
 
-    def get_direct_dependencies(self) -> List[Tuple[str, Path]]:
+    def get_direct_dependencies(self, repo: LeanGitRepo) -> List[Tuple[str, Path]]:
         """Return the names and paths of all modules imported by the current :file:`*.lean` file."""
         deps = set()
 
         if not self.has_prelude:  # Add the prelude as a dependency.
+            packages_dir = repo.get_packages_dir()
             if self.uses_lean3:
                 init_lean = Path("library/init/default.lean")
                 if self.root_dir.name == "lean":
                     deps.add(("init", init_lean))
                 else:
-                    deps.add(("init", LEAN3_DEPS_DIR / "lean" / init_lean))
+                    deps.add(("init", packages_dir / "lean" / init_lean))
             else:
                 assert self.uses_lean4
                 init_lean = Path("src/lean/Init.lean")
                 if self.root_dir.name == "lean4":
                     deps.add(("Init", init_lean))
                 else:
-                    deps.add(("Init", LEAN4_DEPS_DIR / "lean4" / init_lean))
+                    deps.add(("Init", packages_dir / "lean4" / init_lean))
 
         def _callback(node: Union[ModuleNode, ModuleImportNode4], _) -> None:
             if node.module is not None and node.path is not None:
@@ -1203,7 +1188,7 @@ class TracedFile:
         root_dir = Path(root_dir)
         path = Path(path)
         assert path.suffixes == [".trace", ".xml"]
-        lean_path = to_lean_path(root_dir, path, repo.uses_lean4)
+        lean_path = to_lean_path(root_dir, path, repo)
         lean_file = LeanFile(root_dir, lean_path, repo.uses_lean4)
 
         tree = etree.parse(path).getroot()
@@ -1222,11 +1207,11 @@ class TracedFile:
             exprs = [Expr.from_xml(e) for e in exprs_tree]
             comments = [Comment.from_xml(c) for c in comments_tree]
 
-        return cls(root_dir, lean_file, ast, exprs, comments)
+        return cls(root_dir, repo, lean_file, ast, exprs, comments)
 
 
 def _save_xml_to_disk(tf: TracedFile) -> None:
-    xml_path = tf.root_dir / to_xml_path(tf.root_dir, tf.path, tf.uses_lean4)
+    xml_path = tf.root_dir / to_xml_path(tf.root_dir, tf.path, tf.repo)
     with xml_path.open("wt") as oup:
         oup.write(tf.to_xml())
 
@@ -1248,11 +1233,11 @@ def _build_dependency_graph(
         tf = traced_files[i]
         tf_path_str = str(tf.path)
 
-        for dep_module, dep_path in tf.get_direct_dependencies():
+        for dep_module, dep_path in tf.get_direct_dependencies(repo):
             dep_path_str = str(dep_path)
             if not G.has_node(dep_path_str):
-                xml_path = to_xml_path(root_dir, dep_path, repo.uses_lean4)
-                tf_dep = TracedFile.from_xml(root_dir, xml_path, repo)
+                json_path = to_json_path(root_dir, dep_path, repo)
+                tf_dep = TracedFile.from_traced_file(root_dir, json_path, repo)
                 assert tf_dep.path == tf.path
                 G.add_node(dep_path_str, traced_file=tf_dep)
                 traced_files.append(tf_dep)
@@ -1365,7 +1350,7 @@ class TracedRepo:
             p.relative_to(self.root_dir) for p in self.root_dir.glob("**/*.dep_paths")
         }
 
-        if not LOAD_USED_DEPS_ONLY:
+        if not LOAD_USED_PACKAGES_ONLY:
             assert len(json_files) == self.traced_files_graph.number_of_nodes()
 
         for path_str, tf_node in self.traced_files_graph.nodes.items():
@@ -1376,18 +1361,15 @@ class TracedRepo:
             assert tf.traced_repo is None or tf.traced_repo is self
             assert path in lean_files
             assert (
-                to_dep_path(self.root_dir, path, uses_lean4=self.uses_lean4)
-                in path_files
-            ), to_dep_path(self.root_dir, path, uses_lean4=self.uses_lean4)
+                to_dep_path(self.root_dir, path, self.repo) in path_files
+            ), to_dep_path(self.root_dir, path, self.repo)
             assert (
-                to_json_path(self.root_dir, path, uses_lean4=self.uses_lean4)
-                in json_files
-            ), to_json_path(self.root_dir, path, uses_lean4=self.uses_lean4)
+                to_json_path(self.root_dir, path, self.repo) in json_files
+            ), to_json_path(self.root_dir, path, self.repo)
             if len(xml_files) > 0:
                 assert (
-                    to_xml_path(self.root_dir, path, uses_lean4=self.uses_lean4)
-                    in xml_files
-                ), to_xml_path(self.root_dir, path, uses_lean4=False)
+                    to_xml_path(self.root_dir, path, self.repo) in xml_files
+                ), to_xml_path(self.root_dir, path, self.repo)
 
     @classmethod
     def from_traced_files(cls, root_dir: Union[str, Path]) -> None:
@@ -1484,8 +1466,12 @@ class TracedRepo:
 
         # Start from files in the target repo as seeds.
         # Only load dependency files that are actually used.
-        if LOAD_USED_DEPS_ONLY:
-            xml_paths = [p for p in xml_paths if not "lake-packages" in p.parts]
+        if LOAD_USED_PACKAGES_ONLY:
+            xml_paths = [
+                p
+                for p in xml_paths
+                if not "lake-packages/" in str(p) and not ".lake/packages" in str(p)
+            ]
 
         if NUM_WORKERS <= 1:
             traced_files = [
@@ -1522,6 +1508,6 @@ class TracedRepo:
             path = Path(thm.repo.name) / thm.file_path
         else:
             assert thm.repo in self.dependencies.values()
-            deps_dir = LEAN3_DEPS_DIR if thm.repo.is_lean3 else LEAN4_DEPS_DIR
-            path = Path(self.name) / deps_dir / thm.repo.name / thm.file_path
+            packages_dir = thm.repo.get_packages_dir()
+            path = Path(self.name) / packages_dir / thm.repo.name / thm.file_path
         return self.get_traced_file(path).get_traced_theorem(thm.full_name)

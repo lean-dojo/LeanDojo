@@ -48,7 +48,7 @@ def lean4_example_repo():
 
 @pytest.fixture(scope="session")
 def std4_repo():
-    commit = "ccbe74d4406be21b91c04d62b4c93dec9adfc546"
+    commit = get_latest_commit(STD4_URL)
     return LeanGitRepo(STD4_URL, commit)
 
 
@@ -65,6 +65,12 @@ def mathlib4_repo():
 
 
 @pytest.fixture(scope="session")
+def latest_mathlib4_repo():
+    commit = get_latest_commit(MATHLIB4_URL)
+    return LeanGitRepo(MATHLIB4_URL, commit)
+
+
+@pytest.fixture(scope="session")
 def aesop_repo():
     commit = get_latest_commit(AESOP_URL)
     return LeanGitRepo(AESOP_URL, commit)
@@ -74,20 +80,6 @@ def aesop_repo():
 def minif2f_repo():
     commit = get_latest_commit(MINIF2F_URL)
     return LeanGitRepo(MINIF2F_URL, commit)
-
-
-"""
-@pytest.fixture(scope="session")
-def local_traced_repo():
-    commit = get_latest_commit(LEAN4_EXAMPLE_URL)
-    repo = LeanGitRepo(LEAN4_EXAMPLE_URL, commit)
-
-    with working_directory():
-        repo.clone_and_checkout()
-        with working_directory(repo.name):
-            shutil.rmtree(".git")
-        return trace_local(repo.name)
-"""
 
 
 @pytest.fixture(scope="session", params=URLS)

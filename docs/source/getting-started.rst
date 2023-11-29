@@ -229,28 +229,27 @@ We use LeanDojo to trace the repo in Python by specifying its URL and a commit h
 
    from lean_dojo import LeanGitRepo, trace
 
-   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "a61b40b90afba0ee5a3357665a86f7d0bb57461d")
+   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "fd14c4c8b29cc74a082e5ae6f64c2fb25b28e15e")
    trace(repo, dst_dir="traced_lean4-example")
 
 After a few minutes or one hour (depending on #CPUs), it generates a :file:`traced_lean4-example` directory with the subdirectories below.
-The directory structure is different from that of Lean 3, as Lean 4 uses a different build system.
+The directory structure is different from that of Lean 3, as Lean 4 uses a different build system. 
 Please check out :ref:`troubleshooting` if you encounter any issue.
 
 ::
 
    traced_lean4-example
    └─lean4-example
-     ├─lake-packages
-     │ ├─lean4
-     │ └─...
-     ├─build
-     │ ├─ir
-     │ │ ├─Lean4Example.dep_paths
-     │ │ ├─Lean4Example.ast.json
-     │ │ └─Lean4Example.trace.xml
-     │ ├─lib
-     │ │ └─Lean4Example.olean
-     │ └─bin
+     ├─.lake
+     │ ├─packages
+     │ │ └─lean4
+     │ └─build
+     │   ├─ir
+     │   │ ├─Lean4Example.dep_paths
+     │   │ ├─Lean4Example.ast.json
+     │   │ └─Lean4Example.trace.xml
+     │   └─lib
+     │     └─Lean4Example.olean
      ├─Lean4Example.lean
      └─...
 
@@ -264,7 +263,7 @@ and :file:`lean-example` is the traced example repo. We call them "traced" becau
 * :file:`*.trace.xml`: Syntactic and semantic information extracted from Lean.  
 
 The most important one is :file:`*.trace.xml`. Its format is different from Lean 3. 
-For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Example.trace.xml`:
+For example, below is :file:`traced_lean4-example/lean4-example/.lake/build/ir/Lean4Example.trace.xml`:
 
 .. code-block::
    :caption: Lean4Example.trace.xml
@@ -281,8 +280,8 @@ For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Ex
            <IdentNode4 start="(1, 6)" end="(1, 9)" leading="" trailing=" " raw_val="Nat" val="Nat"/>
            <AtomNode4 start="(1, 10)" end="(1, 11)" leading="" trailing="" val="("/>
            <NullNode4 start="(1, 11)" end="(1, 29)">
-             <IdentNode4 start="(1, 11)" end="(1, 20)" leading="" trailing=" " raw_val="add_assoc" val="add_assoc"/>
-             <IdentNode4 start="(1, 21)" end="(1, 29)" leading="" trailing="" raw_val="add_comm" val="add_comm"/>
+             <IdentNode4 start="(1, 11)" end="(1, 20)" leading="" trailing=" " raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(138, 19)" def_end="(138, 28)"/>
+             <IdentNode4 start="(1, 21)" end="(1, 29)" leading="" trailing="" raw_val="add_comm" val="add_comm" full_name="Nat.add_comm" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(131, 19)" def_end="(131, 27)"/>
            </NullNode4>
            <AtomNode4 start="(1, 29)" end="(1, 30)" leading="" trailing="&#10;&#10;" val=")"/>
          </CommandOpenonlyNode4>
@@ -313,7 +312,7 @@ For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Ex
                  </NullNode4>
                  <NullNode4 start="(3, 28)" end="(3, 33)">
                    <AtomNode4 start="(3, 28)" end="(3, 29)" leading="" trailing=" " val=":"/>
-                   <IdentNode4 start="(3, 30)" end="(3, 33)" leading="" trailing="" raw_val="Nat" val="Nat" full_name="Nat" mod_name="Init.Prelude" def_start="(1038, 11)" def_end="(1038, 14)"/>
+                   <IdentNode4 start="(3, 30)" end="(3, 33)" leading="" trailing="" raw_val="Nat" val="Nat" full_name="Nat" mod_name="Init.Prelude" def_path=".lake/packages/lean4/src/lean/Init/Prelude.lean" def_start="(1044, 11)" def_end="(1044, 14)"/>
                  </NullNode4>
                  <NullNode4/>
                  <AtomNode4 start="(3, 33)" end="(3, 34)" leading="" trailing="&#10;  " val=")"/>
@@ -359,13 +358,13 @@ For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Ex
                          <NullNode4 start="(5, 7)" end="(5, 40)">
                            <OtherNode4 start="(5, 7)" end="(5, 16)" kind="Lean.Parser.Tactic.rwRule">
                              <NullNode4/>
-                             <IdentNode4 start="(5, 7)" end="(5, 16)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_start="(138, 19)" def_end="(138, 28)"/>
+                             <IdentNode4 start="(5, 7)" end="(5, 16)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(138, 19)" def_end="(138, 28)"/>
                            </OtherNode4>
                            <AtomNode4 start="(5, 16)" end="(5, 17)" leading="" trailing=" " val=","/>
                            <OtherNode4 start="(5, 18)" end="(5, 28)" kind="Lean.Parser.Tactic.rwRule">
                              <NullNode4/>
                              <OtherNode4 start="(5, 18)" end="(5, 28)" kind="Lean.Parser.Term.app">
-                               <IdentNode4 start="(5, 18)" end="(5, 26)" leading="" trailing=" " raw_val="add_comm" val="add_comm" full_name="Nat.add_comm" mod_name="Init.Data.Nat.Basic" def_start="(131, 19)" def_end="(131, 27)"/>
+                               <IdentNode4 start="(5, 18)" end="(5, 26)" leading="" trailing=" " raw_val="add_comm" val="add_comm" full_name="Nat.add_comm" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(131, 19)" def_end="(131, 27)"/>
                                <NullNode4 start="(5, 27)" end="(5, 28)">
                                  <IdentNode4 start="(5, 27)" end="(5, 28)" leading="" trailing="" raw_val="b" val="b"/>
                                </NullNode4>
@@ -380,7 +379,7 @@ For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Ex
                                  </OtherNode4>
                                </OtherNode4>
                              </NullNode4>
-                             <IdentNode4 start="(5, 31)" end="(5, 40)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_start="(138, 19)" def_end="(138, 28)"/>
+                             <IdentNode4 start="(5, 31)" end="(5, 40)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(138, 19)" def_end="(138, 28)"/>
                            </OtherNode4>
                          </NullNode4>
                          <AtomNode4 start="(5, 40)" end="(5, 41)" leading="" trailing="&#10;&#10;" val="]"/>
@@ -421,7 +420,7 @@ For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Ex
                  </NullNode4>
                  <NullNode4 start="(7, 16)" end="(7, 21)">
                    <AtomNode4 start="(7, 16)" end="(7, 17)" leading="" trailing=" " val=":"/>
-                   <IdentNode4 start="(7, 18)" end="(7, 21)" leading="" trailing="" raw_val="Nat" val="Nat" full_name="Nat" mod_name="Init.Prelude" def_start="(1038, 11)" def_end="(1038, 14)"/>
+                   <IdentNode4 start="(7, 18)" end="(7, 21)" leading="" trailing="" raw_val="Nat" val="Nat" full_name="Nat" mod_name="Init.Prelude" def_path=".lake/packages/lean4/src/lean/Init/Prelude.lean" def_start="(1044, 11)" def_end="(1044, 14)"/>
                  </NullNode4>
                  <NullNode4/>
                  <AtomNode4 start="(7, 21)" end="(7, 22)" leading="" trailing=" " val=")"/>
@@ -439,7 +438,7 @@ For example, below is :file:`traced_lean4-example/lean4-example/build/ir/Lean4Ex
                  </OtherNode4>
                  <AtomNode4 start="(7, 31)" end="(7, 32)" leading="" trailing=" " val="="/>
                  <OtherNode4 start="(7, 33)" end="(7, 43)" kind="Lean.Parser.Term.app">
-                   <IdentNode4 start="(7, 33)" end="(7, 41)" leading="" trailing=" " raw_val="Nat.succ" val="Nat.succ" full_name="Nat.succ" mod_name="Init.Prelude" def_start="(1044, 5)" def_end="(1044, 9)"/>
+                   <IdentNode4 start="(7, 33)" end="(7, 41)" leading="" trailing=" " raw_val="Nat.succ" val="Nat.succ" full_name="Nat.succ" mod_name="Init.Prelude" def_path=".lake/packages/lean4/src/lean/Init/Prelude.lean" def_start="(1050, 5)" def_end="(1050, 9)"/>
                    <NullNode4 start="(7, 42)" end="(7, 43)">
                      <IdentNode4 start="(7, 42)" end="(7, 43)" leading="" trailing=" " raw_val="a" val="a"/>
                    </NullNode4>
@@ -486,7 +485,7 @@ can be downloaded from `our AWS S3 <https://lean-dojo.s3.amazonaws.com>`_ (see :
 
    from lean_dojo import *
 
-   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "a61b40b90afba0ee5a3357665a86f7d0bb57461d")
+   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "fd14c4c8b29cc74a082e5ae6f64c2fb25b28e15e")
    theorem = Theorem(repo, "Lean4Example.lean", "hello_world")
 
    with Dojo(theorem) as (dojo, init_state):

@@ -3,6 +3,7 @@
 Only this file runs in Docker. So it must be self-contained.
 """
 import os
+import re
 import sys
 import shutil
 import itertools
@@ -96,6 +97,13 @@ def launch_progressbar(paths: List[Union[str, Path]]) -> Generator[None, None, N
     p.kill()
 
 
+def get_lean_version() -> str:
+    """Get the version of Lean."""
+    output = run_cmd("lean --version", capture_output=True).strip()
+    m = re.match(r"Lean \(version (?P<version>\S+?),", output)
+    return m["version"]
+
+
 def check_files() -> None:
     """Check if all *.lean files have been processed to produce *.ast.json and *.dep_paths files."""
     cwd = Path.cwd()
@@ -109,8 +117,23 @@ def check_files() -> None:
     missing_deps = {p.with_suffix(".dep_paths") for p in cs - deps}
     if len(missing_jsons) > 0 or len(missing_deps) > 0:
         for p in missing_jsons.union(missing_deps):
-            logger.error(f"Missing {p}")
-        raise RuntimeError("Missing intermediate files.")
+            logger.warning(f"Missing {p}")
+
+
+def is_new_version(v) -> bool:
+    """Check if ``v`` is at least `4.3.0-rc2`."""
+    major, minor, patch = [int(_) for _ in v.split("-")[0].split(".")]
+    if major < 4 or (major == 4 and minor < 3):
+        return False
+    if (
+        major > 4
+        or (major == 4 and minor > 3)
+        or (major == 4 and minor == 3 and patch > 0)
+    ):
+        return True
+    assert major == 4 and minor == 3 and patch == 0
+    rc = int(v.split("-")[1][2:])
+    return rc >= 2
 
 
 def main() -> None:
@@ -122,13 +145,19 @@ def main() -> None:
     logger.info(f"Building {repo_name}")
     run_cmd("lake build")
 
-    # Copy the Lean 4 stdlib into lake-packages.
+    # Copy the Lean 4 stdlib into the path of packages.
     lean_prefix = run_cmd(f"lean --print-prefix", capture_output=True).strip()
-    shutil.copytree(lean_prefix, "lake-packages/lean4")
+    if is_new_version(get_lean_version()):
+        packages_path = ".lake/packages"
+        build_path = ".lake/build"
+    else:
+        packages_path = "lake-packages"
+        build_path = "build"
+    shutil.copytree(lean_prefix, f"{packages_path}/lean4")
 
     # Run ExtractData.lean to extract ASTs, tactic states, and premise information.
     logger.info(f"Tracing {repo_name}")
-    with launch_progressbar(["build", "lake-packages"]):
+    with launch_progressbar([build_path, packages_path]):
         run_cmd(
             f"lake env lean --threads {num_procs} --run ExtractData.lean",
             capture_output=True,
