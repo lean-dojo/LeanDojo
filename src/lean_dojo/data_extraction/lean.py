@@ -278,7 +278,7 @@ _COMMIT_REGEX = re.compile(r"[0-9a-z]+")
 _LEAN3_VERSION_REGEX = re.compile(
     r"leanprover-community/lean:(?P<version>\d+\.\d+\.\d+)"
 )
-_LEAN4_VERSION_REGEX = re.compile(r"leanprover/lean4:(?P<version>v.+?)")
+_LEAN4_VERSION_REGEX = re.compile(r"leanprover/lean4:(?P<version>.+?)")
 
 
 def get_lean3_version_from_config(config: Dict[str, Any]) -> str:
