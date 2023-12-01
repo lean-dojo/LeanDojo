@@ -15,6 +15,7 @@ from contextlib import contextmanager
 from github.Repository import Repository
 from ray.util.actor_pool import ActorPool
 from typing import Tuple, Union, List, Generator, Optional
+from functools import cache
 
 from .constants import GITHUB, NUM_WORKERS, TMP_DIR
 
@@ -195,6 +196,7 @@ def remove_optional_type(tp: type) -> type:
         raise ValueError(f"{tp} is not Optional")
 
 
+@cache
 def read_url(url: str, num_retries: int = 1) -> str:
     """Read the contents of the URL ``url``. Retry if failed"""
     while True:
