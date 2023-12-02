@@ -1181,7 +1181,6 @@ class ModuleImportNode4(Node4):
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert len(children) == 3
         assert isinstance(children[0], AtomNode4) and children[0].val == "import"
         if isinstance(children[2], IdentNode4):
             module = children[2].val

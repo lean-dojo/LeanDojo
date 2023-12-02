@@ -132,7 +132,8 @@ def is_new_version(v) -> bool:
     ):
         return True
     assert major == 4 and minor == 3 and patch == 0
-    rc = int(v.split("-")[1][2:])
+    if "4.3.0-rc" in v:
+        rc = int(v.split("-")[1][2:])
     return rc >= 2
 
 

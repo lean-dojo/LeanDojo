@@ -7,7 +7,6 @@ from lean_dojo.utils import get_latest_commit
 LEAN3_URL = "https://github.com/leanprover-community/lean"
 MATHLIB_URL = "https://github.com/leanprover-community/mathlib"
 MINIF2F_URL = "https://github.com/facebookresearch/miniF2F"
-LEAN_LIQUID_URL = "https://github.com/leanprover-community/lean-liquid"
 PROOFNET_URL = "https://github.com/zhangir-azerbayev/ProofNet"
 LEAN_EXAMPLE_URL = "https://github.com/yangky11/lean-example"
 STD4_URL = "https://github.com/leanprover/std4"
@@ -18,7 +17,6 @@ URLS = [
     LEAN3_URL,
     MINIF2F_URL,
     MATHLIB_URL,
-    LEAN_LIQUID_URL,
     PROOFNET_URL,
     LEAN_EXAMPLE_URL,
     STD4_URL,

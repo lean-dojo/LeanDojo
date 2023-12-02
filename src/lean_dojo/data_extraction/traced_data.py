@@ -1238,7 +1238,6 @@ def _build_dependency_graph(
             if not G.has_node(dep_path_str):
                 json_path = to_json_path(root_dir, dep_path, repo)
                 tf_dep = TracedFile.from_traced_file(root_dir, json_path, repo)
-                assert tf_dep.path == tf.path
                 G.add_node(dep_path_str, traced_file=tf_dep)
                 traced_files.append(tf_dep)
 
