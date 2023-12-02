@@ -11,6 +11,7 @@ import tempfile
 import subprocess
 from pathlib import Path
 from loguru import logger
+from functools import cache
 from contextlib import contextmanager
 from github.Repository import Repository
 from ray.util.actor_pool import ActorPool
@@ -195,6 +196,7 @@ def remove_optional_type(tp: type) -> type:
         raise ValueError(f"{tp} is not Optional")
 
 
+@cache
 def read_url(url: str, num_retries: int = 1) -> str:
     """Read the contents of the URL ``url``. Retry if failed"""
     while True:
@@ -240,19 +242,12 @@ def normalize_url(url: str) -> str:
     return _URL_REGEX.fullmatch(url)["url"]  # Remove trailing `/`.
 
 
-URL_TO_REPO_CACHE = {}
-
-
+@cache
 def url_to_repo(url: str, num_retries: int = 1) -> Repository:
     url = normalize_url(url)
-    if url in URL_TO_REPO_CACHE:
-        return URL_TO_REPO_CACHE[url]
-
     while True:
         try:
-            repo = GITHUB.get_repo("/".join(url.split("/")[-2:]))
-            URL_TO_REPO_CACHE[url] = repo
-            return repo
+            return GITHUB.get_repo("/".join(url.split("/")[-2:]))
         except Exception as ex:
             if num_retries <= 0:
                 raise ex
