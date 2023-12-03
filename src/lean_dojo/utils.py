@@ -143,6 +143,7 @@ def camel_case(s: str) -> str:
     return _CAMEL_CASE_REGEX.sub(" ", s).title().replace(" ", "")
 
 
+@cache
 def get_repo_info(path: Path) -> Tuple[str, str]:
     """Get the URL and commit hash of the Git repo at ``path``.
 
@@ -211,6 +212,7 @@ def read_url(url: str, num_retries: int = 1) -> str:
             time.sleep(2 - num_retries)
 
 
+@cache
 def url_exists(url: str) -> bool:
     """Return True if the URL ``url`` exists."""
     try:
@@ -256,12 +258,14 @@ def url_to_repo(url: str, num_retries: int = 1) -> Repository:
             time.sleep(2 - num_retries)
 
 
+@cache
 def get_latest_commit(url: str) -> str:
     """Get the hash of the latest commit of the Git repo at ``url``."""
     repo = url_to_repo(url)
     return repo.get_branch(repo.default_branch).commit.sha
 
 
+@cache
 def is_git_repo(path: Path) -> bool:
     """Check if ``path`` is a Git repo."""
     with working_directory(path):

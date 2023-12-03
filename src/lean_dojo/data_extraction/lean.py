@@ -11,7 +11,6 @@ from loguru import logger
 from dataclasses import dataclass, field
 from github.Repository import Repository
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple
-from urllib import error
 
 from ..utils import (
     execute,
@@ -610,7 +609,7 @@ class LeanGitRepo:
         license_url = f"{url}/{self.commit}/LICENSE"
         try:
             return read_url(license_url)
-        except error.HTTPError:
+        except urllib.error.HTTPError:
             return None
 
     def _get_config_url(self, filename: str) -> str:
