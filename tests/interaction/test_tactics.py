@@ -1,5 +1,3 @@
-import pytest
-
 from lean_dojo import *
 
 
