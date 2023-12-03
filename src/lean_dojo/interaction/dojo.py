@@ -356,7 +356,7 @@ class Dojo:
         """Clean up the subprocess."""
         self.proc.terminate()
         try:
-            self.proc.wait(timeout=1)
+            self.proc.wait(timeout=0.5)
         except TimeoutExpired:
             self.proc.kill()
 

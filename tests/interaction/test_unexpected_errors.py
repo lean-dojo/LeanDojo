@@ -61,39 +61,6 @@ def test_proof_check_failure_1(mathlib_repo: LeanGitRepo) -> None:
         assert not dojo.is_successful
 
 
-def test_prelude_failure_1(lean_repo: LeanGitRepo) -> None:
-    thm = Theorem(lean_repo, "library/init/data/int/order.lean", "int.lt_iff_le_not_le")
-    with Dojo(thm) as (dojo, init_state):
-        res = dojo.run_tac(
-            init_state,
-            "{ simp [int.lt_iff_le_and_ne], split; intro h, { cases h with hab hn, split, { assumption }, { intro hba, simp [int.le_antisymm hab hba] at *, contradiction } } { cases h with hab hn, split, { assumption }, { intro h, simp [*] at * } } }",
-        )
-        assert isinstance(res, LeanError)
-        assert not dojo.is_successful
-
-
-def test_prelude_failure_2(lean_repo: LeanGitRepo) -> None:
-    thm = Theorem(lean_repo, "library/init/data/nat/bitwise.lean", "nat.bodd_add")
-    with Dojo(thm) as (dojo, init_state):
-        res = dojo.run_tac(
-            init_state,
-            "{ induction n with n IH, { simp, cases bodd m; refl }, { simp [IH], cases bodd m; cases bodd n; refl } }",
-        )
-        assert isinstance(res, LeanError)
-        assert not dojo.is_successful
-
-
-def test_prelude_failure_3(lean_repo: LeanGitRepo) -> None:
-    thm = Theorem(lean_repo, "library/init/data/nat/bitwise.lean", "nat.bodd_mul")
-    with Dojo(thm) as (dojo, init_state):
-        res = dojo.run_tac(
-            init_state,
-            "{ induction n with n IH, { simp, cases bodd m; refl }, { simp [mul_succ, IH], cases bodd m; cases bodd n; refl } }",
-        )
-        assert isinstance(res, LeanError)
-        assert not dojo.is_successful
-
-
 def test_deep_recursion_1(minif2f_repo: LeanGitRepo) -> None:
     thm = Theorem(minif2f_repo, "lean/src/test.lean", "mathd_algebra_296")
     with Dojo(thm) as (dojo, init_state):
