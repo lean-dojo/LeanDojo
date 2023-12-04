@@ -8,10 +8,10 @@ import urllib
 import webbrowser
 from pathlib import Path
 from loguru import logger
+from functools import cache
 from dataclasses import dataclass, field
 from github.Repository import Repository
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple
-from urllib import error
 
 from ..utils import (
     execute,
@@ -36,6 +36,7 @@ from ..constants import (
 )
 
 
+@cache
 def _to_commit_hash(repo: Repository, label: str) -> str:
     """Convert a tag or branch to a commit hash."""
     for branch in repo.get_branches():
@@ -523,7 +524,9 @@ class LeanGitRepo:
         """
         if self.is_lean:
             return {}
-        elif self.uses_lean3:
+
+        logger.debug(f"Querying the dependencies of {self}")
+        if self.uses_lean3:
             return self._get_lean3_dependencies(path)
         else:
             return self._get_lean4_dependencies(path)
@@ -531,7 +534,6 @@ class LeanGitRepo:
     def _get_lean3_dependencies(
         self, path: Union[str, Path, None] = None, parents: List[str] = []
     ) -> Dict[str, "LeanGitRepo"]:
-        logger.debug(f"Querying the dependencies of {self}")
         if path is None:
             config = self.get_config("leanpkg.toml")
         else:
@@ -582,7 +584,6 @@ class LeanGitRepo:
     def _get_lean4_dependencies(
         self, path: Union[str, Path, None] = None, parents: List[str] = []
     ) -> Dict[str, "LeanGitRepo"]:
-        logger.debug(f"Querying the dependencies of {self}")
         if path is None:
             lakefile = self.get_config("lakefile.lean")
             toolchain = self.get_config("lean-toolchain")
@@ -610,7 +611,7 @@ class LeanGitRepo:
         license_url = f"{url}/{self.commit}/LICENSE"
         try:
             return read_url(license_url)
-        except error.HTTPError:
+        except urllib.error.HTTPError:
             return None
 
     def _get_config_url(self, filename: str) -> str:

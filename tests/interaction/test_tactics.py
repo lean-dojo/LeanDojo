@@ -1,23 +1,7 @@
-import pytest
-
 from lean_dojo import *
 
 
-def test_example_1(lean_repo: LeanGitRepo) -> None:
-    thm = Theorem(
-        lean_repo,
-        "library/init/data/int/basic.lean",
-        "int.sub_nat_nat_of_sub_eq_zero",
-    )
-    with Dojo(thm) as (dojo, s0):
-        s1 = dojo.run_tac(s0, "unfold sub_nat_nat")
-        assert isinstance(s1, TacticState)
-        s2 = dojo.run_tac(s1, "rw h, unfold sub_nat_nat._match_1")
-        assert isinstance(s2, ProofFinished)
-        assert dojo.is_successful
-
-
-def test_example_2(lean4_example_repo: LeanGitRepo) -> None:
+def test_example_1(lean4_example_repo: LeanGitRepo) -> None:
     thm = Theorem(
         lean4_example_repo,
         "Lean4Example.lean",
@@ -29,7 +13,7 @@ def test_example_2(lean4_example_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_3(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_2(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/NumberTheory/Multiplicity.lean",
@@ -49,7 +33,7 @@ def test_example_3(mathlib4_repo: LeanGitRepo) -> None:
         assert not dojo.is_successful
 
 
-def test_example_4(std4_repo: LeanGitRepo) -> None:
+def test_example_3(std4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         std4_repo,
         "Std/Data/List/Lemmas.lean",
@@ -61,7 +45,7 @@ def test_example_4(std4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_5(aesop_repo: LeanGitRepo) -> None:
+def test_example_4(aesop_repo: LeanGitRepo) -> None:
     thm = Theorem(
         aesop_repo,
         "Aesop/BuiltinRules.lean",
@@ -73,7 +57,7 @@ def test_example_5(aesop_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_6(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_5(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Algebra/GroupPower/Basic.lean",
@@ -85,7 +69,7 @@ def test_example_6(mathlib4_repo: LeanGitRepo) -> None:
         assert not dojo.is_successful
 
 
-def test_example_7(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_6(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Data/Complex/Basic.lean",
@@ -99,7 +83,7 @@ def test_example_7(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_8(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_7(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Algebra/IndicatorFunction.lean",
@@ -111,7 +95,7 @@ def test_example_8(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_9(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_8(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Data/Set/Intervals/Basic.lean",
@@ -123,7 +107,7 @@ def test_example_9(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_10(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_9(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Analysis/BoxIntegral/Partition/Basic.lean",
@@ -142,7 +126,7 @@ def test_example_10(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_11(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_10(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Algebra/Hom/Ring/Defs.lean",
@@ -154,7 +138,7 @@ def test_example_11(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_12(std4_repo: LeanGitRepo) -> None:
+def test_example_11(std4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         std4_repo,
         "Std/Data/List/Lemmas.lean",
@@ -166,7 +150,7 @@ def test_example_12(std4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_13(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_12(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Order/PrimeIdeal.lean",
@@ -178,7 +162,7 @@ def test_example_13(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_14(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_13(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Algebra/GCDMonoid/Multiset.lean",
@@ -190,7 +174,7 @@ def test_example_14(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_15(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_14(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/SetTheory/Ordinal/Basic.lean",
@@ -202,7 +186,7 @@ def test_example_15(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_16(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_15(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Analysis/Calculus/FDeriv/Equiv.lean",
@@ -216,7 +200,7 @@ def test_example_16(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_17(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_16(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Algebra/Hom/Group/Defs.lean",
@@ -230,7 +214,7 @@ def test_example_17(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_18(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_17(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Data/Finsupp/Defs.lean",
@@ -243,7 +227,7 @@ def test_example_18(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_19(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_18(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Combinatorics/SimpleGraph/Hasse.lean",
@@ -260,7 +244,7 @@ def test_example_19(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_20(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_19(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Data/Finset/Card.lean",
@@ -272,7 +256,7 @@ def test_example_20(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_21(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_20(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Logic/Function/Basic.lean",
@@ -284,7 +268,7 @@ def test_example_21(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_22(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_21(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/MeasureTheory/Group/Arithmetic.lean",
@@ -300,7 +284,7 @@ def test_example_22(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_23(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_22(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/LinearAlgebra/Basic.lean",
@@ -312,7 +296,7 @@ def test_example_23(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_24(std4_repo: LeanGitRepo) -> None:
+def test_example_23(std4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         std4_repo,
         "Std/Data/Int/Lemmas.lean",
@@ -326,7 +310,7 @@ def test_example_24(std4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_25(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_24(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Algebra/CharP/Basic.lean",
@@ -341,7 +325,7 @@ def test_example_25(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_26(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_25(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Topology/MetricSpace/Basic.lean",
