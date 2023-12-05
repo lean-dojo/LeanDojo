@@ -332,7 +332,6 @@ class Dojo:
 
     def _exit_gracefully(self, signum: Any, frame: Any) -> None:
         logger.debug("Exiting gracefully.")
-        self._cleanup()
         sys.exit(-1)
 
     def _cleanup(self) -> None:
@@ -377,17 +376,6 @@ class Dojo:
         """
         # Cancel the hard timeout.
         self._cancel_timer()
-
-        if not self.is_crashed and not self.has_timedout:
-            if self.uses_lean4:
-                req = "exit"
-            else:
-                req = json.dumps(["exit_repl", []])
-            try:
-                self._submit_request(req)
-            except Exception:
-                pass
-
         self._cleanup()
 
     def _post_process(self, tactic_state: str) -> str:
