@@ -57,7 +57,7 @@ pip install .
 * [LeanDojo Benchmark 4](https://doi.org/10.5281/zenodo.8040109) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8040109.svg)](https://doi.org/10.5281/zenodo.8040109): The Lean 4 version of LeanDojo Benchmark, consisting of 102,514 theorems and proofs extracted from [mathlib4](https://github.com/leanprover-community/mathlib4/commit/3ce43c18f614b76e161f911b75a3e1ef641620ff) by [generate-benchmark-lean4.ipynb](./scripts/generate-benchmark-lean4.ipynb).
 * [ReProver](https://github.com/lean-dojo/ReProver): The ReProver (Retrieval-Augmented Prover) model in our paper.
 * [LeanDojo ChatGPT Plugin](https://github.com/lean-dojo/LeanDojoChatGPT)
-* [LeanInfer: Running Neural Networks Directly in Lean](https://github.com/lean-dojo/LeanInfer)
+* [Lean Copilot: Running language models as copilots for theorem proving in Lean](https://github.com/lean-dojo/LeanCopilot)
 
 ## Citation
 

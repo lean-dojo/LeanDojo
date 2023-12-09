@@ -494,9 +494,12 @@ unsafe def main (args : List String) : IO Unit := do
         println! path
         let t ← IO.asTask $ IO.Process.run
           {cmd := "lake", args := #["env", "lean", "--run", "ExtractData.lean", path.toString]}
-        tasks := tasks.push t
+        tasks := tasks.push (t, path)
 
-    for t in tasks do
+    for (t, path) in tasks do
       match ← IO.wait t with
-      | Except.error e => throw e
+      | Except.error e =>
+        println! s!"WARNING: Failed to process {path}"
+        pure ()
+        -- throw e
       | Except.ok _ => pure ()

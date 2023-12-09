@@ -231,8 +231,8 @@ class Dojo:
             mts = [Mount(Path.cwd(), Path(f"/workspace/{self.repo.name}"))]
             if self.repo.uses_lean3:
                 cmd = f"lean {self.file_path}"
-            elif self.repo.is_lean4:
-                cmd = f"./build/release/stage1/bin/lean {self.file_path}"
+                cpu_limit = TACTIC_CPU_LIMIT
+                memory_limit = TACTIC_MEMORY_LIMIT
             else:
                 self.container.run(
                     "lake build Lean4Repl",
@@ -244,13 +244,16 @@ class Dojo:
                     memory_limit=None,
                     envs={},
                 )
-                cmd = f"lake env lean {self.file_path}"
+                assert re.fullmatch(r"\d+g", TACTIC_MEMORY_LIMIT)
+                memory_limit = 1024 * int(TACTIC_MEMORY_LIMIT[:-1])
+                cmd = f"lake env lean --threads={TACTIC_CPU_LIMIT} --memory={memory_limit} {self.file_path}"
+                cpu_limit = memory_limit = None
 
             self.proc = self.container.run_interactive(
                 cmd,
                 mts,
-                cpu_limit=TACTIC_CPU_LIMIT,
-                memory_limit=TACTIC_MEMORY_LIMIT,
+                cpu_limit=cpu_limit,
+                memory_limit=memory_limit,
                 work_dir=f"/workspace/{self.repo.name}",
                 as_current_user=True,
                 envs={},
