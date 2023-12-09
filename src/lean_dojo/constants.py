@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-__version__ = "1.4.3rc0"
+__version__ = "1.4.3"
 
 logger.remove()
 if "VERBOSE" in os.environ or "DEBUG" in os.environ:
@@ -101,7 +101,7 @@ TACTIC_CPU_LIMIT = int(os.getenv("TACTIC_CPU_LIMIT", 1))
 """Number of CPUs for executing tactics when interacting with Lean.
 """
 
-TACTIC_MEMORY_LIMIT = os.getenv("TACTIC_MEMORY_LIMIT", "16g")
+TACTIC_MEMORY_LIMIT = os.getenv("TACTIC_MEMORY_LIMIT", "32g")
 """Maximum memory when interacting with Lean.
 """
 
