@@ -15,7 +15,7 @@ ______________________________________________________________________
 
 ## Requirements
 
-* Supported platforms: Linux, Windows (WSL), and macOS (:warning: experimental for Apple silicon)
+* Supported platforms: Linux, Windows WSL, and macOS
 * Git >= 2.25
 * 3.9 <= Python < 3.11
 * wget
