@@ -425,6 +425,7 @@ class Dojo:
             repl_dst = Path(repl_file)
             with open("lakefile.lean", "a") as oup:
                 oup.write("\nlean_lib Lean4Repl {\n\n}\n")
+            os.remove("lakefile.olean")
 
         # Copy the REPL code to the right directory.
         repl_src = Path(__file__).with_name(repl_file)
