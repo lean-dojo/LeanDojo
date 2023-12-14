@@ -16,7 +16,6 @@ from contextlib import contextmanager
 from github.Repository import Repository
 from ray.util.actor_pool import ActorPool
 from typing import Tuple, Union, List, Generator, Optional
-from functools import cache
 
 from .constants import GITHUB, NUM_WORKERS, TMP_DIR
 
@@ -199,8 +198,9 @@ def remove_optional_type(tp: type) -> type:
 
 
 @cache
-def read_url(url: str, num_retries: int = 1) -> str:
+def read_url(url: str, num_retries: int = 2) -> str:
     """Read the contents of the URL ``url``. Retry if failed"""
+    backoff = 1
     while True:
         try:
             with urllib.request.urlopen(url) as f:
@@ -210,7 +210,8 @@ def read_url(url: str, num_retries: int = 1) -> str:
                 raise ex
             num_retries -= 1
             logger.debug(f"Request to {url} failed. Retrying...")
-            time.sleep(2 - num_retries)
+            time.sleep(backoff)
+            backoff *= 2
 
 
 @cache
@@ -246,8 +247,10 @@ def normalize_url(url: str) -> str:
 
 
 @cache
-def url_to_repo(url: str, num_retries: int = 1) -> Repository:
+def url_to_repo(url: str, num_retries: int = 2) -> Repository:
     url = normalize_url(url)
+    backoff = 1
+
     while True:
         try:
             return GITHUB.get_repo("/".join(url.split("/")[-2:]))
@@ -256,7 +259,8 @@ def url_to_repo(url: str, num_retries: int = 1) -> Repository:
                 raise ex
             num_retries -= 1
             logger.debug(f'url_to_repo("{url}") failed. Retrying...')
-            time.sleep(2 - num_retries)
+            time.sleep(backoff)
+            backoff *= 2
 
 
 @cache
