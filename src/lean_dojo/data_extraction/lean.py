@@ -39,6 +39,8 @@ from ..constants import (
 @cache
 def _to_commit_hash(repo: Repository, label: str) -> str:
     """Convert a tag or branch to a commit hash."""
+    logger.debug(f"Querying the commit hash for {repo.name} {label}")
+
     for branch in repo.get_branches():
         if branch.name == label:
             return branch.commit.sha
@@ -402,7 +404,6 @@ class LeanGitRepo:
             if (self.url, self.commit) in info_cache.tag2commit:
                 commit = info_cache.tag2commit[(self.url, self.commit)]
             else:
-                logger.debug(f"Querying the commit hash for {self.name} {self.commit}")
                 commit = _to_commit_hash(self.repo, self.commit)
                 assert _COMMIT_REGEX.fullmatch(commit), f"Invalid commit hash: {commit}"
                 info_cache.tag2commit[(self.url, self.commit)] = commit
@@ -573,7 +574,6 @@ class LeanGitRepo:
             elif len(rev) == 40 and _COMMIT_REGEX.fullmatch(rev):
                 commit = rev
             else:
-                logger.debug(f"Querying the commit hash for {url} {rev}")
                 commit = _to_commit_hash(url_to_repo(url), rev)
                 assert _COMMIT_REGEX.fullmatch(commit)
 
