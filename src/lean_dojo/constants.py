@@ -98,11 +98,11 @@ TACTIC_TIMEOUT = int(os.getenv("TACTIC_TIMEOUT", 5000))
 """
 
 TACTIC_CPU_LIMIT = int(os.getenv("TACTIC_CPU_LIMIT", 1))
-"""Number of CPUs for executing tactics when interacting with Lean.
+"""Number of CPUs for executing tactics when interacting with Lean (only useful when running within Docker).
 """
 
 TACTIC_MEMORY_LIMIT = os.getenv("TACTIC_MEMORY_LIMIT", "32g")
-"""Maximum memory when interacting with Lean.
+"""Maximum memory when interacting with Lean (only useful when running within Docker).
 """
 
 CONTAINER = os.getenv("CONTAINER", "native")
