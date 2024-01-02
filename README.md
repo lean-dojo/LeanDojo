@@ -15,12 +15,12 @@ ______________________________________________________________________
 
 ## Requirements
 
-* Supported platforms: Linux, Windows (WSL), and macOS (:warning: experimental for Apple silicon)
+* Supported platforms: Linux, Windows WSL, and macOS
 * Git >= 2.25
 * 3.9 <= Python < 3.11
 * wget
 * [elan](https://github.com/leanprover/elan)
-* Docker strongly recommended when using LeanDojo with Lean 3
+* Docker is strongly recommended when using LeanDojo with Lean 3
 * Recommended: Generate a [GitHub personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic) and set the environment variable `GITHUB_ACCESS_TOKEN` to it
 
 
