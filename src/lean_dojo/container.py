@@ -205,14 +205,6 @@ class NativeContainer(Container):
         work_dir: Optional[str] = None,
     ) -> subprocess.Popen:
         assert as_current_user, "NativeContainer can only run as the current user."
-        if cpu_limit is not None:
-            logger.warning(
-                f"Disregarding `cpu_limit = {cpu_limit} since NativeContainer does not support CPU limit.`"
-            )
-        if memory_limit is not None:
-            logger.warning(
-                f"Disregarding `memory_limit = {memory_limit}` since NativeContainer does not support memory limit."
-            )
 
         self._mount_files(mounts)
         self.mounts = mounts
