@@ -361,7 +361,6 @@ def is_new_version(v) -> bool:
         return True
 
 
-
 @dataclass(frozen=True)
 class LeanGitRepo:
     """Git repo of a Lean project."""
