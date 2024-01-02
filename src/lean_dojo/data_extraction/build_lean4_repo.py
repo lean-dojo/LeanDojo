@@ -144,6 +144,10 @@ def main() -> None:
 
     # Build the repo using lake.
     logger.info(f"Building {repo_name}")
+    try:
+        run_cmd("lake exe cache get")  # In case it dependes on mathlib.
+    except subprocess.CalledProcessError:
+        pass
     run_cmd("lake build")
 
     # Copy the Lean 4 stdlib into the path of packages.
