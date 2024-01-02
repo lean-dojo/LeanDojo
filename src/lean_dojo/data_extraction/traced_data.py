@@ -1371,7 +1371,7 @@ class TracedRepo:
                 ), to_xml_path(self.root_dir, path, self.repo)
 
     @classmethod
-    def from_traced_files(cls, root_dir: Union[str, Path]) -> None:
+    def from_traced_files(cls, root_dir: Union[str, Path]) -> "TracedRepo":
         """Construct a :class:`TracedRepo` object by parsing :file:`*.ast.json` and :file:`*.path` files
            produced by :code:`lean --ast --tsast --tspp` (Lean 3) or :file:`ExtractData.lean` (Lean 4).
 
