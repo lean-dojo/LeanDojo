@@ -464,8 +464,11 @@ open LeanDojo
 /--
 Whether a *.lean file should be traced.
 -/
-def shouldProcess (path : FilePath) : IO Bool := do
+def shouldProcess (path : FilePath) (noDep : Bool) : IO Bool := do
   if (← path.isDir) ∨ path.extension != "lean" then
+    return false
+
+  if noDep ∧ Path.isRelativeTo path Path.packagesDir then
     return false
 
   let cwd ← IO.currentDir
@@ -476,21 +479,17 @@ def shouldProcess (path : FilePath) : IO Bool := do
   return ← oleanPath.pathExists
 
 
-unsafe def main (args : List String) : IO Unit := do
-  match args with
-  | path :: _ =>
-    -- Trace a given file.
-    processFile (← Path.toAbsolute ⟨path⟩)
-
-  | [] =>
-    -- Trace all *.lean files in the current directory whose corresponding *.olean file exists.
+/--
+Trace all *.lean files in the current directory whose corresponding *.olean file exists.
+-/
+def processAllFiles (noDep : Bool) : IO Unit := do
     let cwd ← IO.currentDir
     assert! cwd.fileName != "lean4"
     println! "Extracting data at {cwd}"
 
     let mut tasks := #[]
     for path in ← System.FilePath.walkDir cwd do
-      if ← shouldProcess path then
+      if ← shouldProcess path noDep then
         println! path
         let t ← IO.asTask $ IO.Process.run
           {cmd := "lake", args := #["env", "lean", "--run", "ExtractData.lean", path.toString]}
@@ -498,8 +497,15 @@ unsafe def main (args : List String) : IO Unit := do
 
     for (t, path) in tasks do
       match ← IO.wait t with
-      | Except.error e =>
+      | Except.error _ =>
         println! s!"WARNING: Failed to process {path}"
         pure ()
         -- throw e
       | Except.ok _ => pure ()
+
+
+unsafe def main (args : List String) : IO Unit := do
+  match args with
+  | "nodep" :: _ => processAllFiles true
+  | path :: _ => processFile (← Path.toAbsolute ⟨path⟩)
+  | [] => processAllFiles false

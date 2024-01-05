@@ -111,10 +111,13 @@ def check_files() -> None:
         p.with_suffix("").with_suffix("") for p in cwd.glob("**/build/ir/**/*.ast.json")
     }
     deps = {p.with_suffix("") for p in cwd.glob("**/build/ir/**/*.dep_paths")}
-    cs = {p.with_suffix("") for p in cwd.glob("**/build/ir/**/*.c")}
-    assert len(jsons) <= len(cs) and len(deps) <= len(cs)
-    missing_jsons = {p.with_suffix(".ast.json") for p in cs - jsons}
-    missing_deps = {p.with_suffix(".dep_paths") for p in cs - deps}
+    oleans = {
+        Path(str(p.with_suffix("")).replace("/build/lib/", "/build/ir/"))
+        for p in cwd.glob("**/build/lib/**/*.olean")
+    }
+    assert len(jsons) <= len(oleans) and len(deps) <= len(oleans)
+    missing_jsons = {p.with_suffix(".ast.json") for p in oleans - jsons}
+    missing_deps = {p.with_suffix(".dep_paths") for p in oleans - deps}
     if len(missing_jsons) > 0 or len(missing_deps) > 0:
         for p in missing_jsons.union(missing_deps):
             logger.warning(f"Missing {p}")
@@ -146,10 +149,6 @@ def main() -> None:
 
     # Build the repo using lake.
     logger.info(f"Building {repo_name}")
-    try:
-        run_cmd("lake exe cache get")  # In case it dependes on mathlib.
-    except subprocess.CalledProcessError:
-        pass
     run_cmd("lake build")
 
     # Copy the Lean 4 stdlib into the path of packages.
