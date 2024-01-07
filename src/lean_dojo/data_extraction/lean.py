@@ -658,3 +658,12 @@ class Theorem:
         assert (
             self.file_path.suffix == ".lean"
         ), f"File extension must be .lean: {self.file_path}"
+
+    @property
+    def uid(self) -> str:
+        """Unique identifier of the theorem."""
+        return f"{self.repo.url}@{self.repo.commit}:{self.file_path}:{self.full_name}".replace(
+            "/", "_"
+        ).replace(
+            ":", "_"
+        )
