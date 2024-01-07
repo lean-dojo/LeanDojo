@@ -37,6 +37,11 @@ from ..constants import (
 )
 
 
+def cleanse_string(s: str) -> str:
+    """Replace : and / with _ in a string."""
+    return s.replace("/", "_").replace(":", "_")
+
+
 @cache
 def _to_commit_hash(repo: Repository, label: str) -> str:
     """Convert a tag or branch to a commit hash."""
@@ -672,3 +677,8 @@ class Theorem:
         assert (
             self.file_path.suffix == ".lean"
         ), f"File extension must be .lean: {self.file_path}"
+
+    @property
+    def uid(self) -> str:
+        """Unique identifier of the theorem."""
+        return f"{cleanse_string(self.repo.url)}@{cleanse_string(self.repo.commit)}:{cleanse_string(self.file_path)}:{cleanse_string(self.full_name)}"
