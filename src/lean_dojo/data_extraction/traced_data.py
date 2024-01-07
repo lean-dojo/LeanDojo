@@ -448,12 +448,12 @@ class TracedTheorem:
 
         return names
 
-    def get_traced_tactics(self) -> List[TracedTactic]:
+    def get_traced_tactics(self, atomic_only: bool = False) -> List[TracedTactic]:
         """Return a list of traced tactics in the proof."""
         if self.uses_lean3:
             tacs = self._get_traced_tactics_lean3()
         else:
-            tacs = self._get_traced_tactics_lean4()
+            tacs = self._get_traced_tactics_lean4(atomic_only)
 
         # Deduplicate.
         signatures = set()
@@ -463,6 +463,7 @@ class TracedTheorem:
             if sig not in signatures:
                 signatures.add(sig)
                 tacs_dedup.append(t)
+
         return tacs_dedup
 
     def _get_traced_tactics_lean3(self) -> List[TracedTactic]:
@@ -476,21 +477,24 @@ class TracedTheorem:
         self.ast.traverse_preorder(_callback, TacticNode)
         return tacs
 
-    def _get_traced_tactics_lean4(self) -> List[TracedTactic]:
+    def _get_traced_tactics_lean4(
+        self, atomic_only: bool = False
+    ) -> List[TracedTactic]:
         tacs = []
 
         def _callback(node, _):
-            if type(node) in (
+            if type(node) not in (
                 TacticTacticseq1IndentedNode4,
                 TacticTacticseqbracketedNode4,
             ):
-                for tac_node in node.get_tactic_nodes():
-                    if (
-                        hasattr(tac_node, "state_before")
-                        and tac_node.state_before is not None
-                    ):
-                        # Tactics outside theorem/lemma definitions are not recorded.
-                        tacs.append(TracedTactic(tac_node, self))
+                return
+            for tac_node in node.get_tactic_nodes(atomic_only):
+                if (
+                    hasattr(tac_node, "state_before")
+                    and tac_node.state_before is not None
+                ):
+                    # Tactics outside theorem/lemma definitions are not recorded.
+                    tacs.append(TracedTactic(tac_node, self))
 
         self.ast.traverse_preorder(_callback, node_cls=None)
         return tacs
@@ -1371,7 +1375,7 @@ class TracedRepo:
                 ), to_xml_path(self.root_dir, path, self.repo)
 
     @classmethod
-    def from_traced_files(cls, root_dir: Union[str, Path]) -> None:
+    def from_traced_files(cls, root_dir: Union[str, Path]) -> "TracedRepo":
         """Construct a :class:`TracedRepo` object by parsing :file:`*.ast.json` and :file:`*.path` files
            produced by :code:`lean --ast --tsast --tspp` (Lean 3) or :file:`ExtractData.lean` (Lean 4).
 

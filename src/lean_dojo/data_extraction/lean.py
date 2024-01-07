@@ -3,6 +3,7 @@ Objects of these classes contain only surface information, without extracting an
 """
 import re
 import os
+import json
 import toml
 import urllib
 import webbrowser
@@ -356,7 +357,9 @@ def is_new_version(v) -> bool:
     assert major == 4 and minor == 3 and patch == 0
     if "4.3.0-rc" in v:
         rc = int(v.split("-")[1][2:])
-    return rc >= 2
+        return rc >= 2
+    else:
+        return True
 
 
 @dataclass(frozen=True)
@@ -533,7 +536,7 @@ class LeanGitRepo:
             return self._get_lean4_dependencies(path)
 
     def _get_lean3_dependencies(
-        self, path: Union[str, Path, None] = None, parents: List[str] = []
+        self, path: Union[str, Path, None] = None
     ) -> Dict[str, "LeanGitRepo"]:
         if path is None:
             config = self.get_config("leanpkg.toml")
@@ -545,9 +548,8 @@ class LeanGitRepo:
         if "dependencies" in config:
             for _, v in config["dependencies"].items():
                 r = LeanGitRepo(url=v["git"], commit=v["rev"])
-                assert r not in parents, f"Circular dependency: {r}"
                 deps[r.name] = r
-                for dd in r._get_lean3_dependencies(None, [r.name] + parents).values():
+                for dd in r._get_lean3_dependencies().values():
                     deps[dd.name] = dd
 
         return deps
@@ -582,25 +584,37 @@ class LeanGitRepo:
         return deps
 
     def _get_lean4_dependencies(
-        self, path: Union[str, Path, None] = None, parents: List[str] = []
+        self, path: Union[str, Path, None] = None
     ) -> Dict[str, "LeanGitRepo"]:
-        if path is None:
-            lakefile = self.get_config("lakefile.lean")
-            toolchain = self.get_config("lean-toolchain")
-        else:
-            lakefile = {"content": (Path(path) / "lakefile.lean").open().read()}
-            toolchain = {"content": (Path(path) / "lean-toolchain").open().read()}
-
+        toolchain = (
+            self.get_config("lean-toolchain")
+            if path is None
+            else {"content": (Path(path) / "lean-toolchain").open().read()}
+        )
         commit = get_lean4_commit_from_config(toolchain)
         deps = {"lean4": LeanGitRepo(LEAN4_URL, commit)}
 
-        for name, repo in self._parse_lakefile_dependencies(lakefile["content"]):
-            if name not in deps:
-                deps[name] = repo
-            for dd_name, dd_repo in repo._get_lean4_dependencies(
-                None, [name] + parents
-            ).items():
-                deps[dd_name] = dd_repo
+        try:
+            lake_manifest = (
+                self.get_config("lake-manifest.json")
+                if path is None
+                else json.load((Path(path) / "lake-manifest.json").open())
+            )
+            for pkg in lake_manifest["packages"]:
+                deps[pkg["git"]["name"]] = LeanGitRepo(
+                    pkg["git"]["url"], pkg["git"]["rev"]
+                )
+        except Exception:
+            lakefile = (
+                self.get_config("lakefile.lean")
+                if path is None
+                else {"content": (Path(path) / "lakefile.lean").open().read()}
+            )
+            for name, repo in self._parse_lakefile_dependencies(lakefile["content"]):
+                if name not in deps:
+                    deps[name] = repo
+                for dd_name, dd_repo in repo._get_lean4_dependencies().items():
+                    deps[dd_name] = dd_repo
 
         return deps
 
@@ -620,15 +634,15 @@ class LeanGitRepo:
         return f"{url}/{self.commit}/{filename}"
 
     def get_config(self, filename: str) -> Dict[str, Any]:
-        """Return the repo's ``leanpkg.toml`` config."""
+        """Return the repo's files."""
         config_url = self._get_config_url(filename)
         content = read_url(config_url)
-        if filename == "leanpkg.toml":
+        if filename.endswith(".toml"):
             return toml.loads(content)
-        elif filename in ("lean-toolchain", "lakefile.lean"):
-            return {"content": content}
+        elif filename.endswith(".json"):
+            return json.loads(content)
         else:
-            raise ValueError(f"Unsupported config file: {filename}")
+            return {"content": content}
 
 
 @dataclass(frozen=True)

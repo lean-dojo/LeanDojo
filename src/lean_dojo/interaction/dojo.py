@@ -427,6 +427,8 @@ class Dojo:
                 oup.write("\nlean_lib Lean4Repl {\n\n}\n")
             if os.path.exists("lakefile.olean"):
                 os.remove("lakefile.olean")
+            if os.path.exists(".lake/lakefile.olean"):
+                os.remove(".lake/lakefile.olean")
 
         # Copy the REPL code to the right directory.
         repl_src = Path(__file__).with_name(repl_file)

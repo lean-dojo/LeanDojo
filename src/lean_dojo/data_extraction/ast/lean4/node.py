@@ -1070,8 +1070,10 @@ class TacticTacticseqNode4(Node4):
         )
         return cls(lean_file, start, end, children)
 
-    def get_tactic_nodes(self) -> Generator[Node4, None, None]:
-        yield from self.children[0].get_tactic_nodes()
+    def get_tactic_nodes(
+        self, atomic_only: bool = False
+    ) -> Generator[Node4, None, None]:
+        yield from self.children[0].get_tactic_nodes(atomic_only)
 
 
 @dataclass(frozen=True)
@@ -1086,10 +1088,13 @@ class TacticTacticseq1IndentedNode4(Node4):
         assert len(children) == 1 and isinstance(children[0], NullNode4)
         return cls(lean_file, start, end, children)
 
-    def get_tactic_nodes(self) -> Generator[Node4, None, None]:
+    def get_tactic_nodes(
+        self, atomic_only: bool = False
+    ) -> Generator[Node4, None, None]:
         for i, tac_node in enumerate(self.children[0].children):
             if i % 2 == 0:
-                yield tac_node
+                if not atomic_only or not contains_tactic(tac_node):
+                    yield tac_node
             else:
                 assert isinstance(tac_node, NullNode4) or isinstance(
                     tac_node, AtomNode4
@@ -1098,7 +1103,6 @@ class TacticTacticseq1IndentedNode4(Node4):
 
 @dataclass(frozen=True)
 class TacticTacticseqbracketedNode4(Node4):
-    tactic_nodes: List[Node4]
     state_before: Optional[str] = None
     state_after: Optional[str] = None
     tactic: Optional[str] = None
@@ -1110,26 +1114,58 @@ class TacticTacticseqbracketedNode4(Node4):
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
-
         assert len(children) == 3
+        return cls(lean_file, start, end, children)
+
+    @property
+    def tactic_nodes(self) -> List[Node4]:
+        children = self.children
+        if not isinstance(children[0], AtomNode4) or children[0].val != "{":
+            return []
+
+        assert isinstance(children[1], NullNode4)
+        assert isinstance(children[2], AtomNode4) and children[2].val == "}"
+        nodes = []
+        for i, tac_node in enumerate(children[1].children):
+            if i % 2 == 0:
+                nodes.append(tac_node)
+            else:
+                assert isinstance(tac_node, NullNode4) or isinstance(
+                    tac_node, AtomNode4
+                )
+        return nodes
+
+    def get_tactic_nodes(
+        self, atomic_only: bool = False
+    ) -> Generator[Node4, None, None]:
+        children = self.children
         if isinstance(children[0], AtomNode4) and children[0].val == "{":
             assert isinstance(children[1], NullNode4)
             assert isinstance(children[2], AtomNode4) and children[2].val == "}"
-            tactic_nodes = []
             for i, tac_node in enumerate(children[1].children):
                 if i % 2 == 0:
-                    tactic_nodes.append(tac_node)
+                    if not atomic_only or not contains_tactic(tac_node):
+                        yield tac_node
                 else:
                     assert isinstance(tac_node, NullNode4) or isinstance(
                         tac_node, AtomNode4
                     )
-        else:
-            tactic_nodes = []
 
-        return cls(lean_file, start, end, children, tactic_nodes)
 
-    def get_tactic_nodes(self) -> Generator[Node4, None, None]:
-        yield from self.tactic_nodes
+def contains_tactic(node: Node4) -> bool:
+    result = False
+
+    def _callback(x, _) -> bool:
+        if x is not node and type(x) in (
+            TacticTacticseq1IndentedNode4,
+            TacticTacticseqbracketedNode4,
+        ):
+            nonlocal result
+            result = True
+            return True
+
+    node.traverse_preorder(_callback, node_cls=None)
+    return result
 
 
 @dataclass(frozen=True)
