@@ -448,6 +448,7 @@ unsafe def processFile (path : FilePath) : IO Unit := do
           continue
         if found then
           p := p ++ FilePath.pathSeparator.toString ++ c
+      p := p.replace "/lean4/src/lean/Lake" "/lean4/src/lean/lake/Lake"
       assert! ← FilePath.mk p |>.pathExists
       s := s ++ "\n" ++ p
 

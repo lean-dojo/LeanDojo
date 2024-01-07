@@ -596,7 +596,7 @@ class LeanGitRepo:
 
         try:
             lake_manifest = (
-                self.get_config("lake-manifest.json")
+                self.get_config("lake-manifest.json", num_retries=0)
                 if path is None
                 else json.load((Path(path) / "lake-manifest.json").open())
             )
@@ -633,10 +633,10 @@ class LeanGitRepo:
         url = self.url.replace("github.com", "raw.githubusercontent.com")
         return f"{url}/{self.commit}/{filename}"
 
-    def get_config(self, filename: str) -> Dict[str, Any]:
+    def get_config(self, filename: str, num_retries: int = 2) -> Dict[str, Any]:
         """Return the repo's files."""
         config_url = self._get_config_url(filename)
-        content = read_url(config_url)
+        content = read_url(config_url, num_retries)
         if filename.endswith(".toml"):
             return toml.loads(content)
         elif filename.endswith(".json"):
