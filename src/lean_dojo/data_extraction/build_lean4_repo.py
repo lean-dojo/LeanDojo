@@ -108,12 +108,19 @@ def check_files(packages_path: str, no_deps: bool) -> None:
     """Check if all *.lean files have been processed to produce *.ast.json and *.dep_paths files."""
     cwd = Path.cwd()
     jsons = {
-        p.with_suffix("").with_suffix("") for p in cwd.glob("**/build/ir/**/*.ast.json")
+        p.with_suffix("").with_suffix("")
+        for p in cwd.glob("**/build/ir/**/*.ast.json")
+        if not no_deps or not p.is_relative_to(packages_path)
     }
-    deps = {p.with_suffix("") for p in cwd.glob("**/build/ir/**/*.dep_paths")}
+    deps = {
+        p.with_suffix("")
+        for p in cwd.glob("**/build/ir/**/*.dep_paths")
+        if not no_deps or not p.is_relative_to(packages_path)
+    }
     oleans = {
         Path(str(p.with_suffix("")).replace("/build/lib/", "/build/ir/"))
         for p in cwd.glob("**/build/lib/**/*.olean")
+        if not no_deps or not p.is_relative_to(packages_path)
     }
     assert len(jsons) <= len(oleans) and len(deps) <= len(oleans)
     missing_jsons = {p.with_suffix(".ast.json") for p in oleans - jsons}
