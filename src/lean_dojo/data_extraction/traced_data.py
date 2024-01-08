@@ -1382,14 +1382,14 @@ class TracedRepo:
 
     @classmethod
     def from_traced_files(
-        cls, root_dir: Union[str, Path], build_dependencies: bool = True
+        cls, root_dir: Union[str, Path], build_deps: bool = True
     ) -> "TracedRepo":
         """Construct a :class:`TracedRepo` object by parsing :file:`*.ast.json` and :file:`*.path` files
            produced by :code:`lean --ast --tsast --tspp` (Lean 3) or :file:`ExtractData.lean` (Lean 4).
 
         Args:
             root_dir (Union[str, Path]): Root directory of the traced repo.
-            build_dependencies (bool, optional): Whether to build the dependency graph between files.
+            build_deps (bool, optional): Whether to build the dependency graph between files.
         """
         root_dir = Path(root_dir).resolve()
         if not is_git_repo(root_dir):
@@ -1419,7 +1419,7 @@ class TracedRepo:
                 )
 
         dependencies = repo.get_dependencies(root_dir)
-        if build_dependencies:
+        if build_deps:
             traced_files_graph = _build_dependency_graph(traced_files, root_dir, repo)
         else:
             traced_files_graph = None
@@ -1461,7 +1461,7 @@ class TracedRepo:
 
     @classmethod
     def load_from_disk(
-        cls, root_dir: Union[str, Path], build_dependencies: bool = True
+        cls, root_dir: Union[str, Path], build_deps: bool = True
     ) -> "TracedRepo":
         """Load a traced repo from :file:`*.trace.xml` files."""
         root_dir = Path(root_dir).resolve()
@@ -1499,7 +1499,7 @@ class TracedRepo:
                 )
 
         dependencies = repo.get_dependencies(root_dir)
-        if build_dependencies:
+        if build_deps:
             traced_files_graph = _build_dependency_graph(traced_files, root_dir, repo)
         else:
             traced_files_graph = None
