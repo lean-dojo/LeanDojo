@@ -87,15 +87,13 @@ class Cache:
 
     def store(self, src: Path) -> Path:
         """Store a traced repo at path ``src``. Return its path in the cache."""
-        dirs = list(src.glob("*"))
-        assert len(dirs) == 1, f"Unexpected number of directories in {src}"
-        url, commit = get_repo_info(dirs[0])
+        url, commit = get_repo_info(src)
         dirpath = self.cache_dir / _format_dirname(url, commit)
+        _, repo_name = _split_git_url(url)
         if not dirpath.exists():
             with self.lock:
                 with report_critical_failure(_CACHE_CORRPUTION_MSG):
-                    shutil.copytree(src, dirpath)
-        _, repo_name = _split_git_url(url)
+                    shutil.copytree(src, dirpath / repo_name)
         return dirpath / repo_name
 
 

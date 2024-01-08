@@ -134,13 +134,14 @@ def is_available_in_cache(repo: LeanGitRepo) -> bool:
     return cache.get(repo.url, repo.commit) is not None
 
 
-def get_traced_repo_path(repo: LeanGitRepo) -> Path:
+def get_traced_repo_path(repo: LeanGitRepo, build_dependencies: bool = True) -> Path:
     """Return the path of a traced repo in the cache.
 
     The function will trace a repo if it is not available in the cache. See :ref:`caching` for details.
 
     Args:
         repo (LeanGitRepo): The Lean repo to trace.
+        build_dependencies (bool): Whether to build the dependencies of ``repo``. Defaults to True.
 
     Returns:
         Path: The path of the traced repo in the cache, e.g. :file:`/home/kaiyu/.cache/lean_dojo/leanprover-community-mathlib-2196ab363eb097c008d4497125e0dde23fb36db2`
@@ -151,15 +152,21 @@ def get_traced_repo_path(repo: LeanGitRepo) -> Path:
         with working_directory() as tmp_dir:
             logger.debug(f"Working in the temporary directory {tmp_dir}")
             _trace(repo)
-            traced_repo = TracedRepo.from_traced_files(tmp_dir / repo.name)
+            traced_repo = TracedRepo.from_traced_files(
+                tmp_dir / repo.name, build_dependencies
+            )
             traced_repo.save_to_disk()
-            path = cache.store(tmp_dir)
+            path = cache.store(tmp_dir / repo.name)
     else:
         logger.debug("The traced repo is available in the cache.")
     return path
 
 
-def trace(repo: LeanGitRepo, dst_dir: Optional[Union[str, Path]] = None) -> TracedRepo:
+def trace(
+    repo: LeanGitRepo,
+    dst_dir: Optional[Union[str, Path]] = None,
+    build_dependencies: bool = True,
+) -> TracedRepo:
     """Trace a repo (and its dependencies), saving the results to ``dst_dir``.
 
     The function only traces the repo when it's not available in the cache. Otherwise,
@@ -168,6 +175,7 @@ def trace(repo: LeanGitRepo, dst_dir: Optional[Union[str, Path]] = None) -> Trac
     Args:
         repo (LeanGitRepo): The Lean repo to trace.
         dst_dir (Union[str, Path]): The directory for saving the traced repo. If None, the traced repo is only saved in the cahe.
+        build_dependencies (bool): Whether to build the dependencies of ``repo``. Defaults to True.
 
     Returns:
         TracedRepo: A :class:`TracedRepo` object corresponding to the files at ``dst_dir``.
@@ -178,9 +186,9 @@ def trace(repo: LeanGitRepo, dst_dir: Optional[Union[str, Path]] = None) -> Trac
             not dst_dir.exists()
         ), f"The destination directory {dst_dir} already exists."
 
-    cached_path = get_traced_repo_path(repo)
+    cached_path = get_traced_repo_path(repo, build_dependencies)
     logger.info(f"Loading the traced repo from {cached_path}")
-    traced_repo = TracedRepo.load_from_disk(cached_path)
+    traced_repo = TracedRepo.load_from_disk(cached_path, build_dependencies)
     traced_repo.check_sanity()
 
     if dst_dir is not None:

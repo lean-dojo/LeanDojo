@@ -1291,7 +1291,10 @@ class TracedRepo:
     """Root directory of the traced repo.
     """
 
-    traced_files_graph: nx.DiGraph = field(repr=False)
+    traced_files: List[TracedFile] = field(repr=False)
+    """List of traced files in the repo."""
+
+    traced_files_graph: Optional[nx.DiGraph] = field(repr=False)
     """Dependency graph between files in the repo.
     
     The graph is a DAG, and there is an edge from file :file:`X` to file :file:`Y`
@@ -1335,7 +1338,9 @@ class TracedRepo:
         for k, v in self.dependencies.items():
             assert isinstance(k, str) and isinstance(v, LeanGitRepo)
         assert isinstance(self.root_dir, Path)
-        assert isinstance(self.traced_files_graph, nx.DiGraph)
+        assert self.traced_files_graph is None or isinstance(
+            self.traced_files_graph, nx.DiGraph
+        )
 
         assert self.repo not in self.dependencies.values()
         assert len(self.dependencies) == 0 or not self.repo.is_lean
@@ -1353,34 +1358,38 @@ class TracedRepo:
             p.relative_to(self.root_dir) for p in self.root_dir.glob("**/*.dep_paths")
         }
 
-        if not LOAD_USED_PACKAGES_ONLY:
-            assert len(json_files) == self.traced_files_graph.number_of_nodes()
+        if self.traced_files_graph is not None:
+            if not LOAD_USED_PACKAGES_ONLY:
+                assert len(json_files) == self.traced_files_graph.number_of_nodes()
 
-        for path_str, tf_node in self.traced_files_graph.nodes.items():
-            tf = tf_node["traced_file"]
-            path = Path(path_str)
-            tf.check_sanity()
-            assert tf.path == path and tf.root_dir == self.root_dir
-            assert tf.traced_repo is None or tf.traced_repo is self
-            assert path in lean_files
-            assert (
-                to_dep_path(self.root_dir, path, self.repo) in path_files
-            ), to_dep_path(self.root_dir, path, self.repo)
-            assert (
-                to_json_path(self.root_dir, path, self.repo) in json_files
-            ), to_json_path(self.root_dir, path, self.repo)
-            if len(xml_files) > 0:
+            for path_str, tf_node in self.traced_files_graph.nodes.items():
+                tf = tf_node["traced_file"]
+                path = Path(path_str)
+                tf.check_sanity()
+                assert tf.path == path and tf.root_dir == self.root_dir
+                assert tf.traced_repo is None or tf.traced_repo is self
+                assert path in lean_files
                 assert (
-                    to_xml_path(self.root_dir, path, self.repo) in xml_files
-                ), to_xml_path(self.root_dir, path, self.repo)
+                    to_dep_path(self.root_dir, path, self.repo) in path_files
+                ), to_dep_path(self.root_dir, path, self.repo)
+                assert (
+                    to_json_path(self.root_dir, path, self.repo) in json_files
+                ), to_json_path(self.root_dir, path, self.repo)
+                if len(xml_files) > 0:
+                    assert (
+                        to_xml_path(self.root_dir, path, self.repo) in xml_files
+                    ), to_xml_path(self.root_dir, path, self.repo)
 
     @classmethod
-    def from_traced_files(cls, root_dir: Union[str, Path]) -> "TracedRepo":
+    def from_traced_files(
+        cls, root_dir: Union[str, Path], build_dependencies: bool = True
+    ) -> "TracedRepo":
         """Construct a :class:`TracedRepo` object by parsing :file:`*.ast.json` and :file:`*.path` files
            produced by :code:`lean --ast --tsast --tspp` (Lean 3) or :file:`ExtractData.lean` (Lean 4).
 
         Args:
             root_dir (Union[str, Path]): Root directory of the traced repo.
+            build_dependencies (bool, optional): Whether to build the dependency graph between files.
         """
         root_dir = Path(root_dir).resolve()
         if not is_git_repo(root_dir):
@@ -1410,21 +1419,16 @@ class TracedRepo:
                 )
 
         dependencies = repo.get_dependencies(root_dir)
-        traced_files_graph = _build_dependency_graph(traced_files, root_dir, repo)
-        traced_repo = cls(repo, dependencies, root_dir, traced_files_graph)
+        if build_dependencies:
+            traced_files_graph = _build_dependency_graph(traced_files, root_dir, repo)
+        else:
+            traced_files_graph = None
+
+        traced_repo = cls(
+            repo, dependencies, root_dir, traced_files, traced_files_graph
+        )
         traced_repo._update_traced_files()
         return traced_repo
-
-    @property
-    def traced_files(self) -> Generator[TracedFile, None, None]:
-        """Return an iterator of traced files from their dependency graph."""
-        for _, tf_node in self.traced_files_graph.nodes.items():
-            yield tf_node["traced_file"]
-
-    @property
-    def num_traced_files(self) -> int:
-        """Number of traced files in the repo."""
-        return len(self.traced_files_graph)
 
     def get_traced_file(self, path: Union[str, Path]) -> TracedFile:
         """Return a traced file by its path."""
@@ -1436,11 +1440,12 @@ class TracedRepo:
 
     def save_to_disk(self) -> None:
         """Save all traced files in the repo to the disk as :file:`*.trace.xml` files."""
+        num_traced_files = len(self.traced_files)
         logger.debug(
-            f"Saving {self.num_traced_files} traced XML files to {self.root_dir} with {NUM_WORKERS} workers"
+            f"Saving {num_traced_files} traced XML files to {self.root_dir} with {NUM_WORKERS} workers"
         )
         if NUM_WORKERS <= 1:
-            for tf in tqdm(self.traced_files, total=self.num_traced_files):
+            for tf in tqdm(self.traced_files, total=num_traced_files):
                 _save_xml_to_disk(tf)
         else:
             with ray_actor_pool(_TracedRepoHelper, self.root_dir, self.repo) as pool:
@@ -1450,12 +1455,14 @@ class TracedRepo:
                             lambda a, tf: a.save_xml_to_disk.remote(tf),
                             self.traced_files,
                         ),
-                        total=self.num_traced_files,
+                        total=num_traced_files,
                     )
                 )
 
     @classmethod
-    def load_from_disk(cls, root_dir: Union[str, Path]) -> "TracedRepo":
+    def load_from_disk(
+        cls, root_dir: Union[str, Path], build_dependencies: bool = True
+    ) -> "TracedRepo":
         """Load a traced repo from :file:`*.trace.xml` files."""
         root_dir = Path(root_dir).resolve()
         if not is_git_repo(root_dir):
@@ -1492,8 +1499,14 @@ class TracedRepo:
                 )
 
         dependencies = repo.get_dependencies(root_dir)
-        traced_files_graph = _build_dependency_graph(traced_files, root_dir, repo)
-        traced_repo = cls(repo, dependencies, root_dir, traced_files_graph)
+        if build_dependencies:
+            traced_files_graph = _build_dependency_graph(traced_files, root_dir, repo)
+        else:
+            traced_files_graph = None
+
+        traced_repo = cls(
+            repo, dependencies, root_dir, traced_files, traced_files_graph
+        )
         traced_repo._update_traced_files()
         return traced_repo
 

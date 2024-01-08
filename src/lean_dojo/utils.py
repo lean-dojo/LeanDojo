@@ -292,7 +292,11 @@ def _from_lean_path(root_dir: Path, path: Path, repo, ext: str) -> Path:
     build_dir = repo.get_build_dir()
 
     assert root_dir.name != "lean4"
-    if path.is_relative_to(packages_dir / "lean4/src"):
+    if path.is_relative_to(packages_dir / "lean4/src/lean/lake"):
+        # E.g., "lake-packages/lean4/src/lean/lake/Lake/CLI/Error.lean"
+        p = path.relative_to(packages_dir / "lean4/src/lean/lake")
+        return packages_dir / "lean4/lib/lean" / p.with_suffix(ext)
+    elif path.is_relative_to(packages_dir / "lean4/src"):
         # E.g., "lake-packages/lean4/src/lean/Init.lean"
         p = path.relative_to(packages_dir / "lean4/src").with_suffix(ext)
         return packages_dir / "lean4/lib" / p
@@ -335,7 +339,13 @@ def to_lean_path(root_dir: Path, path: Path, repo) -> bool:
     build_dir = repo.get_build_dir()
 
     assert root_dir.name != "lean4"
-    if path.is_relative_to(packages_dir / "lean4/lib"):
+    if path == packages_dir / "lean4/lib/lean/Lake.lean":
+        return packages_dir / "lean4/src/lean/lake/Lake.lean"
+    elif path.is_relative_to(packages_dir / "lean4/lib/lean/Lake"):
+        # E.g., "lake-packages/lean4/lib/lean/Lake/Util/List.lean"
+        p = path.relative_to(packages_dir / "lean4/lib/lean/Lake")
+        return packages_dir / "lean4/src/lean/lake/Lake" / p
+    elif path.is_relative_to(packages_dir / "lean4/lib"):
         # E.g., "lake-packages/lean4/lib/lean/Init.lean"
         p = path.relative_to(packages_dir / "lean4/lib")
         return packages_dir / "lean4/src" / p
