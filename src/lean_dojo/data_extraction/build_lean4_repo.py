@@ -4,7 +4,6 @@ Only this file runs in Docker. So it must be self-contained.
 """
 import os
 import re
-import sys
 import shutil
 import argparse
 import itertools
@@ -175,7 +174,7 @@ def main() -> None:
 
     # Run ExtractData.lean to extract ASTs, tactic states, and premise information.
     dirs_to_monitor = [build_path]
-    if args.no_deps:
+    if not args.no_deps:
         dirs_to_monitor.append(packages_path)
     logger.info(f"Tracing {repo_name}")
     with launch_progressbar(dirs_to_monitor):
