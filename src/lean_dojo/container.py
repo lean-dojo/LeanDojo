@@ -103,7 +103,7 @@ def _copy_file_or_dir(src: Path, dst: Path) -> None:
         assert src.is_dir() and not src.is_relative_to(dst)
         if dst.exists():
             shutil.rmtree(dst)
-        shutil.copytree(src, dst)
+        shutil.copytree(src, dst, symlinks=True)
 
 
 class NativeContainer(Container):
