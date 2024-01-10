@@ -669,6 +669,21 @@ class LeanBinderidentNode4(Node4):
 
 
 @dataclass(frozen=True)
+class LeanBinderidentAntiquotNode4(Node4):
+    @classmethod
+    def from_data(
+        cls, node_data: Dict[str, Any], lean_file: LeanFile
+    ) -> "LeanBinderidentAntiquotNode4":
+        assert node_data["info"] == "none"
+        start, end = None, None
+        children = _parse_children(node_data, lean_file)
+        return cls(lean_file, start, end, children)
+
+    def get_ident(self) -> Optional[str]:
+        return None
+
+
+@dataclass(frozen=True)
 class StdTacticAliasAliasNode4(Node4):
     name: str
     full_name: Optional[str] = None
@@ -712,9 +727,9 @@ class StdTacticAliasAliaslrNode4(Node4):
         assert isinstance(children[6], AtomNode4) and children[6].val == "⟩"
 
         name = []
-        assert isinstance(children[3], LeanBinderidentNode4)
+        assert type(children[3]) in (LeanBinderidentNode4, LeanBinderidentAntiquotNode4)
         name.append(children[3].get_ident())
-        assert isinstance(children[5], LeanBinderidentNode4)
+        assert type(children[5]) in (LeanBinderidentNode4, LeanBinderidentAntiquotNode4)
         name.append(children[5].get_ident())
         name = [n for n in name if n is not None]
 
@@ -1072,6 +1087,23 @@ class TermBytacticNode4(Node4):
 
 
 @dataclass(frozen=True)
+class TacticTacticseq1IndentedAntiquotNode4(Node4):
+    @classmethod
+    def from_data(
+        cls, node_data: Dict[str, Any], lean_file: LeanFile
+    ) -> "TacticTacticseq1IndentedAntiquotNode4":
+        assert node_data["info"] == "none"
+        start, end = None, None
+        children = _parse_children(node_data, lean_file)
+        return cls(lean_file, start, end, children)
+
+    def get_tactic_nodes(
+        self, atomic_only: bool = False
+    ) -> Generator[Node4, None, None]:
+        return
+
+
+@dataclass(frozen=True)
 class TacticTacticseqNode4(Node4):
     @classmethod
     def from_data(
@@ -1083,7 +1115,7 @@ class TacticTacticseqNode4(Node4):
         assert len(children) == 1 and type(children[0]) in (
             TacticTacticseq1IndentedNode4,
             TacticTacticseqbracketedNode4,
-            TacticTacticSeq1IndentedAntiquotNode4,
+            TacticTacticseq1IndentedAntiquotNode4,
         )
         return cls(lean_file, start, end, children)
 
@@ -1116,24 +1148,6 @@ class TacticTacticseq1IndentedNode4(Node4):
                 assert isinstance(tac_node, NullNode4) or isinstance(
                     tac_node, AtomNode4
                 )
-
-
-@dataclass(frozen=True)
-class TacticTacticSeq1IndentedAntiquotNode4(Node4):
-    @classmethod
-    def from_data(
-        cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "TacticTacticSeq1IndentedAntiquotNode4":
-        assert node_data["info"] == "none"
-        start, end = None, None
-        children = _parse_children(node_data, lean_file)
-        assert len(children) == 1 and isinstance(children[0], NullNode4)
-        return cls(lean_file, start, end, children)
-
-    def get_tactic_nodes(
-        self, atomic_only: bool = False
-    ) -> Generator[Node4, None, None]:
-        return
 
 
 @dataclass(frozen=True)
