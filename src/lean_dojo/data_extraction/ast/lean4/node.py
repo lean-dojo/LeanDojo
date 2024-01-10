@@ -319,7 +319,7 @@ class IdentAntiquotNode4(Node4):
 
 @dataclass(frozen=True)
 class LeanElabCommandCommandIrreducibleDefNode4(Node4):
-    name: str
+    name: Optional[str]
     full_name: Optional[str] = None
 
     @classmethod
@@ -330,15 +330,19 @@ class LeanElabCommandCommandIrreducibleDefNode4(Node4):
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert isinstance(children[0], CommandDeclmodifiersNode4)
-        assert (
-            isinstance(children[1], AtomNode4) and children[1].val == "irreducible_def"
-        )
-        declid_node = children[2]
-        assert isinstance(declid_node, CommandDeclidNode4)
-        ident_node = declid_node.children[0]
-        assert isinstance(ident_node, IdentNode4)
-        name = ident_node.val
+        if isinstance(children[0], CommandDeclmodifiersAntiquotNode4):
+            name = None
+        else:
+            assert isinstance(children[0], CommandDeclmodifiersNode4)
+            assert (
+                isinstance(children[1], AtomNode4)
+                and children[1].val == "irreducible_def"
+            )
+            declid_node = children[2]
+            assert isinstance(declid_node, CommandDeclidNode4)
+            ident_node = declid_node.children[0]
+            assert isinstance(ident_node, IdentNode4)
+            name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
 
@@ -567,7 +571,7 @@ class CommandStructureNode4(Node4):
 
 @dataclass(frozen=True)
 class CommandInductiveNode4(Node4):
-    name: str
+    name: Optional[str]
 
     @classmethod
     def from_data(
@@ -578,11 +582,15 @@ class CommandInductiveNode4(Node4):
         children = _parse_children(node_data, lean_file)
 
         assert isinstance(children[0], AtomNode4) and children[0].val == "inductive"
-        assert isinstance(children[1], CommandDeclidNode4)
-        decl_id_node = children[1]
-        ident_node = decl_id_node.children[0]
-        assert isinstance(ident_node, IdentNode4)
-        name = ident_node.val
+
+        if isinstance(children[1], CommandDeclidAntiquotNode4):
+            name = None
+        else:
+            assert isinstance(children[1], CommandDeclidNode4)
+            decl_id_node = children[1]
+            ident_node = decl_id_node.children[0]
+            assert isinstance(ident_node, IdentNode4)
+            name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
 
@@ -607,11 +615,15 @@ class CommandClassinductiveNode4(Node4):
             isinstance(children[0].children[1], AtomNode4)
             and children[0].children[1].val == "inductive"
         )
-        assert isinstance(children[1], CommandDeclidNode4)
-        decl_id_node = children[1]
-        ident_node = decl_id_node.children[0]
-        assert isinstance(ident_node, IdentNode4)
-        name = ident_node.val
+
+        if isinstance(children[1], CommandDeclidAntiquotNode4):
+            name = None
+        else:
+            assert isinstance(children[1], CommandDeclidNode4)
+            decl_id_node = children[1]
+            ident_node = decl_id_node.children[0]
+            assert isinstance(ident_node, IdentNode4)
+            name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
 
@@ -671,9 +683,12 @@ class StdTacticAliasAliasNode4(Node4):
 
         assert isinstance(children[0], CommandDeclmodifiersNode4)
         assert isinstance(children[1], AtomNode4) and children[1].val == "alias"
-        ident_node = children[2]
-        assert isinstance(ident_node, IdentNode4)
-        name = ident_node.val
+        if isinstance(children[2], IdentAntiquotNode4):
+            name = None
+        else:
+            ident_node = children[2]
+            assert isinstance(ident_node, IdentNode4)
+            name = ident_node.val
         return cls(lean_file, start, end, children, name)
 
 
@@ -998,26 +1013,27 @@ class CommandTheoremNode4(Node4):
                 assert isinstance(ident_node, IdentAntiquotNode4)
                 name = ident_node.get_ident()
 
-        assert isinstance(children[2], CommandDeclsigNode4)
-        decl_val_node = children[3]
-        assert type(decl_val_node) in (
-            CommandDeclvalsimpleNode4,
-            CommandDeclvaleqnsNode4,
-            CommandWherestructinstNode4,
-        )
+        if not isinstance(children[1], CommandDeclidAntiquotNode4):
+            assert isinstance(children[2], CommandDeclsigNode4)
+            decl_val_node = children[3]
+            assert type(decl_val_node) in (
+                CommandDeclvalsimpleNode4,
+                CommandDeclvaleqnsNode4,
+                CommandWherestructinstNode4,
+            )
 
-        if isinstance(decl_val_node, CommandDeclvalsimpleNode4):
-            assert (
-                isinstance(decl_val_node.children[0], AtomNode4)
-                and decl_val_node.children[0].val == ":="
-            )
-            assert isinstance(decl_val_node.children[2], NullNode4)
-        elif isinstance(decl_val_node, CommandWherestructinstNode4):
-            assert (
-                isinstance(decl_val_node.children[0], AtomNode4)
-                and decl_val_node.children[0].val == "where"
-            )
-            assert isinstance(decl_val_node.children[2], NullNode4)
+            if isinstance(decl_val_node, CommandDeclvalsimpleNode4):
+                assert (
+                    isinstance(decl_val_node.children[0], AtomNode4)
+                    and decl_val_node.children[0].val == ":="
+                )
+                assert isinstance(decl_val_node.children[2], NullNode4)
+            elif isinstance(decl_val_node, CommandWherestructinstNode4):
+                assert (
+                    isinstance(decl_val_node.children[0], AtomNode4)
+                    and decl_val_node.children[0].val == "where"
+                )
+                assert isinstance(decl_val_node.children[2], NullNode4)
 
         return cls(lean_file, start, end, children, name)
 
@@ -1067,6 +1083,7 @@ class TacticTacticseqNode4(Node4):
         assert len(children) == 1 and type(children[0]) in (
             TacticTacticseq1IndentedNode4,
             TacticTacticseqbracketedNode4,
+            TacticTacticSeq1IndentedAntiquotNode4,
         )
         return cls(lean_file, start, end, children)
 
@@ -1099,6 +1116,24 @@ class TacticTacticseq1IndentedNode4(Node4):
                 assert isinstance(tac_node, NullNode4) or isinstance(
                     tac_node, AtomNode4
                 )
+
+
+@dataclass(frozen=True)
+class TacticTacticSeq1IndentedAntiquotNode4(Node4):
+    @classmethod
+    def from_data(
+        cls, node_data: Dict[str, Any], lean_file: LeanFile
+    ) -> "TacticTacticSeq1IndentedAntiquotNode4":
+        assert node_data["info"] == "none"
+        start, end = None, None
+        children = _parse_children(node_data, lean_file)
+        assert len(children) == 1 and isinstance(children[0], NullNode4)
+        return cls(lean_file, start, end, children)
+
+    def get_tactic_nodes(
+        self, atomic_only: bool = False
+    ) -> Generator[Node4, None, None]:
+        return
 
 
 @dataclass(frozen=True)

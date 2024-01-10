@@ -107,6 +107,7 @@ def get_lean_version() -> str:
 def check_files(packages_path: str, no_deps: bool) -> None:
     """Check if all *.lean files have been processed to produce *.ast.json and *.dep_paths files."""
     cwd = Path.cwd()
+    packages_path = cwd / packages_path
     jsons = {
         p.with_suffix("").with_suffix("")
         for p in cwd.glob("**/build/ir/**/*.ast.json")
