@@ -205,7 +205,10 @@ Convert the path of a *.lean file to its corresponding file (e.g., *.olean) in t
 def toBuildDir (subDir : FilePath) (path : FilePath) (ext : String) : Option FilePath :=
   let path' := (trim path).withExtension ext
   match relativeTo path' $ packagesDir / "lean4/src" with
-  | some p => packagesDir / "lean4/lib" / p
+  | some p =>
+    match relativeTo p "lean/lake" with
+    | some p' => packagesDir / "lean4/lib/lean" / p'
+    | none => packagesDir / "lean4/lib" / p
   | none => match relativeTo path' packagesDir with
     | some p =>
       match p.components with
@@ -448,6 +451,7 @@ unsafe def processFile (path : FilePath) : IO Unit := do
           continue
         if found then
           p := p ++ FilePath.pathSeparator.toString ++ c
+      p := p.replace "/lean4/src/lean/Lake" "/lean4/src/lean/lake/Lake"
       assert! ← FilePath.mk p |>.pathExists
       s := s ++ "\n" ++ p
 
@@ -464,16 +468,17 @@ open LeanDojo
 /--
 Whether a *.lean file should be traced.
 -/
-def shouldProcess (path : FilePath) (noDep : Bool) : IO Bool := do
+def shouldProcess (path : FilePath) (noDeps : Bool) : IO Bool := do
   if (← path.isDir) ∨ path.extension != "lean" then
-    return false
-
-  if noDep ∧ Path.isRelativeTo path Path.packagesDir then
     return false
 
   let cwd ← IO.currentDir
   let some relativePath := Path.relativeTo path cwd |
     throw $ IO.userError s!"Invalid path: {path}"
+
+  if noDeps ∧ Path.isRelativeTo relativePath Path.packagesDir then
+    return false
+
   let some oleanPath := Path.toBuildDir "lib" relativePath "olean" |
     throw $ IO.userError s!"Invalid path: {path}"
   return ← oleanPath.pathExists
@@ -482,14 +487,14 @@ def shouldProcess (path : FilePath) (noDep : Bool) : IO Bool := do
 /--
 Trace all *.lean files in the current directory whose corresponding *.olean file exists.
 -/
-def processAllFiles (noDep : Bool) : IO Unit := do
+def processAllFiles (noDeps : Bool) : IO Unit := do
     let cwd ← IO.currentDir
     assert! cwd.fileName != "lean4"
     println! "Extracting data at {cwd}"
 
     let mut tasks := #[]
     for path in ← System.FilePath.walkDir cwd do
-      if ← shouldProcess path noDep then
+      if ← shouldProcess path noDeps then
         println! path
         let t ← IO.asTask $ IO.Process.run
           {cmd := "lake", args := #["env", "lean", "--run", "ExtractData.lean", path.toString]}
@@ -506,6 +511,6 @@ def processAllFiles (noDep : Bool) : IO Unit := do
 
 unsafe def main (args : List String) : IO Unit := do
   match args with
-  | "nodep" :: _ => processAllFiles true
+  | "nodeps" :: _ => processAllFiles true
   | path :: _ => processFile (← Path.toAbsolute ⟨path⟩)
   | [] => processAllFiles false

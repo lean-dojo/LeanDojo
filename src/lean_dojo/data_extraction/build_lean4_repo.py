@@ -4,8 +4,8 @@ Only this file runs in Docker. So it must be self-contained.
 """
 import os
 import re
-import sys
 import shutil
+import argparse
 import itertools
 import subprocess
 from tqdm import tqdm
@@ -104,16 +104,24 @@ def get_lean_version() -> str:
     return m["version"]
 
 
-def check_files() -> None:
+def check_files(packages_path: str, no_deps: bool) -> None:
     """Check if all *.lean files have been processed to produce *.ast.json and *.dep_paths files."""
     cwd = Path.cwd()
+    packages_path = cwd / packages_path
     jsons = {
-        p.with_suffix("").with_suffix("") for p in cwd.glob("**/build/ir/**/*.ast.json")
+        p.with_suffix("").with_suffix("")
+        for p in cwd.glob("**/build/ir/**/*.ast.json")
+        if not no_deps or not p.is_relative_to(packages_path)
     }
-    deps = {p.with_suffix("") for p in cwd.glob("**/build/ir/**/*.dep_paths")}
+    deps = {
+        p.with_suffix("")
+        for p in cwd.glob("**/build/ir/**/*.dep_paths")
+        if not no_deps or not p.is_relative_to(packages_path)
+    }
     oleans = {
         Path(str(p.with_suffix("")).replace("/build/lib/", "/build/ir/"))
         for p in cwd.glob("**/build/lib/**/*.olean")
+        if not no_deps or not p.is_relative_to(packages_path)
     }
     assert len(jsons) <= len(oleans) and len(deps) <= len(oleans)
     missing_jsons = {p.with_suffix(".ast.json") for p in oleans - jsons}
@@ -123,7 +131,7 @@ def check_files() -> None:
             logger.warning(f"Missing {p}")
 
 
-def is_new_version(v) -> bool:
+def is_new_version(v: str) -> bool:
     """Check if ``v`` is at least `4.3.0-rc2`."""
     major, minor, patch = [int(_) for _ in v.split("-")[0].split(".")]
     if major < 4 or (major == 4 and minor < 3):
@@ -143,12 +151,23 @@ def is_new_version(v) -> bool:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("repo_name")
+    parser.add_argument("--no-deps", action="store_true")
+    args = parser.parse_args()
+
     num_procs = int(os.environ["NUM_PROCS"])
-    repo_name = sys.argv[1]
+    repo_name = args.repo_name
     os.chdir(repo_name)
 
     # Build the repo using lake.
     logger.info(f"Building {repo_name}")
+    if args.no_deps:
+        # The additional *.olean files wouldn't matter.
+        try:
+            run_cmd("lake exe cache get")
+        except subprocess.CalledProcessError:
+            pass
     run_cmd("lake build")
 
     # Copy the Lean 4 stdlib into the path of packages.
@@ -162,14 +181,17 @@ def main() -> None:
     shutil.copytree(lean_prefix, f"{packages_path}/lean4")
 
     # Run ExtractData.lean to extract ASTs, tactic states, and premise information.
+    dirs_to_monitor = [build_path]
+    if not args.no_deps:
+        dirs_to_monitor.append(packages_path)
     logger.info(f"Tracing {repo_name}")
-    with launch_progressbar([build_path, packages_path]):
-        run_cmd(
-            f"lake env lean --threads {num_procs} --run ExtractData.lean",
-            capture_output=True,
-        )
+    with launch_progressbar(dirs_to_monitor):
+        cmd = f"lake env lean --threads {num_procs} --run ExtractData.lean"
+        if args.no_deps:
+            cmd += " nodeps"
+        run_cmd(cmd, capture_output=True)
 
-    check_files()
+    check_files(packages_path, args.no_deps)
 
 
 if __name__ == "__main__":
