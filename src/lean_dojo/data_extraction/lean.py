@@ -686,4 +686,4 @@ class Theorem:
     @property
     def uhash(self) -> str:
         """Unique hash of the theorem."""
-        return str(hash(self.uid)**2)
+        return str(hash(self.uid) ** 2)
