@@ -38,7 +38,7 @@ dependencies = [
   "networkx",
   "lxml",
   "PyGithub",
-  "ray[default] >= 2.6",
+  "ray[default] >= 2.8",
 ]
 
 [project.optional-dependencies]
