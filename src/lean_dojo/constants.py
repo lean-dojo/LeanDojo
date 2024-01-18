@@ -6,12 +6,11 @@ import re
 import sys
 import subprocess
 import multiprocessing
-from github import Auth
 from pathlib import Path
 from typing import Tuple
-from github import Github
 from loguru import logger
 from dotenv import load_dotenv
+from github import Github, Auth
 
 load_dotenv()
 
