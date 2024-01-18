@@ -14,7 +14,7 @@ from github import Github, Auth
 
 load_dotenv()
 
-__version__ = "1.5.0"
+__version__ = "1.5.1rc"
 
 logger.remove()
 if "VERBOSE" in os.environ or "DEBUG" in os.environ:

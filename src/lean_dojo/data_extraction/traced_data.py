@@ -281,7 +281,9 @@ class TracedTheorem:
     """The corresponding :class:`Theorem` object.
     """
 
-    ast: Union[TheoremNode, CommandTheoremNode4] = field(repr=False, compare=False)
+    ast: Union[TheoremNode, CommandTheoremNode4, MathlibTacticLemmaNode4] = field(
+        repr=False, compare=False
+    )
     """AST of the theorem.
     """
 
@@ -980,8 +982,16 @@ class TracedFile:
         result = None
         private_result = None
 
-        def _callback(node: Union[TheoremNode, CommandTheoremNode4], _) -> None:
+        def _callback(
+            node: Union[TheoremNode, CommandTheoremNode4, MathlibTacticLemmaNode4], _
+        ) -> None:
             nonlocal result, private_result
+            if type(node) not in (
+                TheoremNode,
+                CommandTheoremNode4,
+                MathlibTacticLemmaNode4,
+            ):
+                return False
             if node.full_name == thm.full_name:
                 comments = self._filter_comments(node.start, node.end)
                 t = TracedTheorem(self.root_dir, thm, node, comments, self)
@@ -990,8 +1000,7 @@ class TracedFile:
                 else:
                     result = t
 
-        node_cls = TheoremNode if self.uses_lean3 else CommandTheoremNode4
-        self.ast.traverse_preorder(_callback, node_cls)
+        self.ast.traverse_preorder(_callback, node_cls=None)
 
         # Prioritize non-private theorems.
         if result is None:
@@ -1002,7 +1011,15 @@ class TracedFile:
         """Return a list of traced theorem in this traced file."""
         traced_theorems = []
 
-        def _callback(node: Union[TheoremNode, CommandTheoremNode4], _) -> None:
+        def _callback(
+            node: Union[TheoremNode, CommandTheoremNode4, MathlibTacticLemmaNode4], _
+        ) -> None:
+            if type(node) not in (
+                TheoremNode,
+                CommandTheoremNode4,
+                MathlibTacticLemmaNode4,
+            ):
+                return False
             repo, path = self._get_repo_and_relative_path()
             thm = Theorem(repo, path, node.full_name)
             comments = self._filter_comments(node.start, node.end)
@@ -1012,8 +1029,7 @@ class TracedFile:
             # No need to traverse the subtree since theorems cannot be nested.
             return True
 
-        node_cls = TheoremNode if self.uses_lean3 else CommandTheoremNode4
-        self.traverse_preorder(_callback, node_cls)
+        self.traverse_preorder(_callback, node_cls=None)
         return traced_theorems
 
     def _filter_comments(self, start: Pos, end: Pos) -> List[Comment]:
