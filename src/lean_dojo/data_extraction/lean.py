@@ -37,9 +37,9 @@ from ..constants import (
 )
 
 
-def cleanse_string(s: str) -> str:
+def cleanse_string(s: str | Path) -> str:
     """Replace : and / with _ in a string."""
-    return s.replace("/", "_").replace(":", "_")
+    return str(s).replace("/", "_").replace(":", "_")
 
 
 @cache
@@ -681,4 +681,9 @@ class Theorem:
     @property
     def uid(self) -> str:
         """Unique identifier of the theorem."""
-        return f"{cleanse_string(self.repo.url)}@{cleanse_string(self.repo.commit)}:{cleanse_string(self.file_path)}:{cleanse_string(self.full_name)}"
+        return f"{cleanse_string(self.repo.url)}@{cleanse_string(self.repo.commit)}:{cleanse_string(self.file_path.__str__())}:{cleanse_string(self.full_name)}"
+
+    @property
+    def uhash(self) -> str:
+        """Unique hash of the theorem."""
+        return str(hash(self.uid) ** 2)
