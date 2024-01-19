@@ -581,7 +581,10 @@ class LeanGitRepo:
             elif len(rev) == 40 and _COMMIT_REGEX.fullmatch(rev):
                 commit = rev
             else:
-                commit = _to_commit_hash(url_to_repo(url), rev)
+                try:
+                    commit = _to_commit_hash(url_to_repo(url), rev)
+                except ValueError:
+                    commit = get_latest_commit(url)
                 assert _COMMIT_REGEX.fullmatch(commit)
 
             deps.append((m["name"], LeanGitRepo(url, commit)))
@@ -606,9 +609,7 @@ class LeanGitRepo:
                 else json.load((Path(path) / "lake-manifest.json").open())
             )
             for pkg in lake_manifest["packages"]:
-                deps[pkg["git"]["name"]] = LeanGitRepo(
-                    pkg["git"]["url"], pkg["git"]["rev"]
-                )
+                deps[pkg["name"]] = LeanGitRepo(pkg["url"], pkg["rev"])
         except Exception:
             lakefile = (
                 self.get_config("lakefile.lean")
