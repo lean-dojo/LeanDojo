@@ -361,6 +361,9 @@ class GroupNode4(Node4):
 class MathlibTacticLemmaNode4(Node4):
     name: str
     full_name: Optional[str] = None
+    _is_private_decl: Optional[
+        bool
+    ] = False  # `_is_private` doesn't play well with lxml.
 
     @classmethod
     def from_data(
@@ -383,6 +386,27 @@ class MathlibTacticLemmaNode4(Node4):
         name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
+
+    def is_private(self) -> bool:
+        return self._is_private_decl
+
+    def get_proof_node(self) -> Node4:
+        decl_val_node = self.children[1].children[3]
+        if type(decl_val_node) in (
+            CommandDeclvalsimpleNode4,
+            CommandWherestructinstNode4,
+        ):
+            return decl_val_node.children[1]
+        else:
+            return decl_val_node
+
+    def has_tactic_proof(self) -> bool:
+        node = self.get_proof_node()
+        return isinstance(node, TermBytacticNode4)
+
+    @property
+    def is_mutual(self) -> bool:
+        return not isinstance(self.name, str)
 
 
 @dataclass(frozen=True)
