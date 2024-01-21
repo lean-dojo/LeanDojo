@@ -37,7 +37,7 @@ from ..constants import (
 )
 
 
-def cleanse_string(s: str | Path) -> str:
+def cleanse_string(s: Union[str, Path]) -> str:
     """Replace : and / with _ in a string."""
     return str(s).replace("/", "_").replace(":", "_")
 
