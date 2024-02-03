@@ -88,7 +88,7 @@ def _trace_lean3(repo: LeanGitRepo) -> None:
     }
     try:
         container.run(
-            f"python3 build_lean3_repo.py {repo.name}",
+            f"python build_lean3_repo.py {repo.name}",
             create_mounts(mts),
             {"NUM_PROCS": NUM_PROCS},
             as_current_user=True,
@@ -114,7 +114,7 @@ def _trace_lean4(repo: LeanGitRepo, build_deps: bool) -> None:
         LEAN4_BUILD_SCRIPT_PATH: f"/workspace/{LEAN4_BUILD_SCRIPT_PATH.name}",
         LEAN4_DATA_EXTRACTOR_PATH: f"/workspace/{repo.name}/{LEAN4_DATA_EXTRACTOR_PATH.name}",
     }
-    cmd = f"python3 build_lean4_repo.py {repo.name}"
+    cmd = f"python build_lean4_repo.py {repo.name}"
     if not build_deps:
         cmd += " --no-deps"
 
