@@ -1,5 +1,6 @@
 """Utilities for parsing Lean's pretty-printed proof goals.
 """
+
 import re
 from typing import List
 from dataclasses import dataclass

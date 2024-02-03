@@ -361,9 +361,9 @@ class GroupNode4(Node4):
 class MathlibTacticLemmaNode4(Node4):
     name: str
     full_name: Optional[str] = None
-    _is_private_decl: Optional[
-        bool
-    ] = False  # `_is_private` doesn't play well with lxml.
+    _is_private_decl: Optional[bool] = (
+        False  # `_is_private` doesn't play well with lxml.
+    )
 
     @classmethod
     def from_data(
@@ -1027,9 +1027,9 @@ class TermTypespecNode4(Node4):
 class CommandTheoremNode4(Node4):
     name: str
     full_name: Optional[str] = None
-    _is_private_decl: Optional[
-        bool
-    ] = False  # `_is_private` doesn't play well with lxml.
+    _is_private_decl: Optional[bool] = (
+        False  # `_is_private` doesn't play well with lxml.
+    )
 
     @classmethod
     def from_data(

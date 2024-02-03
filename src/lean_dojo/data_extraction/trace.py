@@ -2,6 +2,7 @@
 To estimate the time for tracing a repo, a good rule of thumb is 1.5x the time for compiling the repo using :code:`leanpkg build`.
 A repo has to be traced only once, and the traced repo will be stored in a cache for fast access in the future.
 """
+
 import shutil
 from pathlib import Path
 from loguru import logger

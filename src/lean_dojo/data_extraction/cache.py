@@ -1,5 +1,6 @@
 """Cache manager of traced repos.
 """
+
 import os
 import shutil
 import tarfile
