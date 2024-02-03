@@ -1,4 +1,5 @@
 """Script to zip all traced repos in the cache."""
+
 import ray
 import tarfile
 from pathlib import Path
