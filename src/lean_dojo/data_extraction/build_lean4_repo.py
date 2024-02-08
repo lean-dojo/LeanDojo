@@ -129,6 +129,7 @@ def check_files(packages_path: str, no_deps: bool) -> None:
     missing_deps = {p.with_suffix(".dep_paths") for p in oleans - deps}
     if len(missing_jsons) > 0 or len(missing_deps) > 0:
         for p in missing_jsons.union(missing_deps):
+            import pdb; pdb.set_trace()
             logger.warning(f"Missing {p}")
 
 
@@ -154,6 +155,7 @@ def is_new_version(v: str) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("repo_name")
+    parser.add_argument("--low-memory-mode", action="store_true")
     parser.add_argument("--no-deps", action="store_true")
     args = parser.parse_args()
 
@@ -188,8 +190,11 @@ def main() -> None:
     logger.info(f"Tracing {repo_name}")
     with launch_progressbar(dirs_to_monitor):
         cmd = f"lake env lean --threads {num_procs} --run ExtractData.lean"
+        if args.low_memory_mode:
+            cmd += " noPremises"
         if args.no_deps:
-            cmd += " nodeps"
+            cmd += " noDeps"
+        logger.debug(cmd)
         run_cmd(cmd, capture_output=True)
 
     check_files(packages_path, args.no_deps)

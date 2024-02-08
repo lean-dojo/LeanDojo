@@ -359,35 +359,43 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
     }
 
 
-private def visitInfo (ctx : ContextInfo) (i : Info) (parent : InfoTree) (env : Environment) : TraceM Unit := do
+private def visitInfo (noPremises : Bool) (ctx : ContextInfo)
+(i : Info) (parent : InfoTree) (env : Environment) : TraceM Unit := do
   match i with
   | .ofTacticInfo ti => visitTacticInfo ctx ti parent
-  | .ofTermInfo ti => visitTermInfo ti env
+  | .ofTermInfo ti =>
+    if noPremises then
+      pure ()
+    else
+      visitTermInfo ti env
   | _ => pure ()
 
 
-private partial def traverseTree (ctx: ContextInfo) (tree : InfoTree) (parent : InfoTree) (env : Environment) : TraceM Unit := do
+private partial def traverseTree (noPremises : Bool) (ctx: ContextInfo) (tree : InfoTree)
+(parent : InfoTree) (env : Environment) : TraceM Unit := do
   match tree with
-  | .context ctx' t => traverseTree ctx' t tree env
+  | .context ctx' t => traverseTree noPremises ctx' t tree env
   | .node i children =>
-    visitInfo ctx i parent env
+    visitInfo noPremises ctx i parent env
     for x in children do
-      traverseTree ctx x tree env
+      traverseTree noPremises ctx x tree env
   | _ => pure ()
 
 
-private def traverseTopLevelTree (tree : InfoTree) (env : Environment) : TraceM Unit := do
+private def traverseTopLevelTree (tree : InfoTree)
+(noPremises : Bool) (env : Environment) : TraceM Unit := do
   match tree with
-  | .context ctx t => traverseTree ctx t tree env
+  | .context ctx t => traverseTree noPremises ctx t tree env
   | _ => pure ()
 
 
 /--
 Process an array of `InfoTree` (one for each top-level command in the file).
 -/
-def traverseForest (trees : Array InfoTree) (env : Environment) : TraceM Trace := do
+def traverseForest (trees : Array InfoTree)
+(noPremises : Bool) (env : Environment) : TraceM Trace := do
   for t in trees do
-    traverseTopLevelTree t env
+    traverseTopLevelTree t noPremises env
   get
 
 
@@ -397,10 +405,37 @@ end Traversal
 open Traversal
 
 
+def getImports (header: Syntax) : IO String := do
+  -- Similar to `lean --deps` in Lean 3.
+  let mut s := ""
+
+  for dep in headerToImports header do
+    let oleanPath ← findOLean dep.module
+    if oleanPath.isRelative then
+      let leanPath := Path.toSrcDir! oleanPath "lean"
+      assert! ← leanPath.pathExists
+      s := s ++ "\n" ++ leanPath.toString
+    else if ¬(oleanPath.toString.endsWith "/lib/lean/Init.olean") then
+      let mut p := (Path.packagesDir / "lean4").toString ++ FilePath.pathSeparator.toString
+      let mut found := false
+      for c in (oleanPath.withExtension "lean").components do
+        if c == "lib" then
+          found := true
+          p := p ++ "src"
+          continue
+        if found then
+          p := p ++ FilePath.pathSeparator.toString ++ c
+      p := p.replace "/lean4/src/lean/Lake" "/lean4/src/lean/lake/Lake"
+      assert! ← FilePath.mk p |>.pathExists
+      s := s ++ "\n" ++ p
+
+  return s.trim
+
+
 /--
 Trace a *.lean file.
 -/
-unsafe def processFile (path : FilePath) : IO Unit := do
+unsafe def processFile (path : FilePath) (noPremises : Bool) : IO Unit := do
   println! path
   let input ← IO.FS.readFile path
   let opts := Options.empty.setBool `trace.Elab.info true
@@ -422,7 +457,7 @@ unsafe def processFile (path : FilePath) : IO Unit := do
   let commands := s.commands.pop -- Remove EOI command.
   let trees := s.commandState.infoState.trees.toArray
 
-  let traceM := (traverseForest trees env').run' ⟨#[header] ++ commands, #[], #[]⟩
+  let traceM := (traverseForest trees noPremises env').run' ⟨#[header] ++ commands, #[], #[]⟩
   let (trace, _) ← traceM.run'.toIO {fileName := s!"{path}", fileMap := FileMap.ofString input} {env := env}
 
   let cwd ← IO.currentDir
@@ -433,31 +468,9 @@ unsafe def processFile (path : FilePath) : IO Unit := do
   Path.makeParentDirs json_path
   IO.FS.writeFile json_path (toJson trace).pretty
 
-  -- Print imports, similar to `lean --deps` in Lean 3.
-  let mut s := ""
-  for dep in headerToImports header do
-    let oleanPath ← findOLean dep.module
-    if oleanPath.isRelative then
-      let leanPath := Path.toSrcDir! oleanPath "lean"
-      assert! ← leanPath.pathExists
-      s := s ++ "\n" ++ leanPath.toString
-    else if ¬(oleanPath.toString.endsWith "/lib/lean/Init.olean") then
-      let mut p := (Path.packagesDir / "lean4").toString ++ FilePath.pathSeparator.toString
-      let mut found := false
-      for c in (oleanPath.withExtension "lean").components do
-        if c == "lib" then
-          found := true
-          p := p ++ "src"
-          continue
-        if found then
-          p := p ++ FilePath.pathSeparator.toString ++ c
-      p := p.replace "/lean4/src/lean/Lake" "/lean4/src/lean/lake/Lake"
-      assert! ← FilePath.mk p |>.pathExists
-      s := s ++ "\n" ++ p
-
   let dep_path := Path.toBuildDir "ir" relativePath "dep_paths" |>.get!
   Path.makeParentDirs dep_path
-  IO.FS.writeFile dep_path s.trim
+  IO.FS.writeFile dep_path (← getImports header)
 
 
 end LeanDojo
@@ -487,7 +500,7 @@ def shouldProcess (path : FilePath) (noDeps : Bool) : IO Bool := do
 /--
 Trace all *.lean files in the current directory whose corresponding *.olean file exists.
 -/
-def processAllFiles (noDeps : Bool) : IO Unit := do
+def processAllFiles (noDeps : Bool) (noPremises : Bool) : IO Unit := do
     let cwd ← IO.currentDir
     assert! cwd.fileName != "lean4"
     println! "Extracting data at {cwd}"
@@ -496,8 +509,12 @@ def processAllFiles (noDeps : Bool) : IO Unit := do
     for path in ← System.FilePath.walkDir cwd do
       if ← shouldProcess path noDeps then
         println! path
+        let mut args := #["env", "lean", "--run", "ExtractData.lean"]
+        if noPremises then
+          args := args.push "noPremises"
+        args := args.push path.toString
         let t ← IO.asTask $ IO.Process.run
-          {cmd := "lake", args := #["env", "lean", "--run", "ExtractData.lean", path.toString]}
+          {cmd := "lake", args := args}
         tasks := tasks.push (t, path)
 
     for (t, path) in tasks do
@@ -511,6 +528,12 @@ def processAllFiles (noDeps : Bool) : IO Unit := do
 
 unsafe def main (args : List String) : IO Unit := do
   match args with
-  | "nodeps" :: _ => processAllFiles true
-  | path :: _ => processFile (← Path.toAbsolute ⟨path⟩)
-  | [] => processAllFiles false
+  | ["noDeps", "noPremises"]
+  | ["noPremises", "noDeps"] =>
+    processAllFiles (noDeps := true) (noPremises := true)
+  | ["noDeps"] => processAllFiles (noDeps := true) (noPremises := false)
+  | ["noPremises"] => processAllFiles (noDeps := false) (noPremises := true)
+  | [] => processAllFiles (noDeps := false) (noPremises := false)
+  | ["noPremises", path] => processFile (← Path.toAbsolute ⟨path⟩) (noPremises := true)
+  | [path] => processFile (← Path.toAbsolute ⟨path⟩) (noPremises := false)
+  | _ => throw $ IO.userError "Invalid arguments"

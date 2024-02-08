@@ -18,6 +18,7 @@ from .cache import cache
 from ..constants import (
     NUM_PROCS,
     LEAN3_URL,
+    LOW_MEMORY_MODE,
     MIN_LEAN3_VERSION,
 )
 from .lean import LeanGitRepo
@@ -116,6 +117,8 @@ def _trace_lean4(repo: LeanGitRepo, build_deps: bool) -> None:
         LEAN4_DATA_EXTRACTOR_PATH: f"/workspace/{repo.name}/{LEAN4_DATA_EXTRACTOR_PATH.name}",
     }
     cmd = f"python build_lean4_repo.py {repo.name}"
+    if LOW_MEMORY_MODE:
+        cmd += " --low-memory-mode"
     if not build_deps:
         cmd += " --no-deps"
 
