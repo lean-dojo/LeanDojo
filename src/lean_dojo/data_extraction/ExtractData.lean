@@ -368,7 +368,10 @@ private def visitInfo (ctx : ContextInfo) (i : Info) (parent : InfoTree) (env : 
 
 private partial def traverseTree (ctx: ContextInfo) (tree : InfoTree) (parent : InfoTree) (env : Environment) : TraceM Unit := do
   match tree with
-  | .context ctx' t => traverseTree ctx' t tree env
+  | .context ctx' t =>
+    match ctx'.mergeIntoOuter? ctx with
+    | some ctx' => traverseTree ctx' t tree env
+    | none => panic! "fail to synthesis contextInfo when traversing infoTree"
   | .node i children =>
     visitInfo ctx i parent env
     for x in children do
@@ -378,7 +381,10 @@ private partial def traverseTree (ctx: ContextInfo) (tree : InfoTree) (parent : 
 
 private def traverseTopLevelTree (tree : InfoTree) (env : Environment) : TraceM Unit := do
   match tree with
-  | .context ctx t => traverseTree ctx t tree env
+  | .context ctx t =>
+    match ctx.mergeIntoOuter? none with
+    | some ctx => traverseTree ctx t tree env
+    | none => panic! "fail to synthesis contextInfo for top-level infoTree"
   | _ => pure ()
 
 
