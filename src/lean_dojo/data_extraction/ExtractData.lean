@@ -438,11 +438,10 @@ Trace a *.lean file.
 unsafe def processFile (path : FilePath) (noPremises : Bool) : IO Unit := do
   println! path
   let input ← IO.FS.readFile path
-  let opts := Options.empty.setBool `trace.Elab.info true
   enableInitializersExecution
   let inputCtx := Parser.mkInputContext input path.toString
   let (header, parserState, messages) ← Parser.parseHeader inputCtx
-  let (env, messages) ← processHeader header opts messages inputCtx
+  let (env, messages) ← processHeader header {} messages inputCtx
 
   if messages.hasErrors then
     for msg in messages.toList do
@@ -451,7 +450,7 @@ unsafe def processFile (path : FilePath) (noPremises : Bool) : IO Unit := do
     throw $ IO.userError "Errors during import; aborting"
 
   let env := env.setMainModule (← moduleNameOfFileName path none)
-  let commandState := { Command.mkState env messages opts with infoState.enabled := true }
+  let commandState := { Command.mkState env messages {} with infoState.enabled := true }
   let s ← IO.processCommands inputCtx parserState commandState
   let env' := s.commandState.env
   let commands := s.commands.pop -- Remove EOI command.

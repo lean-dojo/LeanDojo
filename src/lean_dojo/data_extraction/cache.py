@@ -16,7 +16,12 @@ from ..utils import (
     get_repo_info,
     report_critical_failure,
 )
-from ..constants import CACHE_DIR, DISABLE_REMOTE_CACHE, REMOTE_CACHE_URL, LOW_MEMORY_MODE
+from ..constants import (
+    CACHE_DIR,
+    DISABLE_REMOTE_CACHE,
+    REMOTE_CACHE_URL,
+    LOW_MEMORY_MODE,
+)
 
 
 def _split_git_url(url: str) -> Tuple[str, str]:

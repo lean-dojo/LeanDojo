@@ -129,7 +129,9 @@ def check_files(packages_path: str, no_deps: bool) -> None:
     missing_deps = {p.with_suffix(".dep_paths") for p in oleans - deps}
     if len(missing_jsons) > 0 or len(missing_deps) > 0:
         for p in missing_jsons.union(missing_deps):
-            import pdb; pdb.set_trace()
+            import pdb
+
+            pdb.set_trace()
             logger.warning(f"Missing {p}")
 
 
