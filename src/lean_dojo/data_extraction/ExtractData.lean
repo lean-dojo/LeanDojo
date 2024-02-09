@@ -359,43 +359,37 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
     }
 
 
-private def visitInfo (noPremises : Bool) (ctx : ContextInfo)
+private def visitInfo (ctx : ContextInfo)
 (i : Info) (parent : InfoTree) (env : Environment) : TraceM Unit := do
   match i with
   | .ofTacticInfo ti => visitTacticInfo ctx ti parent
-  | .ofTermInfo ti =>
-    if noPremises then
-      pure ()
-    else
-      visitTermInfo ti env
+  | .ofTermInfo ti => visitTermInfo ti env
   | _ => pure ()
 
 
-private partial def traverseTree (noPremises : Bool) (ctx: ContextInfo) (tree : InfoTree)
+private partial def traverseTree (ctx: ContextInfo) (tree : InfoTree)
 (parent : InfoTree) (env : Environment) : TraceM Unit := do
   match tree with
-  | .context ctx' t => traverseTree noPremises ctx' t tree env
+  | .context ctx' t => traverseTree ctx' t tree env
   | .node i children =>
-    visitInfo noPremises ctx i parent env
+    visitInfo ctx i parent env
     for x in children do
-      traverseTree noPremises ctx x tree env
+      traverseTree ctx x tree env
   | _ => pure ()
 
 
-private def traverseTopLevelTree (tree : InfoTree)
-(noPremises : Bool) (env : Environment) : TraceM Unit := do
+private def traverseTopLevelTree (tree : InfoTree) (env : Environment) : TraceM Unit := do
   match tree with
-  | .context ctx t => traverseTree noPremises ctx t tree env
+  | .context ctx t => traverseTree ctx t tree env
   | _ => pure ()
 
 
 /--
 Process an array of `InfoTree` (one for each top-level command in the file).
 -/
-def traverseForest (trees : Array InfoTree)
-(noPremises : Bool) (env : Environment) : TraceM Trace := do
+def traverseForest (trees : Array InfoTree) (env : Environment) : TraceM Trace := do
   for t in trees do
-    traverseTopLevelTree t noPremises env
+    traverseTopLevelTree t env
   get
 
 
@@ -435,7 +429,7 @@ def getImports (header: Syntax) : IO String := do
 /--
 Trace a *.lean file.
 -/
-unsafe def processFile (path : FilePath) (noPremises : Bool) : IO Unit := do
+unsafe def processFile (path : FilePath) : IO Unit := do
   println! path
   let input ← IO.FS.readFile path
   enableInitializersExecution
@@ -456,7 +450,7 @@ unsafe def processFile (path : FilePath) (noPremises : Bool) : IO Unit := do
   let commands := s.commands.pop -- Remove EOI command.
   let trees := s.commandState.infoState.trees.toArray
 
-  let traceM := (traverseForest trees noPremises env').run' ⟨#[header] ++ commands, #[], #[]⟩
+  let traceM := (traverseForest trees env').run' ⟨#[header] ++ commands, #[], #[]⟩
   let (trace, _) ← traceM.run'.toIO {fileName := s!"{path}", fileMap := FileMap.ofString input} {env := env}
 
   let cwd ← IO.currentDir
@@ -499,7 +493,7 @@ def shouldProcess (path : FilePath) (noDeps : Bool) : IO Bool := do
 /--
 Trace all *.lean files in the current directory whose corresponding *.olean file exists.
 -/
-def processAllFiles (noDeps : Bool) (noPremises : Bool) : IO Unit := do
+def processAllFiles (noDeps : Bool) : IO Unit := do
     let cwd ← IO.currentDir
     assert! cwd.fileName != "lean4"
     println! "Extracting data at {cwd}"
@@ -509,8 +503,6 @@ def processAllFiles (noDeps : Bool) (noPremises : Bool) : IO Unit := do
       if ← shouldProcess path noDeps then
         println! path
         let mut args := #["env", "lean", "--run", "ExtractData.lean"]
-        if noPremises then
-          args := args.push "noPremises"
         args := args.push path.toString
         let t ← IO.asTask $ IO.Process.run
           {cmd := "lake", args := args}
@@ -527,12 +519,7 @@ def processAllFiles (noDeps : Bool) (noPremises : Bool) : IO Unit := do
 
 unsafe def main (args : List String) : IO Unit := do
   match args with
-  | ["noDeps", "noPremises"]
-  | ["noPremises", "noDeps"] =>
-    processAllFiles (noDeps := true) (noPremises := true)
-  | ["noDeps"] => processAllFiles (noDeps := true) (noPremises := false)
-  | ["noPremises"] => processAllFiles (noDeps := false) (noPremises := true)
-  | [] => processAllFiles (noDeps := false) (noPremises := false)
-  | ["noPremises", path] => processFile (← Path.toAbsolute ⟨path⟩) (noPremises := true)
-  | [path] => processFile (← Path.toAbsolute ⟨path⟩) (noPremises := false)
+  | ["noDeps"] => processAllFiles (noDeps := true)
+  | [path] => processFile (← Path.toAbsolute ⟨path⟩)
+  | [] => processAllFiles (noDeps := false)
   | _ => throw $ IO.userError "Invalid arguments"

@@ -67,14 +67,6 @@ LEAN4_PACKAGES_DIR = Path(".lake/packages")
 LOAD_USED_PACKAGES_ONLY = "LOAD_USED_PACKAGES_ONLY" in os.environ
 """Only load depdendency files that are actually used by the target repo."""
 
-LOW_MEMORY_MODE = "LOW_MEMORY_MODE" in os.environ
-"""Use less memory when tracing Lean 4 repos. LeanDojo cannot trace premise information in this mode."""
-
-if LOW_MEMORY_MODE:
-    logger.warning(
-        "Running in low memory mode. LeanDojo cannot trace premise information in this mode."
-    )
-
 LEAN4_BUILD_DIR = Path(".lake/build")
 
 LEAN_BUILD_DIR_OLD = Path("build")

@@ -20,7 +20,6 @@ from ..constants import (
     CACHE_DIR,
     DISABLE_REMOTE_CACHE,
     REMOTE_CACHE_URL,
-    LOW_MEMORY_MODE,
 )
 
 
@@ -38,8 +37,6 @@ def _split_git_url(url: str) -> Tuple[str, str]:
 def _format_dirname(url: str, commit: str) -> str:
     user_name, repo_name = _split_git_url(url)
     dirname = f"{user_name}-{repo_name}-{commit}"
-    if LOW_MEMORY_MODE:
-        dirname += "-lowmemory"
     return dirname
 
 
