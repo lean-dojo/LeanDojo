@@ -36,8 +36,7 @@ def _split_git_url(url: str) -> Tuple[str, str]:
 
 def _format_dirname(url: str, commit: str) -> str:
     user_name, repo_name = _split_git_url(url)
-    dirname = f"{user_name}-{repo_name}-{commit}"
-    return dirname
+    return f"{user_name}-{repo_name}-{commit}"
 
 
 _CACHE_CORRPUTION_MSG = "The cache may have been corrputed!"

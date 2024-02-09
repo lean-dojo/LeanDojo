@@ -359,8 +359,7 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
     }
 
 
-private def visitInfo (ctx : ContextInfo)
-(i : Info) (parent : InfoTree) (env : Environment) : TraceM Unit := do
+private def visitInfo (ctx : ContextInfo) (i : Info) (parent : InfoTree) (env : Environment) : TraceM Unit := do
   match i with
   | .ofTacticInfo ti => visitTacticInfo ctx ti parent
   | .ofTermInfo ti => visitTermInfo ti env
@@ -502,10 +501,8 @@ def processAllFiles (noDeps : Bool) : IO Unit := do
     for path in ← System.FilePath.walkDir cwd do
       if ← shouldProcess path noDeps then
         println! path
-        let mut args := #["env", "lean", "--run", "ExtractData.lean"]
-        args := args.push path.toString
         let t ← IO.asTask $ IO.Process.run
-          {cmd := "lake", args := args}
+          {cmd := "lake", args := #["env", "lean", "--run", "ExtractData.lean", path.toString]}
         tasks := tasks.push (t, path)
 
     for (t, path) in tasks do
