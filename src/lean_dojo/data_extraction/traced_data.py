@@ -1258,9 +1258,14 @@ def _build_dependency_graph(
             dep_path_str = str(dep_path)
             if not G.has_node(dep_path_str):
                 json_path = to_json_path(root_dir, dep_path, repo)
-                tf_dep = TracedFile.from_traced_file(root_dir, json_path, repo)
-                G.add_node(dep_path_str, traced_file=tf_dep)
-                traced_files.append(tf_dep)
+                try:
+                    tf_dep = TracedFile.from_traced_file(root_dir, json_path, repo)
+                    G.add_node(dep_path_str, traced_file=tf_dep)
+                    traced_files.append(tf_dep)
+                except FileNotFoundError:
+                    logger.warning(
+                        f"Dependency {dep_path} of {tf.path} does not exist in {repo.name}"
+                    )
 
             G.add_edge(tf_path_str, dep_path_str, module=dep_module)
 
