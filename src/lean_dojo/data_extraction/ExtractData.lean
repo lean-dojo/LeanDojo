@@ -366,7 +366,8 @@ private def visitInfo (ctx : ContextInfo) (i : Info) (parent : InfoTree) (env : 
   | _ => pure ()
 
 
-private partial def traverseTree (ctx: ContextInfo) (tree : InfoTree) (parent : InfoTree) (env : Environment) : TraceM Unit := do
+private partial def traverseTree (ctx: ContextInfo) (tree : InfoTree)
+(parent : InfoTree) (env : Environment) : TraceM Unit := do
   match tree with
   | .context ctx' t =>
     match ctx'.mergeIntoOuter? ctx with
@@ -403,44 +404,10 @@ end Traversal
 open Traversal
 
 
-/--
-Trace a *.lean file.
--/
-unsafe def processFile (path : FilePath) : IO Unit := do
-  println! path
-  let input ← IO.FS.readFile path
-  let opts := Options.empty.setBool `trace.Elab.info true
-  enableInitializersExecution
-  let inputCtx := Parser.mkInputContext input path.toString
-  let (header, parserState, messages) ← Parser.parseHeader inputCtx
-  let (env, messages) ← processHeader header opts messages inputCtx
-
-  if messages.hasErrors then
-    for msg in messages.toList do
-      if msg.severity == .error then
-        println! "ERROR: {← msg.toString}"
-    throw $ IO.userError "Errors during import; aborting"
-
-  let env := env.setMainModule (← moduleNameOfFileName path none)
-  let commandState := { Command.mkState env messages opts with infoState.enabled := true }
-  let s ← IO.processCommands inputCtx parserState commandState
-  let env' := s.commandState.env
-  let commands := s.commands.pop -- Remove EOI command.
-  let trees := s.commandState.infoState.trees.toArray
-
-  let traceM := (traverseForest trees env').run' ⟨#[header] ++ commands, #[], #[]⟩
-  let (trace, _) ← traceM.run'.toIO {fileName := s!"{path}", fileMap := FileMap.ofString input} {env := env}
-
-  let cwd ← IO.currentDir
-  assert! cwd.fileName != "lean4"
-
-  let some relativePath := Path.relativeTo path cwd | throw $ IO.userError s!"Invalid path: {path}"
-  let json_path := Path.toBuildDir "ir" relativePath "ast.json" |>.get!
-  Path.makeParentDirs json_path
-  IO.FS.writeFile json_path (toJson trace).pretty
-
-  -- Print imports, similar to `lean --deps` in Lean 3.
+def getImports (header: Syntax) : IO String := do
+  -- Similar to `lean --deps` in Lean 3.
   let mut s := ""
+
   for dep in headerToImports header do
     let oleanPath ← findOLean dep.module
     if oleanPath.isRelative then
@@ -461,9 +428,47 @@ unsafe def processFile (path : FilePath) : IO Unit := do
       assert! ← FilePath.mk p |>.pathExists
       s := s ++ "\n" ++ p
 
+  return s.trim
+
+
+/--
+Trace a *.lean file.
+-/
+unsafe def processFile (path : FilePath) : IO Unit := do
+  println! path
+  let input ← IO.FS.readFile path
+  enableInitializersExecution
+  let inputCtx := Parser.mkInputContext input path.toString
+  let (header, parserState, messages) ← Parser.parseHeader inputCtx
+  let (env, messages) ← processHeader header {} messages inputCtx
+
+  if messages.hasErrors then
+    for msg in messages.toList do
+      if msg.severity == .error then
+        println! "ERROR: {← msg.toString}"
+    throw $ IO.userError "Errors during import; aborting"
+
+  let env := env.setMainModule (← moduleNameOfFileName path none)
+  let commandState := { Command.mkState env messages {} with infoState.enabled := true }
+  let s ← IO.processCommands inputCtx parserState commandState
+  let env' := s.commandState.env
+  let commands := s.commands.pop -- Remove EOI command.
+  let trees := s.commandState.infoState.trees.toArray
+
+  let traceM := (traverseForest trees env').run' ⟨#[header] ++ commands, #[], #[]⟩
+  let (trace, _) ← traceM.run'.toIO {fileName := s!"{path}", fileMap := FileMap.ofString input} {env := env}
+
+  let cwd ← IO.currentDir
+  assert! cwd.fileName != "lean4"
+
+  let some relativePath := Path.relativeTo path cwd | throw $ IO.userError s!"Invalid path: {path}"
+  let json_path := Path.toBuildDir "ir" relativePath "ast.json" |>.get!
+  Path.makeParentDirs json_path
+  IO.FS.writeFile json_path (toJson trace).pretty
+
   let dep_path := Path.toBuildDir "ir" relativePath "dep_paths" |>.get!
   Path.makeParentDirs dep_path
-  IO.FS.writeFile dep_path s.trim
+  IO.FS.writeFile dep_path (← getImports header)
 
 
 end LeanDojo
@@ -517,6 +522,7 @@ def processAllFiles (noDeps : Bool) : IO Unit := do
 
 unsafe def main (args : List String) : IO Unit := do
   match args with
-  | "nodeps" :: _ => processAllFiles true
-  | path :: _ => processFile (← Path.toAbsolute ⟨path⟩)
-  | [] => processAllFiles false
+  | ["noDeps"] => processAllFiles (noDeps := true)
+  | [path] => processFile (← Path.toAbsolute ⟨path⟩)
+  | [] => processAllFiles (noDeps := false)
+  | _ => throw $ IO.userError "Invalid arguments"
