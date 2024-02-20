@@ -1066,13 +1066,11 @@ class CommandTheoremNode4(Node4):
                     isinstance(decl_val_node.children[0], AtomNode4)
                     and decl_val_node.children[0].val == ":="
                 )
-                assert isinstance(decl_val_node.children[2], NullNode4)
             elif isinstance(decl_val_node, CommandWherestructinstNode4):
                 assert (
                     isinstance(decl_val_node.children[0], AtomNode4)
                     and decl_val_node.children[0].val == "where"
                 )
-                assert isinstance(decl_val_node.children[2], NullNode4)
 
         return cls(lean_file, start, end, children, name)
 
