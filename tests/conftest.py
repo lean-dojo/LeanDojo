@@ -11,7 +11,7 @@ LEAN_EXAMPLE_URL = "https://github.com/yangky11/lean-example"
 STD4_URL = "https://github.com/leanprover/std4"
 AESOP_URL = "https://github.com/JLimperg/aesop"
 MATHLIB4_URL = "https://github.com/leanprover-community/mathlib4"
-LEAN4_EXAMPLE_URL = "https://github.com/yangky11/lean4-example/"
+LEAN4_EXAMPLE_URL = "https://github.com/yangky11/lean4-example"
 URLS = [
     LEAN3_URL,
     MINIF2F_URL,
@@ -57,7 +57,7 @@ def mathlib_repo():
 
 @pytest.fixture(scope="session")
 def mathlib4_repo():
-    commit = "3ce43c18f614b76e161f911b75a3e1ef641620ff"
+    commit = "10dce3722cfc7ee7db25a3113905c53e20eaabdc"
     return LeanGitRepo(MATHLIB4_URL, commit)
 
 
