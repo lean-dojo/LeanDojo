@@ -27,6 +27,7 @@ CACHE_DIR = (
     if "CACHE_DIR" in os.environ
     else Path.home() / ".cache/lean_dojo"
 )
+CACHE_DIR = CACHE_DIR.resolve() if not CACHE_DIR.is_absolute() else CACHE_DIR
 """Cache directory for storing traced repos (see :ref:`caching`).
 """
 
@@ -38,6 +39,7 @@ DISABLE_REMOTE_CACHE = "DISABLE_REMOTE_CACHE" in os.environ
 """
 
 TMP_DIR = Path(os.environ["TMP_DIR"]) if "TMP_DIR" in os.environ else None
+TMP_DIR = TMP_DIR.resolve() if not TMP_DIR.is_absolute() else TMP_DIR
 """Temporary directory used by LeanDojo for storing intermediate files
 """
 
