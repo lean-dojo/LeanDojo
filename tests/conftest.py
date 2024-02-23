@@ -3,13 +3,11 @@ import pytest
 from lean_dojo import *
 
 
-LEAN_EXAMPLE_URL = "https://github.com/yangky11/lean-example"
 STD4_URL = "https://github.com/leanprover/std4"
-AESOP_URL = "https://github.com/JLimperg/aesop"
+AESOP_URL = "https://github.com/leanprover-community/aesop"
 MATHLIB4_URL = "https://github.com/leanprover-community/mathlib4"
 LEAN4_EXAMPLE_URL = "https://github.com/yangky11/lean4-example"
 URLS = [
-    LEAN_EXAMPLE_URL,
     STD4_URL,
     AESOP_URL,
     MATHLIB4_URL,
