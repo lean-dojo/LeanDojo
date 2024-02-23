@@ -519,7 +519,7 @@ class LeanGitRepo:
             for name, repo in self._parse_lakefile_dependencies(lakefile["content"]):
                 if name not in deps:
                     deps[name] = repo
-                for dd_name, dd_repo in repo._get_lean4_dependencies().items():
+                for dd_name, dd_repo in repo.get_dependencies().items():
                     deps[dd_name] = dd_repo
 
         return deps
