@@ -9,103 +9,25 @@ from loguru import logger
 from typing import Union, Optional
 from subprocess import CalledProcessError
 
-from ..utils import (
-    working_directory,
-    parse_lean3_version,
-    execute,
-)
 from .cache import cache
-from ..constants import (
-    NUM_PROCS,
-    LEAN3_URL,
-    MIN_LEAN3_VERSION,
-)
 from .lean import LeanGitRepo
+from ..constants import NUM_PROCS, LEAN4_URL
 from .traced_data import TracedRepo
+from ..utils import working_directory
 from ..container import create_mounts, get_container, NativeContainer
 
 
-MODIFIED_LEAN3_PATCH_PATH = Path(__file__).with_name(
-    "0001-Modify-Lean-for-proof-recording.patch"
-)
-LEAN3_BUILD_SCRIPT_PATH = Path(__file__).with_name("build_lean3_repo.py")
 LEAN4_BUILD_SCRIPT_PATH = Path(__file__).with_name("build_lean4_repo.py")
 LEAN4_DATA_EXTRACTOR_PATH = Path(__file__).with_name("ExtractData.lean")
-
-
-def _modify_lean3(version: str) -> None:
-    """Modify Lean 3 by applying the modification patch."""
-    logger.debug(f"Modifying Lean {version}")
-    execute(f"git clone {LEAN3_URL}", capture_output=True)
-
-    with working_directory("lean"):
-        execute(f"git checkout {version}", capture_output=True)
-        if version.startswith("v") and parse_lean3_version(
-            version
-        ) < parse_lean3_version(MIN_LEAN3_VERSION):
-            logger.warning(
-                f"Lean {version} is too outdated. We support Lean >= {MIN_LEAN3_VERSION}. Proceed with caution."
-            )
-        logger.debug(f"Applying the modification patch")
-        try:
-            execute(f"git apply {MODIFIED_LEAN3_PATCH_PATH}", capture_output=True)
-        except CalledProcessError as ex:
-            logger.error(
-                f"`git apply` failed, probably because Lean {version} is too outdated"
-            )
-            raise ex
 
 
 def _trace(repo: LeanGitRepo, build_deps: bool) -> None:
     assert (
         repo.exists()
     ), f"The {repo} does not exist. Please check the URL `{repo.commit_url}`."
-    if repo.uses_lean3:
-        assert build_deps
-        _trace_lean3(repo)
-    else:
-        assert repo.uses_lean4
-        _trace_lean4(repo, build_deps)
 
-
-def _trace_lean3(repo: LeanGitRepo) -> None:
     # Trace `repo` in the current working directory.
-    if repo.is_lean:
-        _modify_lean3(repo.lean_version)
-    else:
-        repo.clone_and_checkout()
-        with working_directory(Path(repo.name) / "_target/deps"):
-            _modify_lean3(repo.lean_version)
-
-    logger.debug(f"Tracing {repo}")
-    container = get_container()
-    if isinstance(container, NativeContainer):
-        logger.warning(
-            "Docker is strongly recommended when using LeanDojo with Lean 3. See https://leandojo.readthedocs.io/en/latest/user-guide.html#advanced-running-within-docker."
-        )
-    mts = {
-        Path.cwd() / repo.name: f"/workspace/{repo.name}",
-        LEAN3_BUILD_SCRIPT_PATH: f"/workspace/{LEAN3_BUILD_SCRIPT_PATH.name}",
-    }
-    try:
-        container.run(
-            f"python build_lean3_repo.py {repo.name}",
-            create_mounts(mts),
-            {"NUM_PROCS": NUM_PROCS},
-            as_current_user=True,
-            work_dir="/workspace",
-        )
-    except CalledProcessError as ex:
-        if isinstance(container, NativeContainer):
-            logger.error(
-                "Failed to build the modified Lean 3 without Docker. See https://leandojo.readthedocs.io/en/latest/user-guide.html#advanced-running-within-docker."
-            )
-        raise ex
-
-
-def _trace_lean4(repo: LeanGitRepo, build_deps: bool) -> None:
-    # Trace `repo` in the current working directory.
-    assert not repo.is_lean4, "Cannot trace the Lean 4 repo itself."
+    assert repo.url != LEAN4_URL, "Cannot trace Lean 4 itself."
     repo.clone_and_checkout()
 
     logger.debug(f"Tracing {repo}")

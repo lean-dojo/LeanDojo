@@ -24,15 +24,7 @@ from ..utils import (
     get_repo_info,
     working_directory,
 )
-from ..constants import (
-    LEAN3_URL,
-    LEAN4_URL,
-    LEAN3_PACKAGES_DIR,
-    LEAN4_PACKAGES_DIR,
-    LEAN4_PACKAGES_DIR_OLD,
-    LEAN4_BUILD_DIR,
-    LEAN_BUILD_DIR_OLD,
-)
+from ..constants import LEAN4_URL
 
 
 GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN", None)
@@ -165,9 +157,6 @@ class LeanFile:
     
     E.g., :file:`lean-example/src/example.lean`
     """
-
-    uses_lean4: bool
-    """Whether this file is written in Lean 4."""
 
     code: List[str] = field(init=False, repr=False)
     """Raw source code as a list of lines."""
@@ -334,17 +323,7 @@ class LeanFile:
 
 
 _COMMIT_REGEX = re.compile(r"[0-9a-z]+")
-_LEAN3_VERSION_REGEX = re.compile(
-    r"leanprover-community/lean:(?P<version>\d+\.\d+\.\d+)"
-)
 _LEAN4_VERSION_REGEX = re.compile(r"leanprover/lean4:(?P<version>.+?)")
-
-
-def get_lean3_version_from_config(config: Dict[str, Any]) -> str:
-    """Return the required Lean version given a ``leanpkg.toml`` config."""
-    m = _LEAN3_VERSION_REGEX.fullmatch(config["package"]["lean_version"])
-    assert m is not None, "Invalid config."
-    return f"v{m['version']}"
 
 
 def get_lean4_version_from_config(toolchain: str) -> str:
@@ -382,8 +361,6 @@ class RepoInfoCache:
     of all repos, assuming it does not change during the execution of LeanDojo."""
 
     tag2commit: Dict[Tuple[URL, TAG], COMMIT] = field(default_factory=dict)
-    uses_lean3: Dict[Tuple[URL, COMMIT], bool] = field(default_factory=dict)
-    uses_lean4: Dict[Tuple[URL, COMMIT], bool] = field(default_factory=dict)
     lean_version: Dict[Tuple[URL, COMMIT], str] = field(default_factory=dict)
 
 
@@ -395,7 +372,7 @@ _GIT_REQUIREMENT_REGEX = re.compile(
 )
 
 
-def is_new_version(v) -> bool:
+def is_supported_version(v) -> bool:
     """Check if ``v`` is at least `v4.3.0-rc2`."""
     if not v.startswith("v"):
         return False
@@ -437,14 +414,6 @@ class LeanGitRepo:
     """A :class:`github.Repository` object.
     """
 
-    uses_lean3: bool = field(init=False, repr=False)
-    """Whether the repo uses Lean 3.
-    """
-
-    uses_lean4: bool = field(init=False, repr=False)
-    """Whether the repo uses Lean 4.
-    """
-
     lean_version: str = field(init=False, repr=False)
     """Required Lean version.
     """
@@ -467,38 +436,16 @@ class LeanGitRepo:
                 info_cache.tag2commit[(self.url, self.commit)] = commit
             object.__setattr__(self, "commit", commit)
 
-        # Determine whether the repo uses Lean 3 or Lean 4
-        if (self.url, self.commit) in info_cache.uses_lean3:
-            uses_lean3 = info_cache.uses_lean3[(self.url, self.commit)]
-        else:
-            uses_lean3 = self.is_lean3 or url_exists(
-                self._get_config_url("leanpkg.toml")
-            )
-        info_cache.uses_lean3[(self.url, self.commit)] = uses_lean3
-        object.__setattr__(self, "uses_lean3", uses_lean3)
-
-        if (self.url, self.commit) in info_cache.uses_lean4:
-            uses_lean4 = info_cache.uses_lean4[(self.url, self.commit)]
-        else:
-            uses_lean4 = self.is_lean4 or url_exists(
-                self._get_config_url("lean-toolchain")
-            )
-        info_cache.uses_lean4[(self.url, self.commit)] = uses_lean4
-        object.__setattr__(self, "uses_lean4", uses_lean4)
-
-        assert uses_lean3 ^ uses_lean4
-
-        # Determine the required Lean version, e.g., ``v3.50.3``.
+        # Determine the required Lean version.
         if (self.url, self.commit) in info_cache.lean_version:
             lean_version = info_cache.lean_version[(self.url, self.commit)]
-        elif self.is_lean:
+        elif self.url == LEAN4_URL:
             lean_version = self.commit
-        elif uses_lean3:
-            config = self.get_config("leanpkg.toml")
-            lean_version = get_lean3_version_from_config(config)
         else:
             config = self.get_config("lean-toolchain")
             lean_version = get_lean4_commit_from_config(config)
+            v = get_lean4_version_from_config(config["content"])
+            assert is_supported_version(v), f"Unsupported Lean version: {lean_version}"
         info_cache.lean_version[(self.url, self.commit)] = lean_version
         object.__setattr__(self, "lean_version", lean_version)
 
@@ -511,19 +458,6 @@ class LeanGitRepo:
     @property
     def name(self) -> str:
         return self.repo.name
-
-    @property
-    def is_lean4(self) -> bool:
-        return self.url == LEAN4_URL
-
-    @property
-    def is_lean3(self) -> bool:
-        return self.url == LEAN3_URL
-
-    @property
-    def is_lean(self) -> bool:
-        """Check if the repo is Lean itself."""
-        return self.is_lean3 or self.is_lean4
 
     @property
     def commit_url(self) -> str:
@@ -546,29 +480,6 @@ class LeanGitRepo:
                 capture_output=True,
             )
 
-    def get_packages_dir(self) -> Path:
-        """Return the path to the directory where Lean packages are stored."""
-        if self.uses_lean3:
-            return LEAN3_PACKAGES_DIR
-        else:
-            toolchain = self.get_config("lean-toolchain")
-            v = get_lean4_version_from_config(toolchain["content"])
-            if is_new_version(v):
-                return LEAN4_PACKAGES_DIR
-            else:
-                return LEAN4_PACKAGES_DIR_OLD
-
-    def get_build_dir(self) -> Path:
-        if self.uses_lean3:
-            return LEAN_BUILD_DIR_OLD
-        else:
-            toolchain = self.get_config("lean-toolchain")
-            v = get_lean4_version_from_config(toolchain["content"])
-            if is_new_version(v):
-                return LEAN4_BUILD_DIR
-            else:
-                return LEAN_BUILD_DIR_OLD
-
     def get_dependencies(
         self, path: Union[str, Path, None] = None
     ) -> Dict[str, "LeanGitRepo"]:
@@ -581,31 +492,35 @@ class LeanGitRepo:
             Dict[str, :class:`LeanGitRepo`]: A dictionary mapping the name of each
             dependency to its :class:`LeanGitRepo` object.
         """
-        if self.is_lean:
-            return {}
-
         logger.debug(f"Querying the dependencies of {self}")
-        if self.uses_lean3:
-            return self._get_lean3_dependencies(path)
-        else:
-            return self._get_lean4_dependencies(path)
 
-    def _get_lean3_dependencies(
-        self, path: Union[str, Path, None] = None
-    ) -> Dict[str, "LeanGitRepo"]:
-        if path is None:
-            config = self.get_config("leanpkg.toml")
-        else:
-            config = toml.load(Path(path) / "leanpkg.toml")
+        toolchain = (
+            self.get_config("lean-toolchain")
+            if path is None
+            else {"content": (Path(path) / "lean-toolchain").open().read()}
+        )
+        commit = get_lean4_commit_from_config(toolchain)
+        deps = {"lean4": LeanGitRepo(LEAN4_URL, commit)}
 
-        deps = {"lean": LeanGitRepo(LEAN3_URL, get_lean3_version_from_config(config))}
-
-        if "dependencies" in config:
-            for _, v in config["dependencies"].items():
-                r = LeanGitRepo(url=v["git"], commit=v["rev"])
-                deps[r.name] = r
-                for dd in r._get_lean3_dependencies().values():
-                    deps[dd.name] = dd
+        try:
+            lake_manifest = (
+                self.get_config("lake-manifest.json", num_retries=0)
+                if path is None
+                else json.load((Path(path) / "lake-manifest.json").open())
+            )
+            for pkg in lake_manifest["packages"]:
+                deps[pkg["name"]] = LeanGitRepo(pkg["url"], pkg["rev"])
+        except Exception:
+            lakefile = (
+                self.get_config("lakefile.lean")
+                if path is None
+                else {"content": (Path(path) / "lakefile.lean").open().read()}
+            )
+            for name, repo in self._parse_lakefile_dependencies(lakefile["content"]):
+                if name not in deps:
+                    deps[name] = repo
+                for dd_name, dd_repo in repo._get_lean4_dependencies().items():
+                    deps[dd_name] = dd_repo
 
         return deps
 
@@ -638,39 +553,6 @@ class LeanGitRepo:
                 assert _COMMIT_REGEX.fullmatch(commit)
 
             deps.append((m["name"], LeanGitRepo(url, commit)))
-
-        return deps
-
-    def _get_lean4_dependencies(
-        self, path: Union[str, Path, None] = None
-    ) -> Dict[str, "LeanGitRepo"]:
-        toolchain = (
-            self.get_config("lean-toolchain")
-            if path is None
-            else {"content": (Path(path) / "lean-toolchain").open().read()}
-        )
-        commit = get_lean4_commit_from_config(toolchain)
-        deps = {"lean4": LeanGitRepo(LEAN4_URL, commit)}
-
-        try:
-            lake_manifest = (
-                self.get_config("lake-manifest.json", num_retries=0)
-                if path is None
-                else json.load((Path(path) / "lake-manifest.json").open())
-            )
-            for pkg in lake_manifest["packages"]:
-                deps[pkg["name"]] = LeanGitRepo(pkg["url"], pkg["rev"])
-        except Exception:
-            lakefile = (
-                self.get_config("lakefile.lean")
-                if path is None
-                else {"content": (Path(path) / "lakefile.lean").open().read()}
-            )
-            for name, repo in self._parse_lakefile_dependencies(lakefile["content"]):
-                if name not in deps:
-                    deps[name] = repo
-                for dd_name, dd_repo in repo._get_lean4_dependencies().items():
-                    deps[dd_name] = dd_repo
 
         return deps
 

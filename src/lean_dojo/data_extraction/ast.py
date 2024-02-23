@@ -4,14 +4,14 @@ from dataclasses import dataclass, field
 from xml.sax.saxutils import escape, unescape
 from typing import List, Dict, Any, Optional, Callable, Tuple, Generator
 
-from ....utils import (
+from ..utils import (
     camel_case,
     is_optional_type,
     remove_optional_type,
     parse_int_list,
     parse_str_list,
 )
-from ...lean import Pos, LeanFile
+from .lean import Pos, LeanFile
 
 
 @dataclass(frozen=True)
