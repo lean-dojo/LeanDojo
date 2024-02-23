@@ -17,7 +17,7 @@ def test_additional_imports_failure_1(lean4_example_repo) -> None:
     with pytest.raises(DojoInitError):
         with Dojo(thm, additional_imports=["Aesop"]):
             pass
-
+wwa
 
 def test_additional_imports(mathlib4_repo) -> None:
     """This test doesn't have the problem above because aesop is used by other files in mathlib4."""
