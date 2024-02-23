@@ -445,7 +445,8 @@ class LeanGitRepo:
             config = self.get_config("lean-toolchain")
             lean_version = get_lean4_commit_from_config(config)
             v = get_lean4_version_from_config(config["content"])
-            assert is_supported_version(v), f"Unsupported Lean version: {lean_version}"
+            if not is_supported_version(v):
+                logger.warning(f"{self} relies on an unsupported Lean version: {lean_version}")
         info_cache.lean_version[(self.url, self.commit)] = lean_version
         object.__setattr__(self, "lean_version", lean_version)
 
