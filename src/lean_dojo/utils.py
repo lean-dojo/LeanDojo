@@ -255,7 +255,7 @@ def _from_lean_path(root_dir: Path, path: Path, repo, ext: str) -> Path:
         p = path.relative_to(LEAN4_PACKAGES_DIR).with_suffix(ext)
         repo_name = p.parts[0]
         return (
-            LEAN4_PACKAGES_DIR / repo_name / build_dir / "ir" / p.relative_to(repo_name)
+            LEAN4_PACKAGES_DIR / repo_name / LEAN4_BUILD_DIR / "ir" / p.relative_to(repo_name)
         )
     else:
         # E.g., "Mathlib/LinearAlgebra/Basics.lean"
@@ -302,7 +302,7 @@ def to_lean_path(root_dir: Path, path: Path, repo) -> bool:
         return (
             LEAN4_PACKAGES_DIR
             / repo_name
-            / p.relative_to(Path(repo_name) / build_dir / "ir")
+            / p.relative_to(Path(repo_name) / LEAN4_BUILD_DIR / "ir")
         )
     else:
         # E.g., ".lake/build/ir/Mathlib/LinearAlgebra/Basics.lean" or "build/ir/Mathlib/LinearAlgebra/Basics.lean"
