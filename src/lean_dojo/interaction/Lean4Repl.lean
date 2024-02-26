@@ -4,8 +4,6 @@ import Lean.Elab.Frontend
 
 open Lean Lean.Meta Lean.Elab Lean.Elab.Command Lean.Elab.Tactic
 
-set_option autoImplicit false
-
 namespace LeanDojo
 
 
