@@ -17,7 +17,8 @@ from contextlib import contextmanager
 from ray.util.actor_pool import ActorPool
 from typing import Tuple, Union, List, Generator, Optional
 
-from .constants import NUM_WORKERS, TMP_DIR, GITHUB_ACCESS_TOKEN
+from .constants import NUM_WORKERS, TMP_DIR
+GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN", None)
 
 
 @contextmanager
