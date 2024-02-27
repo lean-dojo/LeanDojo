@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from ray.util.actor_pool import ActorPool
 from typing import Tuple, Union, List, Generator, Optional
 
-from .constants import NUM_WORKERS, TMP_DIR
+from .constants import NUM_WORKERS, TMP_DIR, GITHUB_ACCESS_TOKEN
 
 
 @contextmanager
@@ -202,8 +202,10 @@ def read_url(url: str, num_retries: int = 2) -> str:
     """Read the contents of the URL ``url``. Retry if failed"""
     backoff = 1
     while True:
+        request = urllib.request.Request(url)
+        request.add_header("Authorization", f"Bearer {GITHUB_ACCESS_TOKEN}")
         try:
-            with urllib.request.urlopen(url) as f:
+            with urllib.request.urlopen(request) as f:
                 return f.read().decode()
         except Exception as ex:
             if num_retries <= 0:
@@ -218,10 +220,13 @@ def read_url(url: str, num_retries: int = 2) -> str:
 def url_exists(url: str) -> bool:
     """Return True if the URL ``url`` exists."""
     try:
-        with urllib.request.urlopen(url) as _:
+        request = urllib.request.Request(url)
+        request.add_header("Authorization", f"Bearer {GITHUB_ACCESS_TOKEN}")
+        with urllib.request.urlopen(request) as _:
             return True
-    except urllib.error.HTTPError:
+    except (urllib.error.HTTPError, urllib.error.URLError) as ex:
         return False
+
 
 
 def parse_lean3_version(v: str) -> Tuple[int, int, int]:

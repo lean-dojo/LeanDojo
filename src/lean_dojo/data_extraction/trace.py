@@ -170,6 +170,7 @@ def trace(
     repo: LeanGitRepo,
     dst_dir: Optional[Union[str, Path]] = None,
     build_deps: bool = True,
+    check_sanity: bool = True,
 ) -> TracedRepo:
     """Trace a repo (and its dependencies), saving the results to ``dst_dir``.
 
@@ -193,7 +194,8 @@ def trace(
     cached_path = get_traced_repo_path(repo, build_deps)
     logger.info(f"Loading the traced repo from {cached_path}")
     traced_repo = TracedRepo.load_from_disk(cached_path, build_deps)
-    traced_repo.check_sanity()
+    if check_sanity:
+        traced_repo.check_sanity()
 
     if dst_dir is not None:
         dst_dir.mkdir(parents=True)
