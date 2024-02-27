@@ -14,11 +14,10 @@ from pathlib import Path
 from loguru import logger
 from functools import cache
 from contextlib import contextmanager
-from github.Repository import Repository
 from ray.util.actor_pool import ActorPool
 from typing import Tuple, Union, List, Generator, Optional
 
-from .constants import GITHUB, NUM_WORKERS, TMP_DIR, GITHUB_ACCESS_TOKEN
+from .constants import NUM_WORKERS, TMP_DIR, GITHUB_ACCESS_TOKEN
 
 
 @contextmanager
@@ -243,37 +242,6 @@ def parse_int_list(s: str) -> List[int]:
 def parse_str_list(s: str) -> List[str]:
     assert s.startswith("[") and s.endswith("]")
     return [_.strip()[1:-1] for _ in s[1:-1].split(",") if _ != ""]
-
-
-_URL_REGEX = re.compile(r"(?P<url>.*?)/*")
-
-
-def normalize_url(url: str) -> str:
-    return _URL_REGEX.fullmatch(url)["url"]  # Remove trailing `/`.
-
-
-@cache
-def url_to_repo(url: str, num_retries: int = 2) -> Repository:
-    url = normalize_url(url)
-    backoff = 1
-
-    while True:
-        try:
-            return GITHUB.get_repo("/".join(url.split("/")[-2:]))
-        except Exception as ex:
-            if num_retries <= 0:
-                raise ex
-            num_retries -= 1
-            logger.debug(f'url_to_repo("{url}") failed. Retrying...')
-            time.sleep(backoff)
-            backoff *= 2
-
-
-@cache
-def get_latest_commit(url: str) -> str:
-    """Get the hash of the latest commit of the Git repo at ``url``."""
-    repo = url_to_repo(url)
-    return repo.get_branch(repo.default_branch).commit.sha
 
 
 @cache

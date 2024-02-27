@@ -1,7 +1,6 @@
 import pytest
 
 from lean_dojo import *
-from lean_dojo.utils import get_latest_commit
 
 
 LEAN3_URL = "https://github.com/leanprover-community/lean"

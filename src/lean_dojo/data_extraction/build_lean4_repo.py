@@ -189,7 +189,8 @@ def main() -> None:
     with launch_progressbar(dirs_to_monitor):
         cmd = f"lake env lean --threads {num_procs} --run ExtractData.lean"
         if args.no_deps:
-            cmd += " nodeps"
+            cmd += " noDeps"
+        logger.debug(cmd)
         run_cmd(cmd, capture_output=True)
 
     check_files(packages_path, args.no_deps)

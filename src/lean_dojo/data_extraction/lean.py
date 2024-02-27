@@ -6,11 +6,13 @@ import re
 import os
 import json
 import toml
+import time
 import urllib
 import webbrowser
 from pathlib import Path
 from loguru import logger
 from functools import cache
+from github import Github, Auth
 from dataclasses import dataclass, field
 from github.Repository import Repository
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple
@@ -19,23 +21,70 @@ from ..utils import (
     execute,
     read_url,
     url_exists,
-    url_to_repo,
-    normalize_url,
     get_repo_info,
     working_directory,
-    get_latest_commit,
 )
 from ..constants import (
     LEAN3_URL,
     LEAN4_URL,
-    LEAN4_REPO,
-    LEAN4_NIGHTLY_REPO,
     LEAN3_PACKAGES_DIR,
     LEAN4_PACKAGES_DIR,
     LEAN4_PACKAGES_DIR_OLD,
     LEAN4_BUILD_DIR,
     LEAN_BUILD_DIR_OLD,
 )
+
+
+GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN", None)
+"""GiHub personal access token is optional. 
+If provided, it can increase the rate limit for GitHub API calls.
+"""
+
+if GITHUB_ACCESS_TOKEN:
+    logger.debug("Using GitHub personal access token for authentication")
+    GITHUB = Github(auth=Auth.Token(GITHUB_ACCESS_TOKEN))
+    GITHUB.get_user().login
+else:
+    logger.debug(
+        "Using GitHub without authentication. Don't be surprised if you hit the API rate limit."
+    )
+    GITHUB = Github()
+
+LEAN4_REPO = GITHUB.get_repo("leanprover/lean4")
+"""The GitHub Repo for Lean 4 itself."""
+
+LEAN4_NIGHTLY_REPO = GITHUB.get_repo("leanprover/lean4-nightly")
+"""The GitHub Repo for Lean 4 nightly releases."""
+
+_URL_REGEX = re.compile(r"(?P<url>.*?)/*")
+
+
+def normalize_url(url: str) -> str:
+    return _URL_REGEX.fullmatch(url)["url"]  # Remove trailing `/`.
+
+
+@cache
+def url_to_repo(url: str, num_retries: int = 2) -> Repository:
+    url = normalize_url(url)
+    backoff = 1
+
+    while True:
+        try:
+            return GITHUB.get_repo("/".join(url.split("/")[-2:]))
+        except Exception as ex:
+            if num_retries <= 0:
+                raise ex
+            num_retries -= 1
+            logger.debug(f'url_to_repo("{url}") failed. Retrying...')
+            time.sleep(backoff)
+            backoff *= 2
+
+
+@cache
+def get_latest_commit(url: str) -> str:
+    """Get the hash of the latest commit of the Git repo at ``url``."""
+    repo = url_to_repo(url)
+    return repo.get_branch(repo.default_branch).commit.sha
 
 
 def cleanse_string(s: Union[str, Path]) -> str:
