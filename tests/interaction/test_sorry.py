@@ -4,7 +4,7 @@ from lean_dojo import *
 def test_sorry_1(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
-        "Mathlib/CategoryTheory/Arrow.lean",
+        "Mathlib/CategoryTheory/Comma/Arrow.lean",
         "CategoryTheory.Arrow.id_left",
     )
     with Dojo(thm) as (dojo, init_state):
