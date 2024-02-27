@@ -199,14 +199,9 @@ class Dojo:
             self._install_handlers()
             os.chdir(self.tmp_dir)
 
-            # Copy and `cd` into the repo.
+            # `cd` into the repo.
             traced_repo_path = get_traced_repo_path(self.repo)
-            shutil.copytree(
-                traced_repo_path,
-                self.repo.name,
-                ignore=ignore_patterns("*.dep_paths", "*.ast.json", "*.trace.xml"),
-            )
-            os.chdir(self.repo.name)
+            os.chdir(traced_repo_path)
 
             # Replace the human-written proof with a `repl` tactic.
             try:
@@ -223,12 +218,12 @@ class Dojo:
 
             # Run the modified file in a container.
             self.container = get_container()
+            assert isinstance(self.container, NativeContainer), "Only NativeContainer is supported."
             if self.uses_lean3 and isinstance(self.container, NativeContainer):
                 logger.warning(
                     "Docker is strongly recommended when using LeanDojo with Lean 3. See https://leandojo.readthedocs.io/en/latest/user-guide.html#advanced-running-within-docker."
                 )
             logger.debug(f"Launching the proof using {type(self.container)}")
-            mts = [Mount(Path.cwd(), Path(f"/workspace/{self.repo.name}"))]
             if self.repo.uses_lean3:
                 cmd = f"lean {self.file_path}"
                 cpu_limit = TACTIC_CPU_LIMIT
@@ -236,10 +231,8 @@ class Dojo:
             else:
                 self.container.run(
                     "lake build Lean4Repl",
-                    mts,
                     as_current_user=True,
                     capture_output=True,
-                    work_dir=f"/workspace/{self.repo.name}",
                     cpu_limit=None,
                     memory_limit=None,
                     envs={},
@@ -251,10 +244,8 @@ class Dojo:
 
             self.proc = self.container.run_interactive(
                 cmd,
-                mts,
                 cpu_limit=cpu_limit,
                 memory_limit=memory_limit,
-                work_dir=f"/workspace/{self.repo.name}",
                 as_current_user=True,
                 envs={},
             )
@@ -294,6 +285,8 @@ class Dojo:
             os.chdir(self.origin_dir)
             shutil.rmtree(self.tmp_dir)
             raise ex
+        finally:
+            self._unmodify_file(traced_file)
 
     def _locate_traced_file(self, traced_repo_path: Path) -> TracedFile:
         json_path = to_json_path(traced_repo_path, self.file_path, self.repo)
@@ -423,26 +416,31 @@ class Dojo:
         else:
             repl_file = "Lean4Repl.lean"
             repl_dst = Path(repl_file)
-            with open("lakefile.lean", "a") as oup:
-                oup.write("\nlean_lib Lean4Repl {\n\n}\n")
-            if os.path.exists("lakefile.olean"):
-                os.remove("lakefile.olean")
-            if os.path.exists(".lake/lakefile.olean"):
-                os.remove(".lake/lakefile.olean")
+            with open("lakefile.lean", "r") as inp:
+                lakefile = inp.read()
+            if "Lean4Repl" not in lakefile:
+                with open("lakefile.lean", "a") as oup:
+                    oup.write("\nlean_lib Lean4Repl {\n\n}\n")
 
         # Copy the REPL code to the right directory.
         repl_src = Path(__file__).with_name(repl_file)
         repl_code = (
             repl_src.open().read().replace("$TACTIC_TIMEOUT", str(TACTIC_TIMEOUT))
         )
-        if repl_dst.exists():
-            raise DojoInitError(f"{repl_dst} exists")
-        with repl_dst.open("wt") as oup:
-            oup.write(repl_code)
+        if not repl_dst.exists():
+            with repl_dst.open("wt") as oup:
+                oup.write(repl_code)
+
+        # Create a backup so we can undo the changes at the end.
+        shutil.copy(self.file_path, self.file_path.with_suffix(".bak"))
 
         # Write the modified code to the file.
         with self.file_path.open("wt") as oup:
             oup.write(modified_code)
+
+    def _unmodify_file(self, traced_file: TracedFile) -> None:
+        logger.debug(f"Restoring {traced_file.lean_file.path}")
+        os.rename(self.file_path.with_suffix(".bak"), self.file_path)
 
     def _modify_proof(self, traced_file: TracedFile) -> str:
         # Modify the proof and set up the `repl` tactic.
