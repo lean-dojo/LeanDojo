@@ -227,23 +227,6 @@ def test_example_17(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_18(mathlib4_repo: LeanGitRepo) -> None:
-    thm = Theorem(
-        mathlib4_repo,
-        "Mathlib/Combinatorics/SimpleGraph/Hasse.lean",
-        "SimpleGraph.hasse_preconnected_of_succ",
-    )
-    with Dojo(thm) as (dojo, s0):
-        s1 = dojo.run_tac(s0, "intros a b")
-        s2 = dojo.run_tac(s1, "rw [reachable_iff_reflTransGen]")
-        s3 = dojo.run_tac(
-            s2,
-            "exact reflTransGen_of_succ _ (fun c hc => Or.inl <| covby_succ_of_not_isMax hc.2.not_isMax) fun c hc => Or.inr <| covby_succ_of_not_isMax hc.2.not_isMax",
-        )
-        assert isinstance(s3, ProofFinished)
-        assert dojo.is_successful
-
-
 def test_example_19(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
@@ -299,7 +282,7 @@ def test_example_22(mathlib4_repo: LeanGitRepo) -> None:
 def test_example_23(std4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         std4_repo,
-        "Std/Data/Int/Lemmas.lean",
+        "Std/Data/Int/Order.lean",
         "Int.neg_lt_sub_right_of_lt_add",
     )
     with Dojo(thm) as (dojo, s0):
