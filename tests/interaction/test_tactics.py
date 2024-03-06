@@ -86,7 +86,7 @@ def test_example_6(mathlib4_repo: LeanGitRepo) -> None:
 def test_example_7(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
-        "Mathlib/Algebra/IndicatorFunction.lean",
+        "Mathlib/Algebra/Function/Indicator.lean",
         "Set.mulIndicator_inv'",
     )
     with Dojo(thm) as (dojo, s0):
@@ -129,7 +129,7 @@ def test_example_9(mathlib4_repo: LeanGitRepo) -> None:
 def test_example_10(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
-        "Mathlib/Algebra/Hom/Ring/Defs.lean",
+        "Mathlib/Algebra/Ring/Hom/Defs.lean",
         "RingHom.coe_monoidHom_mk",
     )
     with Dojo(thm) as (dojo, s0):
@@ -203,7 +203,7 @@ def test_example_15(mathlib4_repo: LeanGitRepo) -> None:
 def test_example_16(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
-        "Mathlib/Algebra/Hom/Group/Defs.lean",
+        "Mathlib/Algebra/Group/Hom/Defs.lean",
         "MonoidHom.map_inv",
     )
     with Dojo(thm) as (dojo, s0):
@@ -328,7 +328,7 @@ def test_example_24(mathlib4_repo: LeanGitRepo) -> None:
 def test_example_25(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
-        "Mathlib/Topology/MetricSpace/Basic.lean",
+        "Mathlib/Topology/MetricSpace/Bounded.lean",
         "Metric.nonempty_iInter_of_nonempty_biInter",
     )
     with Dojo(thm) as (dojo, s0):
