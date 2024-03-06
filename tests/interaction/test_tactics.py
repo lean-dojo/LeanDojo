@@ -308,7 +308,9 @@ def test_example_eq(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_nonempty_iInter_of_nonempty_biInter(mathlib4_repo: LeanGitRepo) -> None:
+def test_example_nonempty_iInter_of_nonempty_biInter(
+    mathlib4_repo: LeanGitRepo,
+) -> None:
     thm = Theorem(
         mathlib4_repo,
         "Mathlib/Topology/MetricSpace/Bounded.lean",
