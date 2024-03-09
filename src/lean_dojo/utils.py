@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from ray.util.actor_pool import ActorPool
 from typing import Tuple, Union, List, Generator, Optional
 
-from .constants import NUM_WORKERS, TMP_DIR
+from .constants import NUM_WORKERS, TMP_DIR, LEAN4_PACKAGES_DIR, LEAN4_BUILD_DIR
 
 
 @contextmanager
@@ -170,14 +170,6 @@ def get_repo_info(path: Path) -> Tuple[str, str]:
     return url, commit
 
 
-_SPACES_REGEX = re.compile(r"\s+", re.DOTALL)
-
-
-def normalize_spaces(s: str) -> str:
-    """Replace any consecutive block of whitespace characters in ``s`` with a single whitespace."""
-    return _SPACES_REGEX.sub(" ", s).strip()
-
-
 def is_optional_type(tp: type) -> bool:
     """Test if ``tp`` is Optional[X]."""
     if typing.get_origin(tp) != Union:
@@ -224,11 +216,6 @@ def url_exists(url: str) -> bool:
         return False
 
 
-def parse_lean3_version(v: str) -> Tuple[int, int, int]:
-    assert v.startswith("v")
-    return tuple(int(_) for _ in v[1:].split("."))
-
-
 def parse_int_list(s: str) -> List[int]:
     assert s.startswith("[") and s.endswith("]")
     return [int(_) for _ in s[1:-1].split(",") if _ != ""]
@@ -254,29 +241,29 @@ def _from_lean_path(root_dir: Path, path: Path, repo, ext: str) -> Path:
     if path.is_absolute():
         path = path.relative_to(root_dir)
 
-    if not repo.uses_lean4:
-        return path.with_suffix(ext)
-
-    packages_dir = repo.get_packages_dir()
-    build_dir = repo.get_build_dir()
-
     assert root_dir.name != "lean4"
-    if path.is_relative_to(packages_dir / "lean4/src/lean/lake"):
+    if path.is_relative_to(LEAN4_PACKAGES_DIR / "lean4/src/lean/lake"):
         # E.g., "lake-packages/lean4/src/lean/lake/Lake/CLI/Error.lean"
-        p = path.relative_to(packages_dir / "lean4/src/lean/lake")
-        return packages_dir / "lean4/lib/lean" / p.with_suffix(ext)
-    elif path.is_relative_to(packages_dir / "lean4/src"):
+        p = path.relative_to(LEAN4_PACKAGES_DIR / "lean4/src/lean/lake")
+        return LEAN4_PACKAGES_DIR / "lean4/lib/lean" / p.with_suffix(ext)
+    elif path.is_relative_to(LEAN4_PACKAGES_DIR / "lean4/src"):
         # E.g., "lake-packages/lean4/src/lean/Init.lean"
-        p = path.relative_to(packages_dir / "lean4/src").with_suffix(ext)
-        return packages_dir / "lean4/lib" / p
-    elif path.is_relative_to(packages_dir):
+        p = path.relative_to(LEAN4_PACKAGES_DIR / "lean4/src").with_suffix(ext)
+        return LEAN4_PACKAGES_DIR / "lean4/lib" / p
+    elif path.is_relative_to(LEAN4_PACKAGES_DIR):
         # E.g., "lake-packages/std/Std.lean"
-        p = path.relative_to(packages_dir).with_suffix(ext)
+        p = path.relative_to(LEAN4_PACKAGES_DIR).with_suffix(ext)
         repo_name = p.parts[0]
-        return packages_dir / repo_name / build_dir / "ir" / p.relative_to(repo_name)
+        return (
+            LEAN4_PACKAGES_DIR
+            / repo_name
+            / LEAN4_BUILD_DIR
+            / "ir"
+            / p.relative_to(repo_name)
+        )
     else:
         # E.g., "Mathlib/LinearAlgebra/Basics.lean"
-        return build_dir / "ir" / path.with_suffix(ext)
+        return LEAN4_BUILD_DIR / "ir" / path.with_suffix(ext)
 
 
 def to_xml_path(root_dir: Path, path: Path, repo) -> Path:
@@ -301,31 +288,27 @@ def to_lean_path(root_dir: Path, path: Path, repo) -> bool:
         assert path.suffix == ".dep_paths"
         path = path.with_suffix(".lean")
 
-    if not repo.uses_lean4:
-        return path
-
-    packages_dir = repo.get_packages_dir()
-    build_dir = repo.get_build_dir()
-
     assert root_dir.name != "lean4"
-    if path == packages_dir / "lean4/lib/lean/Lake.lean":
-        return packages_dir / "lean4/src/lean/lake/Lake.lean"
-    elif path.is_relative_to(packages_dir / "lean4/lib/lean/Lake"):
+    if path == LEAN4_PACKAGES_DIR / "lean4/lib/lean/Lake.lean":
+        return LEAN4_PACKAGES_DIR / "lean4/src/lean/lake/Lake.lean"
+    elif path.is_relative_to(LEAN4_PACKAGES_DIR / "lean4/lib/lean/Lake"):
         # E.g., "lake-packages/lean4/lib/lean/Lake/Util/List.lean"
-        p = path.relative_to(packages_dir / "lean4/lib/lean/Lake")
-        return packages_dir / "lean4/src/lean/lake/Lake" / p
-    elif path.is_relative_to(packages_dir / "lean4/lib"):
+        p = path.relative_to(LEAN4_PACKAGES_DIR / "lean4/lib/lean/Lake")
+        return LEAN4_PACKAGES_DIR / "lean4/src/lean/lake/Lake" / p
+    elif path.is_relative_to(LEAN4_PACKAGES_DIR / "lean4/lib"):
         # E.g., "lake-packages/lean4/lib/lean/Init.lean"
-        p = path.relative_to(packages_dir / "lean4/lib")
-        return packages_dir / "lean4/src" / p
-    elif path.is_relative_to(packages_dir):
+        p = path.relative_to(LEAN4_PACKAGES_DIR / "lean4/lib")
+        return LEAN4_PACKAGES_DIR / "lean4/src" / p
+    elif path.is_relative_to(LEAN4_PACKAGES_DIR):
         # E.g., "lake-packages/std/build/ir/Std.lean"
-        p = path.relative_to(packages_dir)
+        p = path.relative_to(LEAN4_PACKAGES_DIR)
         repo_name = p.parts[0]
         return (
-            packages_dir / repo_name / p.relative_to(Path(repo_name) / build_dir / "ir")
+            LEAN4_PACKAGES_DIR
+            / repo_name
+            / p.relative_to(Path(repo_name) / LEAN4_BUILD_DIR / "ir")
         )
     else:
         # E.g., ".lake/build/ir/Mathlib/LinearAlgebra/Basics.lean" or "build/ir/Mathlib/LinearAlgebra/Basics.lean"
-        assert path.is_relative_to(build_dir / "ir"), path
-        return path.relative_to(build_dir / "ir")
+        assert path.is_relative_to(LEAN4_BUILD_DIR / "ir"), path
+        return path.relative_to(LEAN4_BUILD_DIR / "ir")

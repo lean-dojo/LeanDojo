@@ -50,18 +50,18 @@ structure ReplState (σ : Type _) where
 
 
 /-- Get the saved tactic state with the given ID. --/
-private def getSavedState? (m : Type → Type) [Monad m] [MonadState (ReplState σ) m] (sid : Nat) : m (Option σ) := do
+private def getSavedState? (m : Type → Type) [Monad m] {σ : Type _} [MonadState (ReplState σ) m] (sid : Nat) : m (Option σ) := do
   return (← get).savedStates[sid]?
 
 
 /-- Get the initial tactic state. --/
-private def getInitialState! (m : Type → Type) [Monad m] [MonadState (ReplState σ) m] [MonadError m] : m σ := do
+private def getInitialState! (m : Type → Type) [Monad m] {σ : Type _} [MonadState (ReplState σ) m] [MonadError m] : m σ := do
   let some ts ← getSavedState? m 0 | throwError "[fatal] no initial state"
   return ts
 
 
 /-- Get the next state ID. --/
-private def getNextSid (m : Type → Type) [Monad m] [MonadState (ReplState σ) m] : m Nat := do
+private def getNextSid (m : Type → Type) [Monad m] {σ : Type _} [MonadState (ReplState σ) m] : m Nat := do
   return (← get).savedStates.size
 
 

@@ -14,34 +14,6 @@ please first reach out to us before implementing. All contributions should
 conform to our code formatting standards (see :ref:`code-formatting`).
 
 
-Implementation Notes
-********************
-
-.. _modified-lean:
-
-Modified Lean 3
----------------
-
-Lean 3's AST export mechanism (:code:`lean --ast --tsast --tspp`) provides rich 
-syntactic information about :file:`*.lean` files, as well as certain semantic information
-such as tactic states. However, it does not provide everything we need for retrieval-augmented 
-theorem proving. For each constant (premise) in a tactic, we'd like to know:
- 
-* Its start/end positions within the tactic.
-* Its fully qualified name.
-* Where to find its definition (:file:`*.lean` file and the position within the file).
-
-The first one is syntactic and is already provided by :code:`lean --ast --tsast --tspp`. The remaining 
-two are produced by Lean's elaborator but not exported. Therefore, we modify Lean to export them.
-Our modification is implemented as a `patch <https://github.com/lean-dojo/LeanDojo/blob/main/src/lean_dojo/data_extraction/0001-Modify-Lean-for-proof-recording.patch>`_
-, which can be applied to Lean from `v3.42.1 <https://github.com/leanprover-community/lean/releases/tag/v3.42.1>`_ up to the most recent version by :code:`git apply` (see :ref:`lean_dojo.data_extraction.trace`). 
-Note that:
-
-* The modification only changes Lean's frontend but not its core functions for proof checking. Therefore, we do not compromise Lean's soundness. 
-* The modification is only for data extraction. For interaction, we still use the original, unmodified Lean. 
-
-
-
 Testing
 *******
 
@@ -49,7 +21,7 @@ We use `pytest <https://docs.pytest.org/>`_ for testing. You can run tests by:
 
 .. code-block:: bash
 
-   VERBOSE=1 CACHE_DIR=~/.cache/lean_dojo_testing DISABLE_REMOTE_CACHE=1 CONTAINER=docker pytest -s tests
+   VERBOSE=1 CACHE_DIR=~/.cache/lean_dojo_testing DISABLE_REMOTE_CACHE=1 pytest -s tests
    rm -rf ~/.cache/lean_dojo_testing 
 
 The environment variable :code:`CACHE_DIR` makes sure the testing uses a temporary cache directory that 

@@ -15,17 +15,15 @@ from typing import Union, Tuple, List, Dict, Any, Optional
 
 from ..constants import (
     TMP_DIR,
-    LEAN3_PACKAGES_DIR,
-    TACTIC_TIMEOUT,
     TACTIC_CPU_LIMIT,
     TACTIC_MEMORY_LIMIT,
 )
 from ..utils import to_json_path
 from .parse_goals import parse_goals, Goal
-from ..container import get_container, Mount, NativeContainer, DockerContainer
 from ..data_extraction.traced_data import TracedFile
 from ..data_extraction.trace import get_traced_repo_path
 from ..data_extraction.lean import Theorem, LeanGitRepo, Pos
+from ..container import get_container, Mount, NativeContainer, DockerContainer
 
 
 _REPL_PROMPT = "REPL>"
@@ -159,16 +157,8 @@ class Dojo:
             assert isinstance(entry, tuple)
             self.repo, self.file_path, _ = entry
             self.file_path = Path(self.file_path)
-            assert (
-                self.uses_lean4
-            ), "Interacting through commands is supported only in Lean 4."
 
-        if self.repo.is_lean4:
-            raise NotImplementedError(
-                "Interacting with the Lean 4 repo itself is not supported yet."
-            )
-
-        if self.uses_lean4 and self.hard_timeout is None:
+        if self.hard_timeout is None:
             logger.warning("Using Lean 4 without a hard timeout may hang indefinitely.")
 
     @property
@@ -178,14 +168,6 @@ class Dojo:
     @property
     def uses_commands(self) -> bool:
         return isinstance(self.entry, tuple)
-
-    @property
-    def uses_lean4(self) -> bool:
-        return self.repo.uses_lean4
-
-    @property
-    def uses_lean3(self) -> bool:
-        return self.repo.uses_lean3
 
     def __enter__(self) -> Tuple["Dojo", State]:
         """Initialize Dojo."""
@@ -218,42 +200,29 @@ class Dojo:
 
             self._modify_file(traced_file)
 
-            # The REPL code cannot be used to interact with its own dependencies.
-            unsupported_deps = self._get_unsupported_deps(traced_repo_path)
-
             # Run the modified file in a container.
             self.container = get_container()
-            if self.uses_lean3 and isinstance(self.container, NativeContainer):
-                logger.warning(
-                    "Docker is strongly recommended when using LeanDojo with Lean 3. See https://leandojo.readthedocs.io/en/latest/user-guide.html#advanced-running-within-docker."
-                )
             logger.debug(f"Launching the proof using {type(self.container)}")
             mts = [Mount(Path.cwd(), Path(f"/workspace/{self.repo.name}"))]
-            if self.repo.uses_lean3:
-                cmd = f"lean {self.file_path}"
-                cpu_limit = TACTIC_CPU_LIMIT
-                memory_limit = TACTIC_MEMORY_LIMIT
-            else:
-                self.container.run(
-                    "lake build Lean4Repl",
-                    mts,
-                    as_current_user=True,
-                    capture_output=True,
-                    work_dir=f"/workspace/{self.repo.name}",
-                    cpu_limit=None,
-                    memory_limit=None,
-                    envs={},
-                )
-                assert re.fullmatch(r"\d+g", TACTIC_MEMORY_LIMIT)
-                memory_limit = 1024 * int(TACTIC_MEMORY_LIMIT[:-1])
-                cmd = f"lake env lean --threads={TACTIC_CPU_LIMIT} --memory={memory_limit} {self.file_path}"
-                cpu_limit = memory_limit = None
+            self.container.run(
+                "lake build Lean4Repl",
+                mts,
+                as_current_user=True,
+                capture_output=True,
+                work_dir=f"/workspace/{self.repo.name}",
+                cpu_limit=None,
+                memory_limit=None,
+                envs={},
+            )
+            assert re.fullmatch(r"\d+g", TACTIC_MEMORY_LIMIT)
+            memory_limit = 1024 * int(TACTIC_MEMORY_LIMIT[:-1])
+            cmd = f"lake env lean --threads={TACTIC_CPU_LIMIT} --memory={memory_limit} {self.file_path}"
 
             self.proc = self.container.run_interactive(
                 cmd,
                 mts,
-                cpu_limit=cpu_limit,
-                memory_limit=memory_limit,
+                cpu_limit=None,
+                memory_limit=None,
                 work_dir=f"/workspace/{self.repo.name}",
                 as_current_user=True,
                 envs={},
@@ -263,9 +232,9 @@ class Dojo:
             try:
                 res = json.loads(self._read_next_line()[0])
             except Exception as ex:
-                if traced_file.path in unsupported_deps or traced_file.has_prelude:
+                if traced_file.has_prelude:
                     raise DojoInitError(
-                        "Currently LeanDojo does not support interacting with proofs in prelude files or files imported by system/io.lean."
+                        "Currently LeanDojo does not support interacting with proofs in prelude files."
                     )
                 elif isinstance(ex, EOFError):
                     raise DojoInitError("EOF")
@@ -298,17 +267,6 @@ class Dojo:
     def _locate_traced_file(self, traced_repo_path: Path) -> TracedFile:
         json_path = to_json_path(traced_repo_path, self.file_path, self.repo)
         return TracedFile.from_traced_file(traced_repo_path, json_path, self.repo)
-
-    def _get_unsupported_deps(self, traced_repo_path: Path) -> List[Path]:
-        if self.uses_lean3:
-            if self.repo.is_lean3:
-                path = Path("library/system/io.lean")
-            else:
-                path = LEAN3_PACKAGES_DIR / "lean/library/system/io.lean"
-            return [path] + _get_all_dependencies(traced_repo_path, path, self.repo)
-        else:
-            # We shouldn't be interacting with the Lean 4 repo itself anyway.
-            return []
 
     def _set_timer(self) -> None:
         if self.hard_timeout is not None:
@@ -417,24 +375,18 @@ class Dojo:
                 + lean_file[pos:]
             )
 
-        if self.uses_lean3:
-            repl_file = "lean3_repl.lean"
-            repl_dst = self.file_path.parent / repl_file
-        else:
-            repl_file = "Lean4Repl.lean"
-            repl_dst = Path(repl_file)
-            with open("lakefile.lean", "a") as oup:
-                oup.write("\nlean_lib Lean4Repl {\n\n}\n")
-            if os.path.exists("lakefile.olean"):
-                os.remove("lakefile.olean")
-            if os.path.exists(".lake/lakefile.olean"):
-                os.remove(".lake/lakefile.olean")
+        repl_file = "Lean4Repl.lean"
+        repl_dst = Path(repl_file)
+        with open("lakefile.lean", "a") as oup:
+            oup.write("\nlean_lib Lean4Repl {\n\n}\n")
+        if os.path.exists("lakefile.olean"):
+            os.remove("lakefile.olean")
+        if os.path.exists(".lake/lakefile.olean"):
+            os.remove(".lake/lakefile.olean")
 
         # Copy the REPL code to the right directory.
         repl_src = Path(__file__).with_name(repl_file)
-        repl_code = (
-            repl_src.open().read().replace("$TACTIC_TIMEOUT", str(TACTIC_TIMEOUT))
-        )
+        repl_code = repl_src.open().read()
         if repl_dst.exists():
             raise DojoInitError(f"{repl_dst} exists")
         with repl_dst.open("wt") as oup:
@@ -455,28 +407,19 @@ class Dojo:
         proof_start, proof_end = traced_theorem.locate_proof()
         lean_file = traced_file.lean_file
 
-        if self.uses_lean4:
-            code_import = self._get_imports()
-            code_proof = "\nby\n  lean_dojo_repl\n  sorry\n"
-            code_before_theorem = lean_file[: traced_theorem.start]
-            code_thereom = lean_file[traced_theorem.start : proof_start]
-            modified_code = (
-                code_import
-                + code_before_theorem
-                + "set_option maxHeartbeats 0 in\n"
-                + code_thereom
-                + code_proof
-                + lean_file[proof_end:]
-            )
-        else:
-            code_before_proof = lean_file[:proof_start].strip()
-            if not code_before_proof.endswith(":="):
-                code_before_proof += " :="
-            code_import = "import .lean3_repl\n\n"
-            code_proof = "\nbegin\n  lean_dojo.repl,\n  sorry\nend\n"
-            modified_code = (
-                code_import + code_before_proof + code_proof + lean_file[proof_end:]
-            )
+        code_import = self._get_imports()
+        code_proof = "\nby\n  lean_dojo_repl\n  sorry\n"
+        code_before_theorem = lean_file[: traced_theorem.start]
+        code_thereom = lean_file[traced_theorem.start : proof_start]
+        modified_code = (
+            code_import
+            + code_before_theorem
+            + "set_option maxHeartbeats 0 in\n"
+            + code_thereom
+            + code_proof
+            + lean_file[proof_end:]
+        )
+
         return str(modified_code)
 
     def run_tac(self, state: TacticState, tactic: str) -> TacticResult:
@@ -487,10 +430,7 @@ class Dojo:
         assert isinstance(tactic, str), f"Invalid tactic {tactic}"
 
         tsid = state.id
-        if self.uses_lean4:
-            req = json.dumps({"sid": tsid, "cmd": tactic}, ensure_ascii=False)
-        else:
-            req = json.dumps(["run_tac", [tsid, tactic]])
+        req = json.dumps({"sid": tsid, "cmd": tactic}, ensure_ascii=False)
         res = self._submit_request(req)
 
         if res["error"] is not None:
@@ -519,7 +459,6 @@ class Dojo:
         assert isinstance(command, str), f"Invalid command {command}"
 
         csid = state.id
-        assert self.uses_lean4
         req = json.dumps({"sid": csid, "cmd": command}, ensure_ascii=False)
         res = self._submit_request(req)
 
@@ -527,20 +466,6 @@ class Dojo:
             return LeanError(res["error"].strip())
         else:
             return CommandState(res["sid"], res["message"])
-
-    def query_env(self, state: TacticState) -> Any:
-        if self.uses_lean4:
-            raise NotImplementedError
-        req = json.dumps(["query_env", [state.id]])
-        res = self._submit_request(req)
-        return res["environment"]
-
-    def query_decl(self, state: TacticState, name: str) -> Any:
-        if self.uses_lean4:
-            raise NotImplementedError
-        req = json.dumps(["query_decl", [state.id, name]])
-        res = self._submit_request(req)
-        return res["declaration"]
 
     def _submit_request(self, req: str) -> Dict[str, Any]:
         """Submit a request to Lean and get the response.

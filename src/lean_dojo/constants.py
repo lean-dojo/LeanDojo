@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-__version__ = "1.6.0"
+__version__ = "1.7.0"
 
 logger.remove()
 if "VERBOSE" in os.environ or "DEBUG" in os.environ:
@@ -49,17 +49,8 @@ NUM_PROCS = int(os.getenv("NUM_PROCS", min(multiprocessing.cpu_count(), MAX_NUM_
 
 NUM_WORKERS = NUM_PROCS - 1
 
-LEAN3_URL = "https://github.com/leanprover-community/lean"
-"""The URL of the Lean 3 repo."""
-
-LEAN3_PACKAGES_DIR = Path("_target/deps")
-"""The directory where Lean 3 dependencies are stored."""
-
 LEAN4_URL = "https://github.com/leanprover/lean4"
 """The URL of the Lean 4 repo."""
-
-LEAN4_PACKAGES_DIR_OLD = Path("lake-packages")
-"""The directory where Lean 4 dependencies are stored (before v4.3.0-rc2)."""
 
 LEAN4_PACKAGES_DIR = Path(".lake/packages")
 """The directory where Lean 4 dependencies are stored (since v4.3.0-rc2)."""
@@ -68,12 +59,6 @@ LOAD_USED_PACKAGES_ONLY = "LOAD_USED_PACKAGES_ONLY" in os.environ
 """Only load depdendency files that are actually used by the target repo."""
 
 LEAN4_BUILD_DIR = Path(".lake/build")
-
-LEAN_BUILD_DIR_OLD = Path("build")
-
-TACTIC_TIMEOUT = int(os.getenv("TACTIC_TIMEOUT", 5000))
-"""Maximum time (in milliseconds) before interrupting a tactic when interacting with Lean (only for Lean 3).
-"""
 
 TACTIC_CPU_LIMIT = int(os.getenv("TACTIC_CPU_LIMIT", 1))
 """Number of CPUs for executing tactics when interacting with Lean (only useful when running within Docker).
@@ -96,10 +81,6 @@ if CONTAINER == "docker":
         DOCKER_AVAILABLE
     ), "Failed to access Docker. Please make sure Docker is running and you have access. Alternatively, you can try to run without Docker by setting the `CONTAINER` environment variable to `native` (see https://leandojo.readthedocs.io/en/latest/user-guide.html#advanced-running-within-docker)."
     os.system(f"docker pull {DOCKER_TAG} 1>/dev/null 2>/dev/null")
-
-MIN_LEAN3_VERSION = "v3.42.1"
-"""The minimum version of Lean 3 that LeanDojo supports.
-"""
 
 
 def check_git_version(min_version: Tuple[int, int, int]) -> Tuple[int, int, int]:

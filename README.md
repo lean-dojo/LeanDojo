@@ -3,11 +3,12 @@ LeanDojo: Machine Learning for Theorem Proving in Lean
 
 ![LeanDojo](https://github.com/lean-dojo/LeanDojo/blob/main/images/LeanDojo.jpg)
 
-[LeanDojo](https://leandojo.org/) is a Python library for learning–based theorem provers in Lean, supporting both [Lean 3](https://github.com/leanprover-community/lean) and [Lean 4](https://leanprover.github.io/). It provides two main features:
+[LeanDojo](https://leandojo.org/) is a Python library for learning–based theorem provers in Lean, providing two main features:
 
 * Extracting data (proof states, tactics, premises, etc.) from Lean repos.
 * Interacting with Lean programmatically.
 
+LeanDojo's current version is compatible with Lean 4 `v4.3.0-rc2` or later. We strongly suggest using the current version. However, you may use the [`legacy`](https://github.com/lean-dojo/LeanDojo/tree/legacy) branch if you want to work with earlier versions (including Lean 3).
 
 [![Documentation Status](https://readthedocs.org/projects/leandojo/badge/?version=latest)](https://leandojo.readthedocs.io/en/latest/?badge=latest) [![PyPI](https://img.shields.io/pypi/v/lean-dojo)](https://pypi.org/project/lean-dojo/) [![GitHub license](https://img.shields.io/github/license/lean-dojo/LeanDojo)](https://github.com/lean-dojo/LeanDojo/blob/main/LICENSE) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) 
 
@@ -20,7 +21,6 @@ ______________________________________________________________________
 * 3.9 <= Python < 3.11
 * wget
 * [elan](https://github.com/leanprover/elan)
-* Docker is strongly recommended when using LeanDojo with Lean 3
 * Recommended: Generate a [GitHub personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic) and set the environment variable `GITHUB_ACCESS_TOKEN` to it
 
 
@@ -54,7 +54,7 @@ pip install .
 
 * [LeanDojo Website](https://leandojo.org/): The official website of LeanDojo.
 * [LeanDojo Benchmark](https://doi.org/10.5281/zenodo.8016385) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8016385.svg)](https://doi.org/10.5281/zenodo.8016385): The dataset used in our paper, consisting of 98,734 theorems and proofs extracted from [mathlib](https://github.com/leanprover-community/mathlib/commits/19c869efa56bbb8b500f2724c0b77261edbfa28c) by [generate-benchmark-lean3.ipynb](./scripts/generate-benchmark-lean3.ipynb). 
-* [LeanDojo Benchmark 4](https://doi.org/10.5281/zenodo.8040109) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8040109.svg)](https://doi.org/10.5281/zenodo.8040109): The Lean 4 version of LeanDojo Benchmark, consisting of 102,514 theorems and proofs extracted from [mathlib4](https://github.com/leanprover-community/mathlib4/commit/3ce43c18f614b76e161f911b75a3e1ef641620ff) by [generate-benchmark-lean4.ipynb](./scripts/generate-benchmark-lean4.ipynb).
+* [LeanDojo Benchmark 4](https://doi.org/10.5281/zenodo.8040109) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8040109.svg)](https://doi.org/10.5281/zenodo.8040109): The Lean 4 version of LeanDojo Benchmark, consisting of 106,446 theorems and proofs extracted from [mathlib4](https://github.com/leanprover-community/mathlib4/commit/3c307701fa7e9acbdc0680d7f3b9c9fed9081740) by [generate-benchmark-lean4.ipynb](./scripts/generate-benchmark-lean4.ipynb).
 * [ReProver](https://github.com/lean-dojo/ReProver): The ReProver (Retrieval-Augmented Prover) model in our paper.
 * [LeanDojo ChatGPT Plugin](https://github.com/lean-dojo/LeanDojoChatGPT)
 * [Lean Copilot: Running language models as copilots for theorem proving in Lean](https://github.com/lean-dojo/LeanCopilot)

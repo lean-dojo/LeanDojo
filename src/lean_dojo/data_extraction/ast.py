@@ -4,14 +4,14 @@ from dataclasses import dataclass, field
 from xml.sax.saxutils import escape, unescape
 from typing import List, Dict, Any, Optional, Callable, Tuple, Generator
 
-from ....utils import (
+from ..utils import (
     camel_case,
     is_optional_type,
     remove_optional_type,
     parse_int_list,
     parse_str_list,
 )
-from ...lean import Pos, LeanFile
+from .lean import Pos, LeanFile
 
 
 @dataclass(frozen=True)
@@ -1066,13 +1066,11 @@ class CommandTheoremNode4(Node4):
                     isinstance(decl_val_node.children[0], AtomNode4)
                     and decl_val_node.children[0].val == ":="
                 )
-                assert isinstance(decl_val_node.children[2], NullNode4)
             elif isinstance(decl_val_node, CommandWherestructinstNode4):
                 assert (
                     isinstance(decl_val_node.children[0], AtomNode4)
                     and decl_val_node.children[0].val == "where"
                 )
-                assert isinstance(decl_val_node.children[2], NullNode4)
 
         return cls(lean_file, start, end, children, name)
 
