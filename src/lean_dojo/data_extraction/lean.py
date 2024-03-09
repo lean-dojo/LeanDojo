@@ -439,7 +439,7 @@ class LeanGitRepo:
         # Determine the required Lean version.
         if (self.url, self.commit) in info_cache.lean_version:
             lean_version = info_cache.lean_version[(self.url, self.commit)]
-        elif self.url == LEAN4_URL:
+        elif self.is_lean4:
             lean_version = self.commit
         else:
             config = self.get_config("lean-toolchain")
@@ -461,6 +461,10 @@ class LeanGitRepo:
     @property
     def name(self) -> str:
         return self.repo.name
+
+    @property
+    def is_lean4(self) -> bool:
+        return self.url == LEAN4_URL
 
     @property
     def commit_url(self) -> str:

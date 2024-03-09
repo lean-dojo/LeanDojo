@@ -11,7 +11,7 @@ from subprocess import CalledProcessError
 
 from .cache import cache
 from .lean import LeanGitRepo
-from ..constants import NUM_PROCS, LEAN4_URL
+from ..constants import NUM_PROCS
 from .traced_data import TracedRepo
 from ..utils import working_directory
 from ..container import create_mounts, get_container, NativeContainer
@@ -27,7 +27,7 @@ def _trace(repo: LeanGitRepo, build_deps: bool) -> None:
     ), f"The {repo} does not exist. Please check the URL `{repo.commit_url}`."
 
     # Trace `repo` in the current working directory.
-    assert repo.url != LEAN4_URL, "Cannot trace Lean 4 itself."
+    assert not repo.is_lean4, "Cannot trace Lean 4 itself."
     repo.clone_and_checkout()
 
     logger.debug(f"Tracing {repo}")
