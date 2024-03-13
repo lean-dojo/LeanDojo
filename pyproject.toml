@@ -13,7 +13,7 @@ exclude = [
 
 [project]
 name = "lean-dojo"
-version = "1.7.0"
+version = "1.7.1rc"
 authors = [
   { name="Kaiyu Yang", email="kaiyuy@caltech.edu" },
 ]
