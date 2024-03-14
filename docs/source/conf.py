@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath("../../src/lean_dojo/"))
 project = "LeanDojo"
 copyright = "2023, LeanDojo Team"
 author = "Kaiyu Yang"
-release = "1.7.1rc"
+release = "1.7.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

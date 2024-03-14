@@ -40,8 +40,8 @@ structure PremiseTrace where
   fullName: String            -- Fully-qualified name of the premise.
   defPos: Option Position     -- Where the premise is defined.
   defEndPos: Option Position
-  modName: String      -- In which module the premise is defined.
-  defPath: String      -- The path of the file where the premise is defined.
+  modName: String             -- In which module the premise is defined.
+  defPath: String             -- The path of the file where the premise is defined.
   pos: Option Position        -- Where the premise is used.
   endPos: Option Position
 deriving ToJson
@@ -317,6 +317,7 @@ private def visitTacticInfo (ctx : ContextInfo) (ti : TacticInfo) (parent : Info
     | _ => pure ()
   | _ => pure ()
 
+
 /--
 Extract premise information from `TermInfo` in `InfoTree`.
 -/
@@ -332,18 +333,21 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
     | some posInfo => fileMap.toPosition posInfo
     | none => none
 
-  let modName :=
-    if let some modIdx := env.const2ModIdx.find? fullName then
-      env.header.moduleNames[modIdx.toNat]!
-    else
-      env.header.mainModule
-
   let decRanges ← withEnv env $ findDeclarationRanges? fullName
   let defPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.pos
   let defEndPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.endPos
+
+  let modName :=
+  if let some modIdx := env.const2ModIdx.find? fullName then
+    env.header.moduleNames[modIdx.toNat]!
+  else
+    env.header.mainModule
+
   let mut defPath := toString $ ← Path.findLean modName
   if defPath.startsWith "./" then
     defPath := defPath.drop 2
+  if defPath.startsWith "/lake/" then
+    defPath := ".lake/" ++ (defPath.drop 6)
 
   if defPos != posBefore ∧ defEndPos != posAfter then  -- Don't include defintions as premises.
     modify fun trace => {

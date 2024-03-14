@@ -15,14 +15,14 @@ from .lean import Pos, LeanFile
 
 
 @dataclass(frozen=True)
-class Node4:
+class Node:
     lean_file: LeanFile
     start: Optional[Pos]
     end: Optional[Pos]
-    children: List["Node4"] = field(repr=False)
+    children: List["Node"] = field(repr=False)
 
     @classmethod
-    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "Node4":
+    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "Node":
         subcls = cls._kind_to_node_type(node_data["kind"])
         return subcls.from_data(node_data, lean_file)
 
@@ -31,13 +31,13 @@ class Node4:
         prefix = "Lean.Parser."
         if kind.startswith(prefix):
             kind = kind[len(prefix) :]
-        cls_name = camel_case(kind.replace(".", "_")) + "Node4"
+        cls_name = camel_case(kind.replace(".", "_")) + "Node"
         gbs = globals()
         if cls_name in gbs:
             return gbs[cls_name]  # type: ignore
         else:
             # logger.warning(kind)
-            return OtherNode4
+            return OtherNode
 
     @classmethod
     def kind(cls: type) -> str:
@@ -45,9 +45,9 @@ class Node4:
 
     def traverse_preorder(
         self,
-        callback: Callable[["Node4", List["Node4"]], Any],
+        callback: Callable[["Node", List["Node"]], Any],
         node_cls: Optional[type],
-        parents: List["Node4"] = [],
+        parents: List["Node"] = [],
     ) -> None:
         if node_cls is None or isinstance(self, node_cls):
             if callback(self, parents):
@@ -57,7 +57,7 @@ class Node4:
 
     def traverse_postorder(
         self,
-        callback: Callable[["Node4", List[Any]], Any],
+        callback: Callable[["Node", List[Any]], Any],
     ) -> Any:
         return callback(
             self, [child.traverse_postorder(callback) for child in self.children]
@@ -78,11 +78,11 @@ class Node4:
             child.to_xml(tree)
 
     @classmethod
-    def from_xml(cls, tree: etree.Element, lean_file: LeanFile) -> "Node4":
+    def from_xml(cls, tree: etree.Element, lean_file: LeanFile) -> "Node":
         subcls = globals()[tree.tag]
         start = Pos.from_str(tree.attrib["start"]) if "start" in tree.attrib else None
         end = Pos.from_str(tree.attrib["end"]) if "end" in tree.attrib else None
-        children = [Node4.from_xml(subtree, lean_file) for subtree in tree]
+        children = [Node.from_xml(subtree, lean_file) for subtree in tree]
         kwargs = {}
 
         for field in subcls.__dataclass_fields__.values():
@@ -138,7 +138,7 @@ def _parse_pos(info: Dict[str, Any], lean_file: LeanFile) -> Pos:
 
 
 @dataclass(frozen=True)
-class AtomNode4(Node4):
+class AtomNode(Node):
     leading: str
     trailing: str
     val: str
@@ -146,7 +146,7 @@ class AtomNode4(Node4):
     @classmethod
     def from_data(
         cls, atom_data: Dict[str, Any], lean_file: LeanFile
-    ) -> Optional["AtomNode4"]:
+    ) -> Optional["AtomNode"]:
         info = atom_data["info"]
         start, end = _parse_pos(info, lean_file)
 
@@ -162,7 +162,7 @@ class AtomNode4(Node4):
 
 
 @dataclass(frozen=True)
-class IdentNode4(Node4):
+class IdentNode(Node):
     leading: str
     trailing: str
     raw_val: str
@@ -177,7 +177,7 @@ class IdentNode4(Node4):
     @classmethod
     def from_data(
         cls, ident_data: Dict[str, Any], lean_file: LeanFile
-    ) -> Optional["IdentNode4"]:
+    ) -> Optional["IdentNode"]:
         info = ident_data["info"]
         start, end = _parse_pos(info, lean_file)
         assert ident_data["preresolved"] == []
@@ -206,17 +206,17 @@ class IdentNode4(Node4):
         return not isinstance(self.full_name, str)
 
 
-def is_leaf(node: Node4) -> bool:
-    return isinstance(node, AtomNode4) or isinstance(node, IdentNode4)
+def is_leaf(node: Node) -> bool:
+    return isinstance(node, AtomNode) or isinstance(node, IdentNode)
 
 
 @dataclass(frozen=True)
-class FileNode4(Node4):
+class FileNode(Node):
     @classmethod
-    def from_data(cls, data: Dict[str, Any], lean_file: LeanFile) -> "FileNode4":
+    def from_data(cls, data: Dict[str, Any], lean_file: LeanFile) -> "FileNode":
         children = []
 
-        def _get_closure(node: Node4, child_spans: List[Tuple[Pos, Pos]]):
+        def _get_closure(node: Node, child_spans: List[Tuple[Pos, Pos]]):
             if len(child_spans) == 0:
                 return node.start, node.end
 
@@ -248,27 +248,27 @@ class FileNode4(Node4):
             node_data = d["node"]
             if i == 0:
                 assert node_data["kind"] == "Lean.Parser.Module.header"
-            node = Node4.from_data(node_data, lean_file)
+            node = Node.from_data(node_data, lean_file)
             node.traverse_postorder(_get_closure)
             children.append(node)
 
         return cls(lean_file, lean_file.start_pos(), lean_file.end_pos(), children)
 
 
-def _parse_children(node_data: Dict[str, Any], lean_file: LeanFile) -> List[Node4]:
+def _parse_children(node_data: Dict[str, Any], lean_file: LeanFile) -> List[Node]:
     children = []
 
     for d in node_data["args"]:
         if (
             "node" in d
         ):  # | node   (info : SourceInfo) (kind : SyntaxNodeKind) (args : Array Syntax) : Syntax
-            node = Node4.from_data(d["node"], lean_file)
+            node = Node.from_data(d["node"], lean_file)
         elif "atom" in d:  # | atom   (info : SourceInfo) (val : String) : Syntax
-            node = AtomNode4.from_data(d["atom"], lean_file)
+            node = AtomNode.from_data(d["atom"], lean_file)
         elif (
             "ident" in d
         ):  # | ident  (info : SourceInfo) (rawVal : Substring) (val : Name) (preresolved : List Syntax.Preresolved) : Syntax
-            node = IdentNode4.from_data(d["ident"], lean_file)
+            node = IdentNode.from_data(d["ident"], lean_file)
         else:
             raise ValueError(d)
 
@@ -279,11 +279,11 @@ def _parse_children(node_data: Dict[str, Any], lean_file: LeanFile) -> List[Node
 
 
 @dataclass(frozen=True)
-class TermAttrkindNode4(Node4):
+class TermAttrkindNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "TermAttrkindNode4":
+    ) -> "TermAttrkindNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -291,11 +291,11 @@ class TermAttrkindNode4(Node4):
 
 
 @dataclass(frozen=True)
-class TermAttrkindAntiquotNode4(Node4):
+class TermAttrkindAntiquotNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "TermAttrkindAntiquotNode4":
+    ) -> "TermAttrkindAntiquotNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -303,11 +303,11 @@ class TermAttrkindAntiquotNode4(Node4):
 
 
 @dataclass(frozen=True)
-class IdentAntiquotNode4(Node4):
+class IdentAntiquotNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "IdentAntiquotNode4":
+    ) -> "IdentAntiquotNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -318,39 +318,39 @@ class IdentAntiquotNode4(Node4):
 
 
 @dataclass(frozen=True)
-class LeanElabCommandCommandIrreducibleDefNode4(Node4):
+class LeanElabCommandCommandIrreducibleDefNode(Node):
     name: Optional[str]
     full_name: Optional[str] = None
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "LeanElabCommandCommandIrreducibleDefNode4":
+    ) -> "LeanElabCommandCommandIrreducibleDefNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        if isinstance(children[0], CommandDeclmodifiersAntiquotNode4):
+        if isinstance(children[0], CommandDeclmodifiersAntiquotNode):
             name = None
         else:
-            assert isinstance(children[0], CommandDeclmodifiersNode4)
+            assert isinstance(children[0], CommandDeclmodifiersNode)
             assert (
-                isinstance(children[1], AtomNode4)
+                isinstance(children[1], AtomNode)
                 and children[1].val == "irreducible_def"
             )
             declid_node = children[2]
-            assert isinstance(declid_node, CommandDeclidNode4)
+            assert isinstance(declid_node, CommandDeclidNode)
             ident_node = declid_node.children[0]
-            assert isinstance(ident_node, IdentNode4)
+            assert isinstance(ident_node, IdentNode)
             name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
 
 
 @dataclass(frozen=True)
-class GroupNode4(Node4):
+class GroupNode(Node):
     @classmethod
-    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "GroupNode4":
+    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "GroupNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -358,7 +358,7 @@ class GroupNode4(Node4):
 
 
 @dataclass(frozen=True)
-class MathlibTacticLemmaNode4(Node4):
+class MathlibTacticLemmaNode(Node):
     name: str
     full_name: Optional[str] = None
     _is_private_decl: Optional[bool] = (
@@ -368,21 +368,21 @@ class MathlibTacticLemmaNode4(Node4):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "MathlibTacticLemmaNode4":
+    ) -> "MathlibTacticLemmaNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert isinstance(children[0], CommandDeclmodifiersNode4)
-        assert isinstance(children[1], GroupNode4)
+        assert isinstance(children[0], CommandDeclmodifiersNode)
+        assert isinstance(children[1], GroupNode)
         assert (
-            isinstance(children[1].children[0], AtomNode4)
+            isinstance(children[1].children[0], AtomNode)
             and children[1].children[0].val == "lemma"
         )
         declid_node = children[1].children[1]
-        assert isinstance(declid_node, CommandDeclidNode4)
+        assert isinstance(declid_node, CommandDeclidNode)
         ident_node = declid_node.children[0]
-        assert isinstance(ident_node, IdentNode4)
+        assert isinstance(ident_node, IdentNode)
         name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
@@ -390,11 +390,11 @@ class MathlibTacticLemmaNode4(Node4):
     def is_private(self) -> bool:
         return self._is_private_decl
 
-    def get_proof_node(self) -> Node4:
+    def get_proof_node(self) -> Node:
         decl_val_node = self.children[1].children[3]
         if type(decl_val_node) in (
-            CommandDeclvalsimpleNode4,
-            CommandWherestructinstNode4,
+            CommandDeclvalsimpleNode,
+            CommandWherestructinstNode,
         ):
             return decl_val_node.children[1]
         else:
@@ -402,7 +402,7 @@ class MathlibTacticLemmaNode4(Node4):
 
     def has_tactic_proof(self) -> bool:
         node = self.get_proof_node()
-        return isinstance(node, TermBytacticNode4)
+        return isinstance(node, TermBytacticNode)
 
     @property
     def is_mutual(self) -> bool:
@@ -410,62 +410,112 @@ class MathlibTacticLemmaNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandDeclarationNode4(Node4):
+class LemmaNode(Node):
+    name: str
+    full_name: Optional[str] = None
+    _is_private_decl: Optional[bool] = (
+        False  # `_is_private` doesn't play well with lxml.
+    )
+
+    @classmethod
+    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "LemmaNode":
+        assert node_data["info"] == "none"
+        start, end = None, None
+        children = _parse_children(node_data, lean_file)
+
+        assert isinstance(children[0], CommandDeclmodifiersNode)
+        assert isinstance(children[1], GroupNode)
+        assert (
+            isinstance(children[1].children[0], AtomNode)
+            and children[1].children[0].val == "lemma"
+        )
+        declid_node = children[1].children[1]
+        assert isinstance(declid_node, CommandDeclidNode)
+        ident_node = declid_node.children[0]
+        assert isinstance(ident_node, IdentNode)
+        name = ident_node.val
+
+        return cls(lean_file, start, end, children, name)
+
+    def is_private(self) -> bool:
+        return self._is_private_decl
+
+    def get_proof_node(self) -> Node:
+        decl_val_node = self.children[1].children[3]
+        if type(decl_val_node) in (
+            CommandDeclvalsimpleNode,
+            CommandWherestructinstNode,
+        ):
+            return decl_val_node.children[1]
+        else:
+            return decl_val_node
+
+    def has_tactic_proof(self) -> bool:
+        node = self.get_proof_node()
+        return isinstance(node, TermBytacticNode)
+
+    @property
+    def is_mutual(self) -> bool:
+        return not isinstance(self.name, str)
+
+
+@dataclass(frozen=True)
+class CommandDeclarationNode(Node):
     name: str
     full_name: Optional[str] = None
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandDeclarationNode4":
+    ) -> "CommandDeclarationNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        if isinstance(children[0], CommandDeclmodifiersAntiquotNode4):
+        if isinstance(children[0], CommandDeclmodifiersAntiquotNode):
             name = None
         else:
-            assert isinstance(children[0], CommandDeclmodifiersNode4)
+            assert isinstance(children[0], CommandDeclmodifiersNode)
             assert type(children[1]) in (
-                CommandDefNode4,
-                CommandTheoremNode4,
-                CommandInductiveNode4,
-                CommandClassinductiveNode4,
-                CommandStructureNode4,
-                CommandInstanceNode4,
-                CommandAbbrevNode4,
-                CommandOpaqueNode4,
-                CommandAxiomNode4,
-                CommandExampleNode4,
+                CommandDefNode,
+                CommandTheoremNode,
+                CommandInductiveNode,
+                CommandClassinductiveNode,
+                CommandStructureNode,
+                CommandInstanceNode,
+                CommandAbbrevNode,
+                CommandOpaqueNode,
+                CommandAxiomNode,
+                CommandExampleNode,
             )
             name = children[1].name
 
             if children[0].is_private():
                 for child in children:
-                    if isinstance(child, CommandTheoremNode4):
+                    if isinstance(child, CommandTheoremNode):
                         object.__setattr__(child, "_is_private_decl", True)
 
         return cls(lean_file, start, end, children, name)
 
     @property
     def is_theorem(self) -> bool:
-        return isinstance(self.children[1], CommandTheoremNode4)
+        return isinstance(self.children[1], CommandTheoremNode)
 
-    def get_theorem_node(self) -> "CommandTheoremNode4":
+    def get_theorem_node(self) -> "CommandTheoremNode":
         assert self.is_theorem
         return self.children[1]
 
     @property
     def is_example(self) -> bool:
-        return isinstance(self.children[1], CommandExampleNode4)
+        return isinstance(self.children[1], CommandExampleNode)
 
 
 @dataclass(frozen=True)
-class CommandDeclmodifiersAntiquotNode4(Node4):
+class CommandDeclmodifiersAntiquotNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandDeclmodifiersAntiquotNode4":
+    ) -> "CommandDeclmodifiersAntiquotNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -473,11 +523,11 @@ class CommandDeclmodifiersAntiquotNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandDeclmodifiersNode4(Node4):
+class CommandDeclmodifiersNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandDeclmodifiersNode4":
+    ) -> "CommandDeclmodifiersNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -486,21 +536,21 @@ class CommandDeclmodifiersNode4(Node4):
     def is_private(self) -> bool:
         result = False
 
-        def _callback(node: CommandPrivateNode4, _) -> bool:
+        def _callback(node: CommandPrivateNode, _) -> bool:
             nonlocal result
             result = True
             return True
 
-        self.traverse_preorder(_callback, CommandPrivateNode4)
+        self.traverse_preorder(_callback, CommandPrivateNode)
         return result
 
 
 @dataclass(frozen=True)
-class CommandPrivateNode4(Node4):
+class CommandPrivateNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandPrivateNode4":
+    ) -> "CommandPrivateNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -508,11 +558,11 @@ class CommandPrivateNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandOpenNode4(Node4):
+class CommandOpenNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandOpenNode4":
+    ) -> "CommandOpenNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -520,11 +570,11 @@ class CommandOpenNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandOpenonlyNode4(Node4):
+class CommandOpenonlyNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandOpenonlyNode4":
+    ) -> "CommandOpenonlyNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -532,9 +582,9 @@ class CommandOpenonlyNode4(Node4):
 
 
 @dataclass(frozen=True)
-class NullNode4(Node4):
+class NullNode(Node):
     @classmethod
-    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "NullNode4":
+    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "NullNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -542,162 +592,162 @@ class NullNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandStructuretkNode4(Node4):
-    @classmethod
-    def from_data(
-        cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandStructuretkNode4":
-        assert node_data["info"] == "none"
-        start, end = None, None
-        children = _parse_children(node_data, lean_file)
-        assert isinstance(children[0], AtomNode4) and children[0].val == "structure"
-        return cls(lean_file, start, end, children)
-
-
-@dataclass(frozen=True)
-class CommandClasstkNode4(Node4):
+class CommandStructuretkNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandClasstkNode4":
+    ) -> "CommandStructuretkNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
-        assert isinstance(children[0], AtomNode4) and children[0].val == "class"
+        assert isinstance(children[0], AtomNode) and children[0].val == "structure"
         return cls(lean_file, start, end, children)
 
 
 @dataclass(frozen=True)
-class CommandStructureNode4(Node4):
+class CommandClasstkNode(Node):
+    @classmethod
+    def from_data(
+        cls, node_data: Dict[str, Any], lean_file: LeanFile
+    ) -> "CommandClasstkNode":
+        assert node_data["info"] == "none"
+        start, end = None, None
+        children = _parse_children(node_data, lean_file)
+        assert isinstance(children[0], AtomNode) and children[0].val == "class"
+        return cls(lean_file, start, end, children)
+
+
+@dataclass(frozen=True)
+class CommandStructureNode(Node):
     name: str
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandStructureNode4":
+    ) -> "CommandStructureNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert type(children[0]) in (CommandStructuretkNode4, CommandClasstkNode4)
-        if isinstance(children[1], CommandDeclidAntiquotNode4):
+        assert type(children[0]) in (CommandStructuretkNode, CommandClasstkNode)
+        if isinstance(children[1], CommandDeclidAntiquotNode):
             name = None
         else:
-            assert isinstance(children[1], CommandDeclidNode4)
+            assert isinstance(children[1], CommandDeclidNode)
             decl_id_node = children[1]
             ident_node = decl_id_node.children[0]
 
-            assert isinstance(ident_node, IdentNode4)
+            assert isinstance(ident_node, IdentNode)
             name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
 
 
 @dataclass(frozen=True)
-class CommandInductiveNode4(Node4):
+class CommandInductiveNode(Node):
     name: Optional[str]
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandInductiveNode4":
+    ) -> "CommandInductiveNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert isinstance(children[0], AtomNode4) and children[0].val == "inductive"
+        assert isinstance(children[0], AtomNode) and children[0].val == "inductive"
 
-        if isinstance(children[1], CommandDeclidAntiquotNode4):
+        if isinstance(children[1], CommandDeclidAntiquotNode):
             name = None
         else:
-            assert isinstance(children[1], CommandDeclidNode4)
+            assert isinstance(children[1], CommandDeclidNode)
             decl_id_node = children[1]
             ident_node = decl_id_node.children[0]
-            assert isinstance(ident_node, IdentNode4)
+            assert isinstance(ident_node, IdentNode)
             name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
 
 
 @dataclass(frozen=True)
-class CommandClassinductiveNode4(Node4):
+class CommandClassinductiveNode(Node):
     name: str
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandClassinductiveNode4":
+    ) -> "CommandClassinductiveNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
         assert (
-            isinstance(children[0].children[0], AtomNode4)
+            isinstance(children[0].children[0], AtomNode)
             and children[0].children[0].val == "class"
         )
         assert (
-            isinstance(children[0].children[1], AtomNode4)
+            isinstance(children[0].children[1], AtomNode)
             and children[0].children[1].val == "inductive"
         )
 
-        if isinstance(children[1], CommandDeclidAntiquotNode4):
+        if isinstance(children[1], CommandDeclidAntiquotNode):
             name = None
         else:
-            assert isinstance(children[1], CommandDeclidNode4)
+            assert isinstance(children[1], CommandDeclidNode)
             decl_id_node = children[1]
             ident_node = decl_id_node.children[0]
-            assert isinstance(ident_node, IdentNode4)
+            assert isinstance(ident_node, IdentNode)
             name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
 
 
 @dataclass(frozen=True)
-class TermHoleNode4(Node4):
+class TermHoleNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "TermHoleNode4":
+    ) -> "TermHoleNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
         assert len(children) == 1 and type(children[0]) in (
-            AtomNode4,
-            TokenAntiquotNode4,
+            AtomNode,
+            TokenAntiquotNode,
         )
         return cls(lean_file, start, end, children)
 
 
 @dataclass(frozen=True)
-class LeanBinderidentNode4(Node4):
+class LeanBinderidentNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "LeanBinderidentNode4":
+    ) -> "LeanBinderidentNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
         assert len(children) == 1 and type(children[0]) in (
-            TermHoleNode4,
-            IdentNode4,
-            IdentAntiquotNode4,
+            TermHoleNode,
+            IdentNode,
+            IdentAntiquotNode,
         )
         return cls(lean_file, start, end, children)
 
     def get_ident(self) -> Optional[str]:
-        if isinstance(self.children[0], TermHoleNode4):
+        if isinstance(self.children[0], TermHoleNode):
             return None
         else:
-            assert isinstance(self.children[0], IdentNode4)
+            assert isinstance(self.children[0], IdentNode)
             return self.children[0].val
 
 
 @dataclass(frozen=True)
-class LeanBinderidentAntiquotNode4(Node4):
+class LeanBinderidentAntiquotNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "LeanBinderidentAntiquotNode4":
+    ) -> "LeanBinderidentAntiquotNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -708,52 +758,52 @@ class LeanBinderidentAntiquotNode4(Node4):
 
 
 @dataclass(frozen=True)
-class StdTacticAliasAliasNode4(Node4):
+class StdTacticAliasAliasNode(Node):
     name: str
     full_name: Optional[str] = None
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "StdTacticAliasAliasNode4":
+    ) -> "StdTacticAliasAliasNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert isinstance(children[0], CommandDeclmodifiersNode4)
-        assert isinstance(children[1], AtomNode4) and children[1].val == "alias"
-        if isinstance(children[2], IdentAntiquotNode4):
+        assert isinstance(children[0], CommandDeclmodifiersNode)
+        assert isinstance(children[1], AtomNode) and children[1].val == "alias"
+        if isinstance(children[2], IdentAntiquotNode):
             name = None
         else:
             ident_node = children[2]
-            assert isinstance(ident_node, IdentNode4)
+            assert isinstance(ident_node, IdentNode)
             name = ident_node.val
         return cls(lean_file, start, end, children, name)
 
 
 @dataclass(frozen=True)
-class StdTacticAliasAliaslrNode4(Node4):
+class StdTacticAliasAliaslrNode(Node):
     name: List[str]
     full_name: Optional[List[str]] = None
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "StdTacticAliasAliaslrNode4":
+    ) -> "StdTacticAliasAliaslrNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert isinstance(children[0], CommandDeclmodifiersNode4)
-        assert isinstance(children[1], AtomNode4) and children[1].val == "alias"
-        assert isinstance(children[2], AtomNode4) and children[2].val == "⟨"
-        assert isinstance(children[4], AtomNode4) and children[4].val == ","
-        assert isinstance(children[6], AtomNode4) and children[6].val == "⟩"
+        assert isinstance(children[0], CommandDeclmodifiersNode)
+        assert isinstance(children[1], AtomNode) and children[1].val == "alias"
+        assert isinstance(children[2], AtomNode) and children[2].val == "⟨"
+        assert isinstance(children[4], AtomNode) and children[4].val == ","
+        assert isinstance(children[6], AtomNode) and children[6].val == "⟩"
 
         name = []
-        assert type(children[3]) in (LeanBinderidentNode4, LeanBinderidentAntiquotNode4)
+        assert type(children[3]) in (LeanBinderidentNode, LeanBinderidentAntiquotNode)
         name.append(children[3].get_ident())
-        assert type(children[5]) in (LeanBinderidentNode4, LeanBinderidentAntiquotNode4)
+        assert type(children[5]) in (LeanBinderidentNode, LeanBinderidentAntiquotNode)
         name.append(children[5].get_ident())
         name = [n for n in name if n is not None]
 
@@ -765,117 +815,117 @@ class StdTacticAliasAliaslrNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandAbbrevNode4(Node4):
+class CommandAbbrevNode(Node):
     name: str
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandAbbrevNode4":
+    ) -> "CommandAbbrevNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert isinstance(children[0], AtomNode4) and children[0].val == "abbrev"
+        assert isinstance(children[0], AtomNode) and children[0].val == "abbrev"
         declid_node = children[1]
-        if isinstance(declid_node, CommandDeclidAntiquotNode4):
+        if isinstance(declid_node, CommandDeclidAntiquotNode):
             name = None
         else:
-            assert isinstance(declid_node, CommandDeclidNode4)
+            assert isinstance(declid_node, CommandDeclidNode)
             ident_node = declid_node.children[0]
-            assert isinstance(ident_node, IdentNode4)
+            assert isinstance(ident_node, IdentNode)
             name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
 
 
 @dataclass(frozen=True)
-class CommandOpaqueNode4(Node4):
+class CommandOpaqueNode(Node):
     name: str
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandOpaqueNode4":
+    ) -> "CommandOpaqueNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert isinstance(children[0], AtomNode4) and children[0].val == "opaque"
+        assert isinstance(children[0], AtomNode) and children[0].val == "opaque"
         declid_node = children[1]
-        if isinstance(declid_node, CommandDeclidAntiquotNode4):
+        if isinstance(declid_node, CommandDeclidAntiquotNode):
             name = None
         else:
-            assert isinstance(declid_node, CommandDeclidNode4)
+            assert isinstance(declid_node, CommandDeclidNode)
             ident_node = declid_node.children[0]
-            assert isinstance(ident_node, IdentNode4)
+            assert isinstance(ident_node, IdentNode)
             name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
 
 
 @dataclass(frozen=True)
-class CommandAxiomNode4(Node4):
+class CommandAxiomNode(Node):
     name: str
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandAxiomNode4":
+    ) -> "CommandAxiomNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert isinstance(children[0], AtomNode4) and children[0].val == "axiom"
+        assert isinstance(children[0], AtomNode) and children[0].val == "axiom"
         declid_node = children[1]
-        if isinstance(declid_node, CommandDeclidAntiquotNode4):
+        if isinstance(declid_node, CommandDeclidAntiquotNode):
             name = None
         else:
-            assert isinstance(declid_node, CommandDeclidNode4)
+            assert isinstance(declid_node, CommandDeclidNode)
             ident_node = declid_node.children[0]
-            assert isinstance(ident_node, IdentNode4)
+            assert isinstance(ident_node, IdentNode)
             name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
 
 
 @dataclass(frozen=True)
-class CommandExampleNode4(Node4):
+class CommandExampleNode(Node):
     name: str
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandExampleNode4":
+    ) -> "CommandExampleNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
-        assert isinstance(children[0], AtomNode4) and children[0].val == "example"
+        assert isinstance(children[0], AtomNode) and children[0].val == "example"
         name = None
         return cls(lean_file, start, end, children, name)
 
 
 @dataclass(frozen=True)
-class CommandInstanceNode4(Node4):
+class CommandInstanceNode(Node):
     name: str
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandInstanceNode4":
+    ) -> "CommandInstanceNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
-        if isinstance(children[0], TermAttrkindAntiquotNode4):
+        if isinstance(children[0], TermAttrkindAntiquotNode):
             name = None
         else:
-            assert isinstance(children[0], TermAttrkindNode4)
-            assert isinstance(children[1], AtomNode4) and children[1].val == "instance"
+            assert isinstance(children[0], TermAttrkindNode)
+            assert isinstance(children[1], AtomNode) and children[1].val == "instance"
             if children[3].children != []:
                 declid_node = children[3].children[0]
-                if isinstance(declid_node, CommandDeclidNode4):
+                if isinstance(declid_node, CommandDeclidNode):
                     ident_node = declid_node.children[0]
-                    assert isinstance(ident_node, IdentNode4)
+                    assert isinstance(ident_node, IdentNode)
                     name = ident_node.val
                 else:
                     name = None
@@ -885,42 +935,42 @@ class CommandInstanceNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandDefNode4(Node4):
+class CommandDefNode(Node):
     name: str
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandDefNode4":
+    ) -> "CommandDefNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        if isinstance(children[0], TokenAntiquotNode4) or isinstance(
-            children[1], CommandDeclidAntiquotNode4
+        if isinstance(children[0], TokenAntiquotNode) or isinstance(
+            children[1], CommandDeclidAntiquotNode
         ):
             name = None
         else:
-            assert isinstance(children[0], AtomNode4) and children[0].val == "def"
-            assert isinstance(children[1], CommandDeclidNode4)
+            assert isinstance(children[0], AtomNode) and children[0].val == "def"
+            assert isinstance(children[1], CommandDeclidNode)
             decl_id_node = children[1]
             ident_node = decl_id_node.children[0]
 
-            if isinstance(ident_node, IdentNode4):
+            if isinstance(ident_node, IdentNode):
                 name = ident_node.val
             else:
-                assert isinstance(ident_node, IdentAntiquotNode4)
+                assert isinstance(ident_node, IdentAntiquotNode)
                 name = ident_node.get_ident()
 
         return cls(lean_file, start, end, children, name)
 
 
 @dataclass(frozen=True)
-class CommandDeclidAntiquotNode4(Node4):
+class CommandDeclidAntiquotNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandDeclidAntiquotNode4":
+    ) -> "CommandDeclidAntiquotNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -928,11 +978,11 @@ class CommandDeclidAntiquotNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandDeclidNode4(Node4):
+class CommandDeclidNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandDeclidNode4":
+    ) -> "CommandDeclidNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -940,11 +990,11 @@ class CommandDeclidNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandDeclvalsimpleNode4(Node4):
+class CommandDeclvalsimpleNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandDeclvalsimpleNode4":
+    ) -> "CommandDeclvalsimpleNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -952,11 +1002,11 @@ class CommandDeclvalsimpleNode4(Node4):
 
 
 @dataclass(frozen=True)
-class TokenAntiquotNode4(Node4):
+class TokenAntiquotNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "TokenAntiquotNode4":
+    ) -> "TokenAntiquotNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -964,11 +1014,11 @@ class TokenAntiquotNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandDeclvaleqnsNode4(Node4):
+class CommandDeclvaleqnsNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandDeclvaleqnsNode4":
+    ) -> "CommandDeclvaleqnsNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -976,11 +1026,11 @@ class CommandDeclvaleqnsNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandWherestructinstNode4(Node4):
+class CommandWherestructinstNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandWherestructinstNode4":
+    ) -> "CommandWherestructinstNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -988,11 +1038,11 @@ class CommandWherestructinstNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandDeclsigNode4(Node4):
+class CommandDeclsigNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandDeclsigNode4":
+    ) -> "CommandDeclsigNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -1000,11 +1050,11 @@ class CommandDeclsigNode4(Node4):
 
 
 @dataclass(frozen=True)
-class TermExplicitbinderNode4(Node4):
+class TermExplicitbinderNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "TermExplicitbinderNode4":
+    ) -> "TermExplicitbinderNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -1012,11 +1062,11 @@ class TermExplicitbinderNode4(Node4):
 
 
 @dataclass(frozen=True)
-class TermTypespecNode4(Node4):
+class TermTypespecNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "TermTypespecNode4":
+    ) -> "TermTypespecNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -1024,7 +1074,7 @@ class TermTypespecNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandTheoremNode4(Node4):
+class CommandTheoremNode(Node):
     name: str
     full_name: Optional[str] = None
     _is_private_decl: Optional[bool] = (
@@ -1034,41 +1084,41 @@ class CommandTheoremNode4(Node4):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandTheoremNode4":
+    ) -> "CommandTheoremNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert isinstance(children[0], AtomNode4) and children[0].val == "theorem"
+        assert isinstance(children[0], AtomNode) and children[0].val == "theorem"
 
         declid_node = children[1]
-        if isinstance(declid_node, CommandDeclidAntiquotNode4):
+        if isinstance(declid_node, CommandDeclidAntiquotNode):
             name = None
         else:
             ident_node = declid_node.children[0]
-            if isinstance(ident_node, IdentNode4):
+            if isinstance(ident_node, IdentNode):
                 name = ident_node.val
             else:
-                assert isinstance(ident_node, IdentAntiquotNode4)
+                assert isinstance(ident_node, IdentAntiquotNode)
                 name = ident_node.get_ident()
 
-        if not isinstance(children[1], CommandDeclidAntiquotNode4):
-            assert isinstance(children[2], CommandDeclsigNode4)
+        if not isinstance(children[1], CommandDeclidAntiquotNode):
+            assert isinstance(children[2], CommandDeclsigNode)
             decl_val_node = children[3]
             assert type(decl_val_node) in (
-                CommandDeclvalsimpleNode4,
-                CommandDeclvaleqnsNode4,
-                CommandWherestructinstNode4,
+                CommandDeclvalsimpleNode,
+                CommandDeclvaleqnsNode,
+                CommandWherestructinstNode,
             )
 
-            if isinstance(decl_val_node, CommandDeclvalsimpleNode4):
+            if isinstance(decl_val_node, CommandDeclvalsimpleNode):
                 assert (
-                    isinstance(decl_val_node.children[0], AtomNode4)
+                    isinstance(decl_val_node.children[0], AtomNode)
                     and decl_val_node.children[0].val == ":="
                 )
-            elif isinstance(decl_val_node, CommandWherestructinstNode4):
+            elif isinstance(decl_val_node, CommandWherestructinstNode):
                 assert (
-                    isinstance(decl_val_node.children[0], AtomNode4)
+                    isinstance(decl_val_node.children[0], AtomNode)
                     and decl_val_node.children[0].val == "where"
                 )
 
@@ -1077,11 +1127,11 @@ class CommandTheoremNode4(Node4):
     def is_private(self) -> bool:
         return self._is_private_decl
 
-    def get_proof_node(self) -> Node4:
+    def get_proof_node(self) -> Node:
         decl_val_node = self.children[3]
         if type(decl_val_node) in (
-            CommandDeclvalsimpleNode4,
-            CommandWherestructinstNode4,
+            CommandDeclvalsimpleNode,
+            CommandWherestructinstNode,
         ):
             return decl_val_node.children[1]
         else:
@@ -1089,7 +1139,7 @@ class CommandTheoremNode4(Node4):
 
     def has_tactic_proof(self) -> bool:
         node = self.get_proof_node()
-        return isinstance(node, TermBytacticNode4)
+        return isinstance(node, TermBytacticNode)
 
     @property
     def is_mutual(self) -> bool:
@@ -1097,11 +1147,11 @@ class CommandTheoremNode4(Node4):
 
 
 @dataclass(frozen=True)
-class TermBytacticNode4(Node4):
+class TermBytacticNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "TermBytacticNode4":
+    ) -> "TermBytacticNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -1109,11 +1159,11 @@ class TermBytacticNode4(Node4):
 
 
 @dataclass(frozen=True)
-class TacticTacticseq1IndentedAntiquotNode4(Node4):
+class TacticTacticseq1IndentedAntiquotNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "TacticTacticseq1IndentedAntiquotNode4":
+    ) -> "TacticTacticseq1IndentedAntiquotNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -1121,59 +1171,57 @@ class TacticTacticseq1IndentedAntiquotNode4(Node4):
 
     def get_tactic_nodes(
         self, atomic_only: bool = False
-    ) -> Generator[Node4, None, None]:
+    ) -> Generator[Node, None, None]:
         return
 
 
 @dataclass(frozen=True)
-class TacticTacticseqNode4(Node4):
+class TacticTacticseqNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "TacticTacticseqNode4":
+    ) -> "TacticTacticseqNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
         assert len(children) == 1 and type(children[0]) in (
-            TacticTacticseq1IndentedNode4,
-            TacticTacticseqbracketedNode4,
-            TacticTacticseq1IndentedAntiquotNode4,
+            TacticTacticseq1IndentedNode,
+            TacticTacticseqbracketedNode,
+            TacticTacticseq1IndentedAntiquotNode,
         )
         return cls(lean_file, start, end, children)
 
     def get_tactic_nodes(
         self, atomic_only: bool = False
-    ) -> Generator[Node4, None, None]:
+    ) -> Generator[Node, None, None]:
         yield from self.children[0].get_tactic_nodes(atomic_only)
 
 
 @dataclass(frozen=True)
-class TacticTacticseq1IndentedNode4(Node4):
+class TacticTacticseq1IndentedNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "TacticTacticseq1IndentedNode4":
+    ) -> "TacticTacticseq1IndentedNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
-        assert len(children) == 1 and isinstance(children[0], NullNode4)
+        assert len(children) == 1 and isinstance(children[0], NullNode)
         return cls(lean_file, start, end, children)
 
     def get_tactic_nodes(
         self, atomic_only: bool = False
-    ) -> Generator[Node4, None, None]:
+    ) -> Generator[Node, None, None]:
         for i, tac_node in enumerate(self.children[0].children):
             if i % 2 == 0:
                 if not atomic_only or not contains_tactic(tac_node):
                     yield tac_node
             else:
-                assert isinstance(tac_node, NullNode4) or isinstance(
-                    tac_node, AtomNode4
-                )
+                assert isinstance(tac_node, NullNode) or isinstance(tac_node, AtomNode)
 
 
 @dataclass(frozen=True)
-class TacticTacticseqbracketedNode4(Node4):
+class TacticTacticseqbracketedNode(Node):
     state_before: Optional[str] = None
     state_after: Optional[str] = None
     tactic: Optional[str] = None
@@ -1181,7 +1229,7 @@ class TacticTacticseqbracketedNode4(Node4):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "TacticTacticseqbracketedNode4":
+    ) -> "TacticTacticseqbracketedNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -1189,47 +1237,45 @@ class TacticTacticseqbracketedNode4(Node4):
         return cls(lean_file, start, end, children)
 
     @property
-    def tactic_nodes(self) -> List[Node4]:
+    def tactic_nodes(self) -> List[Node]:
         children = self.children
-        if not isinstance(children[0], AtomNode4) or children[0].val != "{":
+        if not isinstance(children[0], AtomNode) or children[0].val != "{":
             return []
 
-        assert isinstance(children[1], NullNode4)
-        assert isinstance(children[2], AtomNode4) and children[2].val == "}"
+        assert isinstance(children[1], NullNode)
+        assert isinstance(children[2], AtomNode) and children[2].val == "}"
         nodes = []
         for i, tac_node in enumerate(children[1].children):
             if i % 2 == 0:
                 nodes.append(tac_node)
             else:
-                assert isinstance(tac_node, NullNode4) or isinstance(
-                    tac_node, AtomNode4
-                )
+                assert isinstance(tac_node, NullNode) or isinstance(tac_node, AtomNode)
         return nodes
 
     def get_tactic_nodes(
         self, atomic_only: bool = False
-    ) -> Generator[Node4, None, None]:
+    ) -> Generator[Node, None, None]:
         children = self.children
-        if isinstance(children[0], AtomNode4) and children[0].val == "{":
-            assert isinstance(children[1], NullNode4)
-            assert isinstance(children[2], AtomNode4) and children[2].val == "}"
+        if isinstance(children[0], AtomNode) and children[0].val == "{":
+            assert isinstance(children[1], NullNode)
+            assert isinstance(children[2], AtomNode) and children[2].val == "}"
             for i, tac_node in enumerate(children[1].children):
                 if i % 2 == 0:
                     if not atomic_only or not contains_tactic(tac_node):
                         yield tac_node
                 else:
-                    assert isinstance(tac_node, NullNode4) or isinstance(
-                        tac_node, AtomNode4
+                    assert isinstance(tac_node, NullNode) or isinstance(
+                        tac_node, AtomNode
                     )
 
 
-def contains_tactic(node: Node4) -> bool:
+def contains_tactic(node: Node) -> bool:
     result = False
 
     def _callback(x, _) -> bool:
         if x is not node and type(x) in (
-            TacticTacticseq1IndentedNode4,
-            TacticTacticseqbracketedNode4,
+            TacticTacticseq1IndentedNode,
+            TacticTacticseqbracketedNode,
         ):
             nonlocal result
             result = True
@@ -1240,11 +1286,11 @@ def contains_tactic(node: Node4) -> bool:
 
 
 @dataclass(frozen=True)
-class ModuleHeaderNode4(Node4):
+class ModuleHeaderNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "ModuleHeaderNode4":
+    ) -> "ModuleHeaderNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -1252,11 +1298,11 @@ class ModuleHeaderNode4(Node4):
 
 
 @dataclass(frozen=True)
-class ModulePreludeNode4(Node4):
+class ModulePreludeNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "ModulePreludeNode4":
+    ) -> "ModulePreludeNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -1264,11 +1310,11 @@ class ModulePreludeNode4(Node4):
 
 
 @dataclass(frozen=True)
-class ModulePreludeNode4(Node4):
+class ModulePreludeNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "ModulePreludeNode4":
+    ) -> "ModulePreludeNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -1276,20 +1322,20 @@ class ModulePreludeNode4(Node4):
 
 
 @dataclass(frozen=True)
-class ModuleImportNode4(Node4):
+class ModuleImportNode(Node):
     module: Optional[str]
     path: Optional[Path] = None
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "ModuleImportNode4":
+    ) -> "ModuleImportNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert isinstance(children[0], AtomNode4) and children[0].val == "import"
-        if isinstance(children[2], IdentNode4):
+        assert isinstance(children[0], AtomNode) and children[0].val == "import"
+        if isinstance(children[2], IdentNode):
             module = children[2].val
         else:
             module = None
@@ -1298,54 +1344,54 @@ class ModuleImportNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandModuledocNode4(Node4):
+class CommandModuledocNode(Node):
     comment: str
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandModuledocNode4":
+    ) -> "CommandModuledocNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
-        assert len(children) == 2 and all(isinstance(_, AtomNode4) for _ in children)
+        assert len(children) == 2 and all(isinstance(_, AtomNode) for _ in children)
         assert children[0].val == "/-!"
         comment = children[1].val
         return cls(lean_file, start, end, children, comment)
 
 
 @dataclass(frozen=True)
-class CommandDoccommentNode4(Node4):
+class CommandDoccommentNode(Node):
     comment: str
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandDoccommentNode4":
+    ) -> "CommandDoccommentNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
-        assert len(children) == 2 and all(isinstance(_, AtomNode4) for _ in children)
+        assert len(children) == 2 and all(isinstance(_, AtomNode) for _ in children)
         assert children[0].val == "/--"
         comment = children[1].val
         return cls(lean_file, start, end, children, comment)
 
 
 @dataclass(frozen=True)
-class CommandNamespaceNode4(Node4):
+class CommandNamespaceNode(Node):
     name: str
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandNamespaceNode4":
+    ) -> "CommandNamespaceNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
         assert len(children) == 2
-        assert isinstance(children[0], AtomNode4) and children[0].val == "namespace"
-        if isinstance(children[1], IdentNode4):
+        assert isinstance(children[0], AtomNode) and children[0].val == "namespace"
+        if isinstance(children[1], IdentNode):
             name = children[1].val
         else:
             name = None
@@ -1354,23 +1400,23 @@ class CommandNamespaceNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandSectionNode4(Node4):
+class CommandSectionNode(Node):
     name: Optional[str]
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandNamespaceNode4":
+    ) -> "CommandNamespaceNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
         assert len(children) == 2
-        assert isinstance(children[0], AtomNode4) and children[0].val == "section"
-        assert isinstance(children[1], NullNode4)
+        assert isinstance(children[0], AtomNode) and children[0].val == "section"
+        assert isinstance(children[1], NullNode)
 
         if len(children[1].children) == 1 and isinstance(
-            children[1].children[0], IdentNode4
+            children[1].children[0], IdentNode
         ):
             name = children[1].children[0].val
         else:
@@ -1380,24 +1426,24 @@ class CommandSectionNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandNoncomputablesectionNode4(Node4):
+class CommandNoncomputablesectionNode(Node):
     name: Optional[str]
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandNoncomputablesectionNode4":
+    ) -> "CommandNoncomputablesectionNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
         assert len(children) == 3
-        assert isinstance(children[0], AtomNode4) and children[0].val == "noncomputable"
-        assert isinstance(children[1], AtomNode4) and children[1].val == "section"
-        assert isinstance(children[2], NullNode4)
+        assert isinstance(children[0], AtomNode) and children[0].val == "noncomputable"
+        assert isinstance(children[1], AtomNode) and children[1].val == "section"
+        assert isinstance(children[2], NullNode)
 
         if len(children[2].children) == 1 and isinstance(
-            children[2].children[0], IdentNode4
+            children[2].children[0], IdentNode
         ):
             name = children[2].children[0].val
         else:
@@ -1407,23 +1453,23 @@ class CommandNoncomputablesectionNode4(Node4):
 
 
 @dataclass(frozen=True)
-class CommandEndNode4(Node4):
+class CommandEndNode(Node):
     name: Optional[str]
 
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandEndNode4":
+    ) -> "CommandEndNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
         assert len(children) == 2
-        assert isinstance(children[0], AtomNode4) and children[0].val == "end"
-        assert isinstance(children[1], NullNode4)
+        assert isinstance(children[0], AtomNode) and children[0].val == "end"
+        assert isinstance(children[1], NullNode)
 
         if len(children[1].children) == 1 and isinstance(
-            children[1].children[0], IdentNode4
+            children[1].children[0], IdentNode
         ):
             name = children[1].children[0].val
         else:
@@ -1433,37 +1479,37 @@ class CommandEndNode4(Node4):
 
 
 @dataclass(frozen=True)
-class OtherNode4(Node4):
+class OtherNode(Node):
     kind: str  # type: ignore
     state_before: Optional[str] = None
     state_after: Optional[str] = None
     tactic: Optional[str] = None
 
     @classmethod
-    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "OtherNode4":
+    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "OtherNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
         return cls(lean_file, start, end, children, node_data["kind"])
 
 
-def is_potential_premise_lean4(node: Node4) -> bool:
+def is_potential_premise_lean4(node: Node) -> bool:
     """Check if ``node`` is a theorem/definition that can be used as a premise."""
-    if (isinstance(node, CommandDeclarationNode4) and not node.is_example) or type(
+    if (isinstance(node, CommandDeclarationNode) and not node.is_example) or type(
         node
     ) in (
-        MathlibTacticLemmaNode4,
-        LeanElabCommandCommandIrreducibleDefNode4,
-        StdTacticAliasAliasNode4,
-        StdTacticAliasAliaslrNode4,
+        MathlibTacticLemmaNode,
+        LeanElabCommandCommandIrreducibleDefNode,
+        StdTacticAliasAliasNode,
+        StdTacticAliasAliaslrNode,
     ):
         return node.name is not None
     else:
         return False
 
 
-def is_mutual_lean4(node: Node4) -> bool:
+def is_mutual_lean4(node: Node) -> bool:
     return (
-        type(node) in (IdentNode4, CommandTheoremNode4, StdTacticAliasAliaslrNode4)
+        type(node) in (IdentNode, CommandTheoremNode, StdTacticAliasAliaslrNode)
         and node.is_mutual
     )

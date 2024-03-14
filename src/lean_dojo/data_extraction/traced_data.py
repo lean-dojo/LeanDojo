@@ -58,13 +58,13 @@ class Comment:
         return cls(start, end, text)
 
 
-def _collect_lean4_comments(ast: FileNode4) -> List[Comment]:
+def _collect_lean4_comments(ast: FileNode) -> List[Comment]:
     comments = []
 
     def _callback(node, _):
         nonlocal comments
-        if isinstance(node, CommandModuledocNode4) or isinstance(
-            node, CommandDoccommentNode4
+        if isinstance(node, CommandModuledocNode) or isinstance(
+            node, CommandDoccommentNode
         ):
             comments.append(Comment(node.start, node.end, node.comment))
         elif is_leaf(node) and node.trailing.strip().startswith("--"):
@@ -122,7 +122,7 @@ class TracedTactic:
     its AST and the states before/after the tactic.
     """
 
-    ast: Node4 = field(repr=False)
+    ast: Node = field(repr=False)
     """AST of the tactic.
     """
 
@@ -190,7 +190,7 @@ class TracedTactic:
         provenances = []
         cur = self.start
 
-        def _callback4(node: IdentNode4, _):
+        def _callback4(node: IdentNode, _):
             nonlocal cur
 
             if (
@@ -209,7 +209,7 @@ class TracedTactic:
                     provenances.append(prov)
                     cur = node.end
 
-        self.ast.traverse_preorder(_callback4, IdentNode4)
+        self.ast.traverse_preorder(_callback4, IdentNode)
         annot_tac.append(lean_file[cur : self.end])
 
         return "".join(annot_tac), provenances
@@ -227,7 +227,7 @@ class TracedTheorem:
     """The corresponding :class:`Theorem` object.
     """
 
-    ast: Union[CommandTheoremNode4, MathlibTacticLemmaNode4] = field(
+    ast: Union[CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode] = field(
         repr=False, compare=False
     )
     """AST of the theorem.
@@ -299,7 +299,7 @@ class TracedTheorem:
         """Check if the theorem has a tactic-style proof."""
         return self.ast.has_tactic_proof()
 
-    def get_proof_node(self) -> Node4:
+    def get_proof_node(self) -> Node:
         """Return the AST of the theorem's proof."""
         return self.ast.get_proof_node()
 
@@ -338,7 +338,7 @@ class TracedTheorem:
         proof = get_code_without_comments(node.lean_file, start, end, self.comments)
 
         raise NotImplementedError
-        assert isinstance(node.children[0], AtomNode4) and node.children[0].val == "by"
+        assert isinstance(node.children[0], AtomNode) and node.children[0].val == "by"
         assert proof.startswith("by")
         proof = proof[len("by") :].strip()
 
@@ -355,11 +355,11 @@ class TracedTheorem:
         """Return the fully qualified names of all premises used in the proof."""
         names = []
 
-        def _callback(node: IdentNode4, _: List[Node4]):
+        def _callback(node: IdentNode, _: List[Node]):
             if node.full_name is not None:
                 names.append(node.full_name)
 
-        self.ast.traverse_preorder(_callback, node_cls=IdentNode4)
+        self.ast.traverse_preorder(_callback, node_cls=IdentNode)
 
         return names
 
@@ -385,8 +385,8 @@ class TracedTheorem:
 
         def _callback(node, _):
             if type(node) not in (
-                TacticTacticseq1IndentedNode4,
-                TacticTacticseqbracketedNode4,
+                TacticTacticseq1IndentedNode,
+                TacticTacticseqbracketedNode,
             ):
                 return
             for tac_node in node.get_tactic_nodes(atomic_only):
@@ -452,7 +452,7 @@ class TracedFile:
     """Lean source file of this traced file.
     """
 
-    ast: FileNode4 = field(repr=False)
+    ast: FileNode = field(repr=False)
     """Abstract syntax tree (AST) of the entire :code:`*.lean` file.
     
     AST nodes are defined in :ref:`lean_dojo.data_extraction.ast`. 
@@ -494,12 +494,12 @@ class TracedFile:
         """
         result = False
 
-        def _callback(node: ModulePreludeNode4, _: List[Node4]):
+        def _callback(node: ModulePreludeNode, _: List[Node]):
             nonlocal result
             result = True
             return True  # Stop traversing.
 
-        self.ast.traverse_preorder(_callback, node_cls=ModulePreludeNode4)
+        self.ast.traverse_preorder(_callback, node_cls=ModulePreludeNode)
         return result
 
     @classmethod
@@ -544,7 +544,7 @@ class TracedFile:
                 break
             data["module_paths"].append(line)
 
-        ast = FileNode4.from_data(data, lean_file)
+        ast = FileNode.from_data(data, lean_file)
         comments = _collect_lean4_comments(ast)
         TracedFile._post_process_lean4(
             ast,
@@ -560,7 +560,7 @@ class TracedFile:
     @classmethod
     def _post_process_lean4(
         cls,
-        ast: FileNode4,
+        ast: FileNode,
         lean_file: LeanFile,
         tactics_data: List[Dict[str, Any]],
         premises_data: List[Dict[str, Any]],
@@ -591,19 +591,19 @@ class TracedFile:
 
         inside_sections_namespaces = []
 
-        def _callback(node: Node4, _):
+        def _callback(node: Node, _):
             if (
                 type(node)
                 in (
-                    CommandNamespaceNode4,
-                    CommandSectionNode4,
-                    CommandNoncomputablesectionNode4,
+                    CommandNamespaceNode,
+                    CommandSectionNode,
+                    CommandNoncomputablesectionNode,
                 )
                 and node.name is not None
             ):
                 inside_sections_namespaces.append(node)
             elif (
-                isinstance(node, CommandEndNode4)
+                isinstance(node, CommandEndNode)
                 and node.name is not None
                 and len(inside_sections_namespaces) > 0
             ):
@@ -612,7 +612,7 @@ class TracedFile:
                 prefix = ".".join(
                     ns.name
                     for ns in inside_sections_namespaces
-                    if isinstance(ns, CommandNamespaceNode4)
+                    if isinstance(ns, CommandNamespaceNode)
                 )
                 full_name = (
                     [_qualify_name(name, prefix) for name in node.name]
@@ -620,14 +620,14 @@ class TracedFile:
                     else _qualify_name(node.name, prefix)
                 )
                 object.__setattr__(node, "full_name", full_name)
-                if isinstance(node, CommandDeclarationNode4) and node.is_theorem:
+                if isinstance(node, CommandDeclarationNode) and node.is_theorem:
                     object.__setattr__(node.get_theorem_node(), "full_name", full_name)
             elif type(node) in (
-                TacticTacticseq1IndentedNode4,
-                TacticTacticseqbracketedNode4,
+                TacticTacticseq1IndentedNode,
+                TacticTacticseqbracketedNode,
             ):
                 for tac_node in node.get_tactic_nodes():
-                    assert type(tac_node) in (OtherNode4, TacticTacticseqbracketedNode4)
+                    assert type(tac_node) in (OtherNode, TacticTacticseqbracketedNode)
                     if (tac_node.start, tac_node.end) not in pos2tactics:
                         continue
                     t = pos2tactics[(tac_node.start, tac_node.end)]
@@ -638,7 +638,7 @@ class TracedFile:
                     object.__setattr__(tac_node, "state_before", t["stateBefore"])
                     object.__setattr__(tac_node, "state_after", t["stateAfter"])
                     object.__setattr__(tac_node, "tactic", tac)
-            elif isinstance(node, IdentNode4):
+            elif isinstance(node, IdentNode):
                 start, end = node.get_closure()
                 if (start, end) in pos2premises:
                     assert start is not None
@@ -669,7 +669,7 @@ class TracedFile:
                         )
                         object.__setattr__(node, "def_start", def_start)
                         object.__setattr__(node, "def_end", def_end)
-            elif type(node) in (ModuleImportNode4,):
+            elif type(node) in (ModuleImportNode,):
                 node_module_name = object.__getattribute__(node, "module")
                 if node_module_name is not None:
                     suffix = node_module_name.replace(".", "/")
@@ -688,7 +688,7 @@ class TracedFile:
         """
         assert isinstance(self.root_dir, Path)
         assert isinstance(self.lean_file, LeanFile)
-        isinstance(self.ast, FileNode4)
+        isinstance(self.ast, FileNode)
 
         assert self.lean_file.root_dir == self.root_dir
 
@@ -733,10 +733,14 @@ class TracedFile:
         private_result = None
 
         def _callback(
-            node: Union[CommandTheoremNode4, MathlibTacticLemmaNode4], _
+            node: Union[CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode], _
         ) -> None:
             nonlocal result, private_result
-            if type(node) not in (CommandTheoremNode4, MathlibTacticLemmaNode4):
+            if type(node) not in (
+                CommandTheoremNode,
+                LemmaNode,
+                MathlibTacticLemmaNode,
+            ):
                 return False
             if node.full_name == thm.full_name:
                 comments = self._filter_comments(node.start, node.end)
@@ -758,9 +762,13 @@ class TracedFile:
         traced_theorems = []
 
         def _callback(
-            node: Union[CommandTheoremNode4, MathlibTacticLemmaNode4], _
+            node: Union[CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode], _
         ) -> None:
-            if type(node) not in (CommandTheoremNode4, MathlibTacticLemmaNode4):
+            if type(node) not in (
+                CommandTheoremNode,
+                LemmaNode,
+                MathlibTacticLemmaNode,
+            ):
                 return False
             repo, path = self._get_repo_and_relative_path()
             thm = Theorem(repo, path, node.full_name)
@@ -796,11 +804,11 @@ class TracedFile:
             else:
                 deps.add(("Init", LEAN4_PACKAGES_DIR / "lean4" / init_lean))
 
-        def _callback(node: ModuleImportNode4, _) -> None:
+        def _callback(node: ModuleImportNode, _) -> None:
             if node.module is not None and node.path is not None:
                 deps.add((node.module, node.path))
 
-        self.traverse_preorder(_callback, node_cls=ModuleImportNode4)
+        self.traverse_preorder(_callback, node_cls=ModuleImportNode)
         return list(deps)
 
     def get_premise_definitions(self) -> List[Dict[str, Any]]:
@@ -812,10 +820,10 @@ class TracedFile:
         """
         results = []
 
-        def _callback4(node: Node4, _) -> None:
+        def _callback4(node: Node, _) -> None:
             if is_potential_premise_lean4(node):
                 start, end = node.get_closure()
-                if isinstance(node, CommandDeclarationNode4) and node.is_theorem:
+                if isinstance(node, CommandDeclarationNode) and node.is_theorem:
                     # We assume theorems are defined using keywords "theorem"
                     # or "lemma" but not, e.g., "def".
                     proof_start, _ = (
@@ -898,7 +906,7 @@ class TracedFile:
         assert tree.attrib["md5"] == compute_md5(lean_file.abs_path)
 
         ast_tree, comments_tree = list(tree)
-        ast = FileNode4.from_xml(ast_tree, lean_file)
+        ast = FileNode.from_xml(ast_tree, lean_file)
         comments = [Comment.from_xml(c) for c in comments_tree]
 
         return cls(root_dir, repo, lean_file, ast, comments)

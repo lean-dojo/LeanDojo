@@ -87,208 +87,208 @@ For example, below is :file:`traced_lean4-example/lean4-example/.lake/build/ir/L
    :caption: Lean4Example.trace.xml
 
    <TracedFile path="Lean4Example.lean" md5="f8eb6563cd78c62389ff6cf40f485a1e">
-     <FileNode4 start="(1, 1)" end="(7, 53)">
-       <ModuleHeaderNode4>
-         <NullNode4/>
-         <NullNode4/>
-       </ModuleHeaderNode4>
-       <CommandOpenNode4 start="(1, 1)" end="(1, 30)">
-         <AtomNode4 start="(1, 1)" end="(1, 5)" leading="" trailing=" " val="open"/>
-         <CommandOpenonlyNode4 start="(1, 6)" end="(1, 30)">
-           <IdentNode4 start="(1, 6)" end="(1, 9)" leading="" trailing=" " raw_val="Nat" val="Nat"/>
-           <AtomNode4 start="(1, 10)" end="(1, 11)" leading="" trailing="" val="("/>
-           <NullNode4 start="(1, 11)" end="(1, 29)">
-             <IdentNode4 start="(1, 11)" end="(1, 20)" leading="" trailing=" " raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(138, 19)" def_end="(138, 28)"/>
-             <IdentNode4 start="(1, 21)" end="(1, 29)" leading="" trailing="" raw_val="add_comm" val="add_comm" full_name="Nat.add_comm" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(131, 19)" def_end="(131, 27)"/>
-           </NullNode4>
-           <AtomNode4 start="(1, 29)" end="(1, 30)" leading="" trailing="&#10;&#10;" val=")"/>
-         </CommandOpenonlyNode4>
-       </CommandOpenNode4>
-       <CommandDeclarationNode4 start="(3, 1)" end="(5, 41)" name="hello_world" full_name="hello_world">
-         <CommandDeclmodifiersNode4>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-         </CommandDeclmodifiersNode4>
-         <CommandTheoremNode4 start="(3, 1)" end="(5, 41)" name="hello_world" full_name="hello_world" _is_private_decl="False">
-           <AtomNode4 start="(3, 1)" end="(3, 8)" leading="" trailing=" " val="theorem"/>
-           <CommandDeclidNode4 start="(3, 9)" end="(3, 20)">
-             <IdentNode4 start="(3, 9)" end="(3, 20)" leading="" trailing=" " raw_val="hello_world" val="hello_world"/>
-             <NullNode4/>
-           </CommandDeclidNode4>
-           <CommandDeclsigNode4 start="(3, 21)" end="(4, 26)">
-             <NullNode4 start="(3, 21)" end="(3, 34)">
-               <TermExplicitbinderNode4 start="(3, 21)" end="(3, 34)">
-                 <AtomNode4 start="(3, 21)" end="(3, 22)" leading="" trailing="" val="("/>
-                 <NullNode4 start="(3, 22)" end="(3, 27)">
-                   <IdentNode4 start="(3, 22)" end="(3, 23)" leading="" trailing=" " raw_val="a" val="a"/>
-                   <IdentNode4 start="(3, 24)" end="(3, 25)" leading="" trailing=" " raw_val="b" val="b"/>
-                   <IdentNode4 start="(3, 26)" end="(3, 27)" leading="" trailing=" " raw_val="c" val="c"/>
-                 </NullNode4>
-                 <NullNode4 start="(3, 28)" end="(3, 33)">
-                   <AtomNode4 start="(3, 28)" end="(3, 29)" leading="" trailing=" " val=":"/>
-                   <IdentNode4 start="(3, 30)" end="(3, 33)" leading="" trailing="" raw_val="Nat" val="Nat" full_name="Nat" mod_name="Init.Prelude" def_path=".lake/packages/lean4/src/lean/Init/Prelude.lean" def_start="(1059, 11)" def_end="(1059, 14)"/>
-                 </NullNode4>
-                 <NullNode4/>
-                 <AtomNode4 start="(3, 33)" end="(3, 34)" leading="" trailing="&#10;  " val=")"/>
-               </TermExplicitbinderNode4>
-             </NullNode4>
-             <TermTypespecNode4 start="(4, 3)" end="(4, 26)">
-               <AtomNode4 start="(4, 3)" end="(4, 4)" leading="" trailing=" " val=":"/>
-               <OtherNode4 start="(4, 5)" end="(4, 26)" kind="«term_=_»">
-                 <OtherNode4 start="(4, 5)" end="(4, 14)" kind="«term_+_»">
-                   <OtherNode4 start="(4, 5)" end="(4, 10)" kind="«term_+_»">
-                     <IdentNode4 start="(4, 5)" end="(4, 6)" leading="" trailing=" " raw_val="a" val="a"/>
-                     <AtomNode4 start="(4, 7)" end="(4, 8)" leading="" trailing=" " val="+"/>
-                     <IdentNode4 start="(4, 9)" end="(4, 10)" leading="" trailing=" " raw_val="b" val="b"/>
-                   </OtherNode4>
-                   <AtomNode4 start="(4, 11)" end="(4, 12)" leading="" trailing=" " val="+"/>
-                   <IdentNode4 start="(4, 13)" end="(4, 14)" leading="" trailing=" " raw_val="c" val="c"/>
-                 </OtherNode4>
-                 <AtomNode4 start="(4, 15)" end="(4, 16)" leading="" trailing=" " val="="/>
-                 <OtherNode4 start="(4, 17)" end="(4, 26)" kind="«term_+_»">
-                   <OtherNode4 start="(4, 17)" end="(4, 22)" kind="«term_+_»">
-                     <IdentNode4 start="(4, 17)" end="(4, 18)" leading="" trailing=" " raw_val="a" val="a"/>
-                     <AtomNode4 start="(4, 19)" end="(4, 20)" leading="" trailing=" " val="+"/>
-                     <IdentNode4 start="(4, 21)" end="(4, 22)" leading="" trailing=" " raw_val="c" val="c"/>
-                   </OtherNode4>
-                   <AtomNode4 start="(4, 23)" end="(4, 24)" leading="" trailing=" " val="+"/>
-                   <IdentNode4 start="(4, 25)" end="(4, 26)" leading="" trailing=" " raw_val="b" val="b"/>
-                 </OtherNode4>
-               </OtherNode4>
-             </TermTypespecNode4>
-           </CommandDeclsigNode4>
-           <CommandDeclvalsimpleNode4 start="(4, 27)" end="(5, 41)">
-             <AtomNode4 start="(4, 27)" end="(4, 29)" leading="" trailing=" " val=":="/>
-             <TermBytacticNode4 start="(4, 30)" end="(5, 41)">
-               <AtomNode4 start="(4, 30)" end="(4, 32)" leading="" trailing="&#10;  " val="by"/>
-               <TacticTacticseqNode4 start="(5, 3)" end="(5, 41)">
-                 <TacticTacticseq1IndentedNode4 start="(5, 3)" end="(5, 41)">
-                   <NullNode4 start="(5, 3)" end="(5, 41)">
-                     <OtherNode4 start="(5, 3)" end="(5, 41)" kind="Lean.Parser.Tactic.rwSeq" state_before="a b c : Nat&#10;⊢ a + b + c = a + c + b" state_after="no goals" tactic="rw [add_assoc, add_comm b, ←add_assoc]">
-                       <AtomNode4 start="(5, 3)" end="(5, 5)" leading="" trailing=" " val="rw"/>
-                       <NullNode4/>
-                       <OtherNode4 start="(5, 6)" end="(5, 41)" kind="Lean.Parser.Tactic.rwRuleSeq">
-                         <AtomNode4 start="(5, 6)" end="(5, 7)" leading="" trailing="" val="["/>
-                         <NullNode4 start="(5, 7)" end="(5, 40)">
-                           <OtherNode4 start="(5, 7)" end="(5, 16)" kind="Lean.Parser.Tactic.rwRule">
-                             <NullNode4/>
-                             <IdentNode4 start="(5, 7)" end="(5, 16)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(138, 19)" def_end="(138, 28)"/>
-                           </OtherNode4>
-                           <AtomNode4 start="(5, 16)" end="(5, 17)" leading="" trailing=" " val=","/>
-                           <OtherNode4 start="(5, 18)" end="(5, 28)" kind="Lean.Parser.Tactic.rwRule">
-                             <NullNode4/>
-                             <OtherNode4 start="(5, 18)" end="(5, 28)" kind="Lean.Parser.Term.app">
-                               <IdentNode4 start="(5, 18)" end="(5, 26)" leading="" trailing=" " raw_val="add_comm" val="add_comm" full_name="Nat.add_comm" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(131, 19)" def_end="(131, 27)"/>
-                               <NullNode4 start="(5, 27)" end="(5, 28)">
-                                 <IdentNode4 start="(5, 27)" end="(5, 28)" leading="" trailing="" raw_val="b" val="b"/>
-                               </NullNode4>
-                             </OtherNode4>
-                           </OtherNode4>
-                           <AtomNode4 start="(5, 28)" end="(5, 29)" leading="" trailing=" " val=","/>
-                           <OtherNode4 start="(5, 30)" end="(5, 40)" kind="Lean.Parser.Tactic.rwRule">
-                             <NullNode4 start="(5, 30)" end="(5, 31)">
-                               <OtherNode4 start="(5, 30)" end="(5, 31)" kind="patternIgnore">
-                                 <OtherNode4 start="(5, 30)" end="(5, 31)" kind="token.«← »">
-                                   <AtomNode4 start="(5, 30)" end="(5, 31)" leading="" trailing="" val="←"/>
-                                 </OtherNode4>
-                               </OtherNode4>
-                             </NullNode4>
-                             <IdentNode4 start="(5, 31)" end="(5, 40)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(138, 19)" def_end="(138, 28)"/>
-                           </OtherNode4>
-                         </NullNode4>
-                         <AtomNode4 start="(5, 40)" end="(5, 41)" leading="" trailing="&#10;&#10;" val="]"/>
-                       </OtherNode4>
-                       <NullNode4/>
-                     </OtherNode4>
-                   </NullNode4>
-                 </TacticTacticseq1IndentedNode4>
-               </TacticTacticseqNode4>
-             </TermBytacticNode4>
-             <OtherNode4 kind="Lean.Parser.Termination.suffix">
-               <NullNode4/>
-               <NullNode4/>
-             </OtherNode4>
-             <NullNode4/>
-           </CommandDeclvalsimpleNode4>
-         </CommandTheoremNode4>
-       </CommandDeclarationNode4>
-       <CommandDeclarationNode4 start="(7, 1)" end="(7, 53)" name="foo" full_name="foo">
-         <CommandDeclmodifiersNode4>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-           <NullNode4/>
-         </CommandDeclmodifiersNode4>
-         <CommandTheoremNode4 start="(7, 1)" end="(7, 53)" name="foo" full_name="foo" _is_private_decl="False">
-           <AtomNode4 start="(7, 1)" end="(7, 8)" leading="" trailing=" " val="theorem"/>
-           <CommandDeclidNode4 start="(7, 9)" end="(7, 12)">
-             <IdentNode4 start="(7, 9)" end="(7, 12)" leading="" trailing=" " raw_val="foo" val="foo"/>
-             <NullNode4/>
-           </CommandDeclidNode4>
-           <CommandDeclsigNode4 start="(7, 13)" end="(7, 43)">
-             <NullNode4 start="(7, 13)" end="(7, 22)">
-               <TermExplicitbinderNode4 start="(7, 13)" end="(7, 22)">
-                 <AtomNode4 start="(7, 13)" end="(7, 14)" leading="" trailing="" val="("/>
-                 <NullNode4 start="(7, 14)" end="(7, 15)">
-                   <IdentNode4 start="(7, 14)" end="(7, 15)" leading="" trailing=" " raw_val="a" val="a"/>
-                 </NullNode4>
-                 <NullNode4 start="(7, 16)" end="(7, 21)">
-                   <AtomNode4 start="(7, 16)" end="(7, 17)" leading="" trailing=" " val=":"/>
-                   <IdentNode4 start="(7, 18)" end="(7, 21)" leading="" trailing="" raw_val="Nat" val="Nat" full_name="Nat" mod_name="Init.Prelude" def_path=".lake/packages/lean4/src/lean/Init/Prelude.lean" def_start="(1059, 11)" def_end="(1059, 14)"/>
-                 </NullNode4>
-                 <NullNode4/>
-                 <AtomNode4 start="(7, 21)" end="(7, 22)" leading="" trailing=" " val=")"/>
-               </TermExplicitbinderNode4>
-             </NullNode4>
-             <TermTypespecNode4 start="(7, 23)" end="(7, 43)">
-               <AtomNode4 start="(7, 23)" end="(7, 24)" leading="" trailing=" " val=":"/>
-               <OtherNode4 start="(7, 25)" end="(7, 43)" kind="«term_=_»">
-                 <OtherNode4 start="(7, 25)" end="(7, 30)" kind="«term_+_»">
-                   <IdentNode4 start="(7, 25)" end="(7, 26)" leading="" trailing=" " raw_val="a" val="a"/>
-                   <AtomNode4 start="(7, 27)" end="(7, 28)" leading="" trailing=" " val="+"/>
-                   <OtherNode4 start="(7, 29)" end="(7, 30)" kind="num">
-                     <AtomNode4 start="(7, 29)" end="(7, 30)" leading="" trailing=" " val="1"/>
-                   </OtherNode4>
-                 </OtherNode4>
-                 <AtomNode4 start="(7, 31)" end="(7, 32)" leading="" trailing=" " val="="/>
-                 <OtherNode4 start="(7, 33)" end="(7, 43)" kind="Lean.Parser.Term.app">
-                   <IdentNode4 start="(7, 33)" end="(7, 41)" leading="" trailing=" " raw_val="Nat.succ" val="Nat.succ" full_name="Nat.succ" mod_name="Init.Prelude" def_path=".lake/packages/lean4/src/lean/Init/Prelude.lean" def_start="(1065, 5)" def_end="(1065, 9)"/>
-                   <NullNode4 start="(7, 42)" end="(7, 43)">
-                     <IdentNode4 start="(7, 42)" end="(7, 43)" leading="" trailing=" " raw_val="a" val="a"/>
-                   </NullNode4>
-                 </OtherNode4>
-               </OtherNode4>
-             </TermTypespecNode4>
-           </CommandDeclsigNode4>
-           <CommandDeclvalsimpleNode4 start="(7, 44)" end="(7, 53)">
-             <AtomNode4 start="(7, 44)" end="(7, 46)" leading="" trailing=" " val=":="/>
-             <TermBytacticNode4 start="(7, 47)" end="(7, 53)">
-               <AtomNode4 start="(7, 47)" end="(7, 49)" leading="" trailing=" " val="by"/>
-               <TacticTacticseqNode4 start="(7, 50)" end="(7, 53)">
-                 <TacticTacticseq1IndentedNode4 start="(7, 50)" end="(7, 53)">
-                   <NullNode4 start="(7, 50)" end="(7, 53)">
-                     <OtherNode4 start="(7, 50)" end="(7, 53)" kind="Lean.Parser.Tactic.tacticRfl" state_before="a : Nat&#10;⊢ a + 1 = Nat.succ a" state_after="no goals" tactic="rfl">
-                       <AtomNode4 start="(7, 50)" end="(7, 53)" leading="" trailing="&#10;" val="rfl"/>
-                     </OtherNode4>
-                   </NullNode4>
-                 </TacticTacticseq1IndentedNode4>
-               </TacticTacticseqNode4>
-             </TermBytacticNode4>
-             <OtherNode4 kind="Lean.Parser.Termination.suffix">
-               <NullNode4/>
-               <NullNode4/>
-             </OtherNode4>
-             <NullNode4/>
-           </CommandDeclvalsimpleNode4>
-         </CommandTheoremNode4>
-       </CommandDeclarationNode4>
-     </FileNode4>
+     <FileNode start="(1, 1)" end="(7, 53)">
+       <ModuleHeaderNode>
+         <NullNode/>
+         <NullNode/>
+       </ModuleHeaderNode>
+       <CommandOpenNode start="(1, 1)" end="(1, 30)">
+         <AtomNode start="(1, 1)" end="(1, 5)" leading="" trailing=" " val="open"/>
+         <CommandOpenonlyNode start="(1, 6)" end="(1, 30)">
+           <IdentNode start="(1, 6)" end="(1, 9)" leading="" trailing=" " raw_val="Nat" val="Nat"/>
+           <AtomNode start="(1, 10)" end="(1, 11)" leading="" trailing="" val="("/>
+           <NullNode start="(1, 11)" end="(1, 29)">
+             <IdentNode start="(1, 11)" end="(1, 20)" leading="" trailing=" " raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(138, 19)" def_end="(138, 28)"/>
+             <IdentNode start="(1, 21)" end="(1, 29)" leading="" trailing="" raw_val="add_comm" val="add_comm" full_name="Nat.add_comm" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(131, 19)" def_end="(131, 27)"/>
+           </NullNode>
+           <AtomNode start="(1, 29)" end="(1, 30)" leading="" trailing="&#10;&#10;" val=")"/>
+         </CommandOpenonlyNode>
+       </CommandOpenNode>
+       <CommandDeclarationNode start="(3, 1)" end="(5, 41)" name="hello_world" full_name="hello_world">
+         <CommandDeclmodifiersNode>
+           <NullNode/>
+           <NullNode/>
+           <NullNode/>
+           <NullNode/>
+           <NullNode/>
+           <NullNode/>
+         </CommandDeclmodifiersNode>
+         <CommandTheoremNode start="(3, 1)" end="(5, 41)" name="hello_world" full_name="hello_world" _is_private_decl="False">
+           <AtomNode start="(3, 1)" end="(3, 8)" leading="" trailing=" " val="theorem"/>
+           <CommandDeclidNode start="(3, 9)" end="(3, 20)">
+             <IdentNode start="(3, 9)" end="(3, 20)" leading="" trailing=" " raw_val="hello_world" val="hello_world"/>
+             <NullNode/>
+           </CommandDeclidNode>
+           <CommandDeclsigNode start="(3, 21)" end="(4, 26)">
+             <NullNode start="(3, 21)" end="(3, 34)">
+               <TermExplicitbinderNode start="(3, 21)" end="(3, 34)">
+                 <AtomNode start="(3, 21)" end="(3, 22)" leading="" trailing="" val="("/>
+                 <NullNode start="(3, 22)" end="(3, 27)">
+                   <IdentNode start="(3, 22)" end="(3, 23)" leading="" trailing=" " raw_val="a" val="a"/>
+                   <IdentNode start="(3, 24)" end="(3, 25)" leading="" trailing=" " raw_val="b" val="b"/>
+                   <IdentNode start="(3, 26)" end="(3, 27)" leading="" trailing=" " raw_val="c" val="c"/>
+                 </NullNode>
+                 <NullNode start="(3, 28)" end="(3, 33)">
+                   <AtomNode start="(3, 28)" end="(3, 29)" leading="" trailing=" " val=":"/>
+                   <IdentNode start="(3, 30)" end="(3, 33)" leading="" trailing="" raw_val="Nat" val="Nat" full_name="Nat" mod_name="Init.Prelude" def_path=".lake/packages/lean4/src/lean/Init/Prelude.lean" def_start="(1059, 11)" def_end="(1059, 14)"/>
+                 </NullNode>
+                 <NullNode/>
+                 <AtomNode start="(3, 33)" end="(3, 34)" leading="" trailing="&#10;  " val=")"/>
+               </TermExplicitbinderNode>
+             </NullNode>
+             <TermTypespecNode start="(4, 3)" end="(4, 26)">
+               <AtomNode start="(4, 3)" end="(4, 4)" leading="" trailing=" " val=":"/>
+               <OtherNode start="(4, 5)" end="(4, 26)" kind="«term_=_»">
+                 <OtherNode start="(4, 5)" end="(4, 14)" kind="«term_+_»">
+                   <OtherNode start="(4, 5)" end="(4, 10)" kind="«term_+_»">
+                     <IdentNode start="(4, 5)" end="(4, 6)" leading="" trailing=" " raw_val="a" val="a"/>
+                     <AtomNode start="(4, 7)" end="(4, 8)" leading="" trailing=" " val="+"/>
+                     <IdentNode start="(4, 9)" end="(4, 10)" leading="" trailing=" " raw_val="b" val="b"/>
+                   </OtherNode>
+                   <AtomNode start="(4, 11)" end="(4, 12)" leading="" trailing=" " val="+"/>
+                   <IdentNode start="(4, 13)" end="(4, 14)" leading="" trailing=" " raw_val="c" val="c"/>
+                 </OtherNode>
+                 <AtomNode start="(4, 15)" end="(4, 16)" leading="" trailing=" " val="="/>
+                 <OtherNode start="(4, 17)" end="(4, 26)" kind="«term_+_»">
+                   <OtherNode start="(4, 17)" end="(4, 22)" kind="«term_+_»">
+                     <IdentNode start="(4, 17)" end="(4, 18)" leading="" trailing=" " raw_val="a" val="a"/>
+                     <AtomNode start="(4, 19)" end="(4, 20)" leading="" trailing=" " val="+"/>
+                     <IdentNode start="(4, 21)" end="(4, 22)" leading="" trailing=" " raw_val="c" val="c"/>
+                   </OtherNode>
+                   <AtomNode start="(4, 23)" end="(4, 24)" leading="" trailing=" " val="+"/>
+                   <IdentNode start="(4, 25)" end="(4, 26)" leading="" trailing=" " raw_val="b" val="b"/>
+                 </OtherNode>
+               </OtherNode>
+             </TermTypespecNode>
+           </CommandDeclsigNode>
+           <CommandDeclvalsimpleNode start="(4, 27)" end="(5, 41)">
+             <AtomNode start="(4, 27)" end="(4, 29)" leading="" trailing=" " val=":="/>
+             <TermBytacticNode start="(4, 30)" end="(5, 41)">
+               <AtomNode start="(4, 30)" end="(4, 32)" leading="" trailing="&#10;  " val="by"/>
+               <TacticTacticseqNode start="(5, 3)" end="(5, 41)">
+                 <TacticTacticseq1IndentedNode start="(5, 3)" end="(5, 41)">
+                   <NullNode start="(5, 3)" end="(5, 41)">
+                     <OtherNode start="(5, 3)" end="(5, 41)" kind="Lean.Parser.Tactic.rwSeq" state_before="a b c : Nat&#10;⊢ a + b + c = a + c + b" state_after="no goals" tactic="rw [add_assoc, add_comm b, ←add_assoc]">
+                       <AtomNode start="(5, 3)" end="(5, 5)" leading="" trailing=" " val="rw"/>
+                       <NullNode/>
+                       <OtherNode start="(5, 6)" end="(5, 41)" kind="Lean.Parser.Tactic.rwRuleSeq">
+                         <AtomNode start="(5, 6)" end="(5, 7)" leading="" trailing="" val="["/>
+                         <NullNode start="(5, 7)" end="(5, 40)">
+                           <OtherNode start="(5, 7)" end="(5, 16)" kind="Lean.Parser.Tactic.rwRule">
+                             <NullNode/>
+                             <IdentNode start="(5, 7)" end="(5, 16)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(138, 19)" def_end="(138, 28)"/>
+                           </OtherNode>
+                           <AtomNode start="(5, 16)" end="(5, 17)" leading="" trailing=" " val=","/>
+                           <OtherNode start="(5, 18)" end="(5, 28)" kind="Lean.Parser.Tactic.rwRule">
+                             <NullNode/>
+                             <OtherNode start="(5, 18)" end="(5, 28)" kind="Lean.Parser.Term.app">
+                               <IdentNode start="(5, 18)" end="(5, 26)" leading="" trailing=" " raw_val="add_comm" val="add_comm" full_name="Nat.add_comm" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(131, 19)" def_end="(131, 27)"/>
+                               <NullNode start="(5, 27)" end="(5, 28)">
+                                 <IdentNode start="(5, 27)" end="(5, 28)" leading="" trailing="" raw_val="b" val="b"/>
+                               </NullNode>
+                             </OtherNode>
+                           </OtherNode>
+                           <AtomNode start="(5, 28)" end="(5, 29)" leading="" trailing=" " val=","/>
+                           <OtherNode start="(5, 30)" end="(5, 40)" kind="Lean.Parser.Tactic.rwRule">
+                             <NullNode start="(5, 30)" end="(5, 31)">
+                               <OtherNode start="(5, 30)" end="(5, 31)" kind="patternIgnore">
+                                 <OtherNode start="(5, 30)" end="(5, 31)" kind="token.«← »">
+                                   <AtomNode start="(5, 30)" end="(5, 31)" leading="" trailing="" val="←"/>
+                                 </OtherNode>
+                               </OtherNode>
+                             </NullNode>
+                             <IdentNode start="(5, 31)" end="(5, 40)" leading="" trailing="" raw_val="add_assoc" val="add_assoc" full_name="Nat.add_assoc" mod_name="Init.Data.Nat.Basic" def_path=".lake/packages/lean4/src/lean/Init/Data/Nat/Basic.lean" def_start="(138, 19)" def_end="(138, 28)"/>
+                           </OtherNode>
+                         </NullNode>
+                         <AtomNode start="(5, 40)" end="(5, 41)" leading="" trailing="&#10;&#10;" val="]"/>
+                       </OtherNode>
+                       <NullNode/>
+                     </OtherNode>
+                   </NullNode>
+                 </TacticTacticseq1IndentedNode>
+               </TacticTacticseqNode>
+             </TermBytacticNode>
+             <OtherNode kind="Lean.Parser.Termination.suffix">
+               <NullNode/>
+               <NullNode/>
+             </OtherNode>
+             <NullNode/>
+           </CommandDeclvalsimpleNode>
+         </CommandTheoremNode>
+       </CommandDeclarationNode>
+       <CommandDeclarationNode start="(7, 1)" end="(7, 53)" name="foo" full_name="foo">
+         <CommandDeclmodifiersNode>
+           <NullNode/>
+           <NullNode/>
+           <NullNode/>
+           <NullNode/>
+           <NullNode/>
+           <NullNode/>
+         </CommandDeclmodifiersNode>
+         <CommandTheoremNode start="(7, 1)" end="(7, 53)" name="foo" full_name="foo" _is_private_decl="False">
+           <AtomNode start="(7, 1)" end="(7, 8)" leading="" trailing=" " val="theorem"/>
+           <CommandDeclidNode start="(7, 9)" end="(7, 12)">
+             <IdentNode start="(7, 9)" end="(7, 12)" leading="" trailing=" " raw_val="foo" val="foo"/>
+             <NullNode/>
+           </CommandDeclidNode>
+           <CommandDeclsigNode start="(7, 13)" end="(7, 43)">
+             <NullNode start="(7, 13)" end="(7, 22)">
+               <TermExplicitbinderNode start="(7, 13)" end="(7, 22)">
+                 <AtomNode start="(7, 13)" end="(7, 14)" leading="" trailing="" val="("/>
+                 <NullNode start="(7, 14)" end="(7, 15)">
+                   <IdentNode start="(7, 14)" end="(7, 15)" leading="" trailing=" " raw_val="a" val="a"/>
+                 </NullNode>
+                 <NullNode start="(7, 16)" end="(7, 21)">
+                   <AtomNode start="(7, 16)" end="(7, 17)" leading="" trailing=" " val=":"/>
+                   <IdentNode start="(7, 18)" end="(7, 21)" leading="" trailing="" raw_val="Nat" val="Nat" full_name="Nat" mod_name="Init.Prelude" def_path=".lake/packages/lean4/src/lean/Init/Prelude.lean" def_start="(1059, 11)" def_end="(1059, 14)"/>
+                 </NullNode>
+                 <NullNode/>
+                 <AtomNode start="(7, 21)" end="(7, 22)" leading="" trailing=" " val=")"/>
+               </TermExplicitbinderNode>
+             </NullNode>
+             <TermTypespecNode start="(7, 23)" end="(7, 43)">
+               <AtomNode start="(7, 23)" end="(7, 24)" leading="" trailing=" " val=":"/>
+               <OtherNode start="(7, 25)" end="(7, 43)" kind="«term_=_»">
+                 <OtherNode start="(7, 25)" end="(7, 30)" kind="«term_+_»">
+                   <IdentNode start="(7, 25)" end="(7, 26)" leading="" trailing=" " raw_val="a" val="a"/>
+                   <AtomNode start="(7, 27)" end="(7, 28)" leading="" trailing=" " val="+"/>
+                   <OtherNode start="(7, 29)" end="(7, 30)" kind="num">
+                     <AtomNode start="(7, 29)" end="(7, 30)" leading="" trailing=" " val="1"/>
+                   </OtherNode>
+                 </OtherNode>
+                 <AtomNode start="(7, 31)" end="(7, 32)" leading="" trailing=" " val="="/>
+                 <OtherNode start="(7, 33)" end="(7, 43)" kind="Lean.Parser.Term.app">
+                   <IdentNode start="(7, 33)" end="(7, 41)" leading="" trailing=" " raw_val="Nat.succ" val="Nat.succ" full_name="Nat.succ" mod_name="Init.Prelude" def_path=".lake/packages/lean4/src/lean/Init/Prelude.lean" def_start="(1065, 5)" def_end="(1065, 9)"/>
+                   <NullNode start="(7, 42)" end="(7, 43)">
+                     <IdentNode start="(7, 42)" end="(7, 43)" leading="" trailing=" " raw_val="a" val="a"/>
+                   </NullNode>
+                 </OtherNode>
+               </OtherNode>
+             </TermTypespecNode>
+           </CommandDeclsigNode>
+           <CommandDeclvalsimpleNode start="(7, 44)" end="(7, 53)">
+             <AtomNode start="(7, 44)" end="(7, 46)" leading="" trailing=" " val=":="/>
+             <TermBytacticNode start="(7, 47)" end="(7, 53)">
+               <AtomNode start="(7, 47)" end="(7, 49)" leading="" trailing=" " val="by"/>
+               <TacticTacticseqNode start="(7, 50)" end="(7, 53)">
+                 <TacticTacticseq1IndentedNode start="(7, 50)" end="(7, 53)">
+                   <NullNode start="(7, 50)" end="(7, 53)">
+                     <OtherNode start="(7, 50)" end="(7, 53)" kind="Lean.Parser.Tactic.tacticRfl" state_before="a : Nat&#10;⊢ a + 1 = Nat.succ a" state_after="no goals" tactic="rfl">
+                       <AtomNode start="(7, 50)" end="(7, 53)" leading="" trailing="&#10;" val="rfl"/>
+                     </OtherNode>
+                   </NullNode>
+                 </TacticTacticseq1IndentedNode>
+               </TacticTacticseqNode>
+             </TermBytacticNode>
+             <OtherNode kind="Lean.Parser.Termination.suffix">
+               <NullNode/>
+               <NullNode/>
+             </OtherNode>
+             <NullNode/>
+           </CommandDeclvalsimpleNode>
+         </CommandTheoremNode>
+       </CommandDeclarationNode>
+     </FileNode>
      <Comments/>
    </TracedFile>
 
