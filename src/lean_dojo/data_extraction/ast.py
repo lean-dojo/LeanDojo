@@ -41,7 +41,7 @@ class Node:
 
     @classmethod
     def kind(cls: type) -> str:
-        return cls.__name__[:-5].lower()
+        return cls.__name__[:-4].lower()
 
     def traverse_preorder(
         self,
@@ -1498,6 +1498,7 @@ def is_potential_premise_lean4(node: Node) -> bool:
     if (isinstance(node, CommandDeclarationNode) and not node.is_example) or type(
         node
     ) in (
+        LemmaNode,
         MathlibTacticLemmaNode,
         LeanElabCommandCommandIrreducibleDefNode,
         StdTacticAliasAliasNode,
