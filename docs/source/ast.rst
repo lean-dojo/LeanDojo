@@ -1,8 +1,13 @@
 lean_dojo.data_extraction.ast
 =============================
 
-.. toctree::
-   :maxdepth: 2
+.. _lean_dojo.data_extraction.ast:
 
-   lean3
-   lean4
+lean_dojo.data_extraction.ast
+****************************************
+
+.. automodule:: lean_dojo.data_extraction.ast
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
