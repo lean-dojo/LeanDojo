@@ -576,7 +576,7 @@ class LeanGitRepo:
     def _get_config_url(self, filename: str) -> str:
         assert "github.com" in self.url, f"Unsupported URL: {self.url}"
         url = self.url.replace("github.com", "raw.githubusercontent.com")
-        return f"{url}/{self.commit}/{filename}"
+        return f"{url}/{self.commit}/cedar-lean/{filename}"
 
     def get_config(self, filename: str, num_retries: int = 2) -> Dict[str, Any]:
         """Return the repo's files."""

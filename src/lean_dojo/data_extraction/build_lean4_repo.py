@@ -159,7 +159,7 @@ def main() -> None:
 
     num_procs = int(os.environ["NUM_PROCS"])
     repo_name = args.repo_name
-    os.chdir(repo_name)
+    os.chdir(repo_name+"/cedar-lean")
 
     # Build the repo using lake.
     logger.info(f"Building {repo_name}")

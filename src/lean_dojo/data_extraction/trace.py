@@ -33,6 +33,7 @@ def _trace(repo: LeanGitRepo, build_deps: bool) -> None:
     logger.debug(f"Tracing {repo}")
     container = get_container()
     mts = {
+        # TODO: should we mount a different directory here?
         Path.cwd() / repo.name: f"/workspace/{repo.name}",
         LEAN4_BUILD_SCRIPT_PATH: f"/workspace/{LEAN4_BUILD_SCRIPT_PATH.name}",
         LEAN4_DATA_EXTRACTOR_PATH: f"/workspace/{repo.name}/{LEAN4_DATA_EXTRACTOR_PATH.name}",
