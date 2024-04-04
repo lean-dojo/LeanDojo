@@ -1151,7 +1151,7 @@ class TracedRepo:
         cls, root_dir: Union[str, Path], build_deps: bool = True
     ) -> "TracedRepo":
         """Load a traced repo from :file:`*.trace.xml` files."""
-        root_dir = Path(root_dir).resolve()
+        root_dir = Path(root_dir / "cedar-lean").resolve()
         if not is_git_repo(root_dir):
             raise RuntimeError(f"{root_dir} is not a Git repo.")
         repo = LeanGitRepo.from_path(root_dir)
