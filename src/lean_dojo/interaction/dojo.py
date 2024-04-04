@@ -20,10 +20,10 @@ from ..constants import (
 )
 from ..utils import to_json_path
 from .parse_goals import parse_goals, Goal
-from ..data_extraction.traced_data import TracedFile
 from ..data_extraction.trace import get_traced_repo_path
 from ..data_extraction.lean import Theorem, LeanGitRepo, Pos
 from ..container import get_container, Mount, NativeContainer, DockerContainer
+from ..data_extraction.traced_data import TracedFile, get_code_without_comments
 
 
 _REPL_PROMPT = "REPL>"
@@ -368,9 +368,12 @@ class Dojo:
             # Interaction through commands (supported only in Lean 4 via CommandElabM).
             lean_file = traced_file.lean_file
             pos = Pos(line_nb=self.entry[2], column_nb=1)
+            code_before = get_code_without_comments(
+                lean_file, lean_file.start_pos, pos, traced_file.comments
+            )
             modified_code = (
                 self._get_imports()
-                + lean_file[:pos]
+                + code_before
                 + "set_option maxHeartbeats 0 in\n#lean_dojo_repl\n\n"
                 + lean_file[pos:]
             )
@@ -409,12 +412,14 @@ class Dojo:
 
         code_import = self._get_imports()
         code_proof = "\nby\n  lean_dojo_repl\n  sorry\n"
-        code_before_theorem = lean_file[: traced_theorem.start]
+        code_before_theorem = get_code_without_comments(
+            lean_file, lean_file.start_pos, traced_theorem.start, traced_file.comments
+        )
         code_thereom = lean_file[traced_theorem.start : proof_start]
         modified_code = (
             code_import
             + code_before_theorem
-            + "set_option maxHeartbeats 0 in\n"
+            + "\nset_option maxHeartbeats 0 in\n"
             + code_thereom
             + code_proof
             + lean_file[proof_end:]
@@ -479,7 +484,6 @@ class Dojo:
         Returns:
             Dict[str, Any]: _description_
         """
-        logger.debug(f"Request: {req}")
         if self.proc.stdin is None:
             raise RuntimeError("self.proc.stdin is not initialized")
         self._check_alive()
@@ -487,8 +491,7 @@ class Dojo:
         try:
             res, msg = self._read_next_line()
         except EOFError:
-            raise DojoCrashError("EOF")
-        # logger.debug(f"Response: {res}")
+            raise DojoCrashError("Unexpected EOF")
         try:
             result: Dict[str, Any] = json.loads(res)
         except json.decoder.JSONDecodeError:

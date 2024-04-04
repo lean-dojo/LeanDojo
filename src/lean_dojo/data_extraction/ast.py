@@ -252,7 +252,7 @@ class FileNode(Node):
             node.traverse_postorder(_get_closure)
             children.append(node)
 
-        return cls(lean_file, lean_file.start_pos(), lean_file.end_pos(), children)
+        return cls(lean_file, lean_file.start_pos, lean_file.end_pos, children)
 
 
 def _parse_children(node_data: Dict[str, Any], lean_file: LeanFile) -> List[Node]:

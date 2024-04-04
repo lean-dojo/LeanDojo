@@ -213,21 +213,17 @@ class LeanFile:
         """Number of columns in a source file."""
         return len(self.get_line(line_nb))
 
-    def start_pos(self, zero_indexed: bool = False) -> Pos:
+    @property
+    def start_pos(self) -> Pos:
         """Return the start position of a source file.
-
-        Args:
-            zero_indexed (bool, optional): Whether to use 0-index instead of 1-index. Defaults to False.
 
         Returns:
             Pos: A :class:`Pos` object representing the start of this file.
         """
-        if zero_indexed:
-            return Pos(0, 0)
-        else:
-            return Pos(1, 1)
+        return Pos(1, 1)
 
-    def end_pos(self, zero_indexed: bool = False) -> Pos:
+    @property
+    def end_pos(self) -> Pos:
         """Return the end position of a source file.
 
         Args:
@@ -237,11 +233,8 @@ class LeanFile:
             Pos: A :class:`Pos` object representing the end of this file.
         """
         # Line and column numbers are 1-indexed by default.
-        line_nb = self.num_lines - 1
-        column_nb = len(self.code[-1])
-        if not zero_indexed:
-            line_nb += 1
-            column_nb += 1
+        line_nb = self.num_lines
+        column_nb = 1 + len(self.code[-1])
         return Pos(line_nb, column_nb)
 
     def convert_pos(self, byte_idx: int) -> Pos:
