@@ -9,7 +9,7 @@ This tutorial walks you through a simple example of using LeanDojo to extract da
 Requirements
 ************
 
-* Supported platforms: Linux, Windows (WSL), and macOS (experimental for Apple silicon)
+* Supported platforms: Linux, Windows (WSL), and macOS
 * Git >= 2.25
 * 3.9 <= Python < 3.11
 * wget
