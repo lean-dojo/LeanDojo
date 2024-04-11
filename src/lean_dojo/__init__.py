@@ -30,4 +30,6 @@ from .data_extraction.lean import get_latest_commit, LeanGitRepo, LeanFile, Theo
 from .constants import __version__
 
 if os.geteuid() == 0:
-    logger.warning("Running LeanDojo as the root user may cause unexpected issues. Proceed with caution.")
+    logger.warning(
+        "Running LeanDojo as the root user may cause unexpected issues. Proceed with caution."
+    )
