@@ -1,5 +1,5 @@
 import os
-import logger
+from loguru import logger
 from .data_extraction.trace import (
     trace,
     get_traced_repo_path,
