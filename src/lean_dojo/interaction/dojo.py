@@ -487,6 +487,7 @@ class Dojo:
         if self.proc.stdin is None:
             raise RuntimeError("self.proc.stdin is not initialized")
         self._check_alive()
+        logger.debug(req)
         self.proc.stdin.write(req + "\n")
         try:
             res, msg = self._read_next_line()
