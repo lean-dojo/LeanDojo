@@ -9,12 +9,12 @@ This tutorial walks you through a simple example of using LeanDojo to extract da
 Requirements
 ************
 
-* Supported platforms: Linux, Windows (WSL), and macOS (experimental for Apple silicon)
+* Supported platforms: Linux, Windows (WSL), and macOS
 * Git >= 2.25
 * 3.9 <= Python < 3.11
 * wget
 * `elan <https://github.com/leanprover/elan>`_
-* Recommended: Generate a `GitHub personal access token <https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic>`_ and set the environment variable :code:`GITHUB_ACCESS_TOKEN` to it
+* Generate a `GitHub personal access token <https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic>`_ and set the environment variable :code:`GITHUB_ACCESS_TOKEN` to it
 
 Installation
 ************
