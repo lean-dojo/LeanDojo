@@ -21,7 +21,7 @@ ______________________________________________________________________
 * 3.9 <= Python < 3.11
 * wget
 * [elan](https://github.com/leanprover/elan)
-* Strongly Rrecommended: Generate a [GitHub personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic) and set the environment variable `GITHUB_ACCESS_TOKEN` to it
+* Generate a [GitHub personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic) and set the environment variable `GITHUB_ACCESS_TOKEN` to it
 
 
 ## Installation
