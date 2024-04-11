@@ -1,4 +1,5 @@
 import os
+import logger
 from .data_extraction.trace import (
     trace,
     get_traced_repo_path,
@@ -29,4 +30,4 @@ from .data_extraction.lean import get_latest_commit, LeanGitRepo, LeanFile, Theo
 from .constants import __version__
 
 if os.geteuid() == 0:
-    raise RuntimeError("LeanDojo should not be run as root.")
+    logger.warning("Running LeanDojo as the root user may cause unexpected issues. Proceed with caution.")
