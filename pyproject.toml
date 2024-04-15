@@ -32,6 +32,7 @@ dependencies = [
   "python-dotenv",
   "loguru",
   "filelock",
+  "psutil",
   "tqdm",
   "toml",
   "types-toml",

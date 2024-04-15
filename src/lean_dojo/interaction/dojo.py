@@ -5,6 +5,7 @@ import json
 import time
 import signal
 import shutil
+import psutil
 from pathlib import Path
 from loguru import logger
 from tempfile import mkdtemp
@@ -100,21 +101,10 @@ class DojoInitError(Exception):
     pass
 
 
-def _get_all_dependencies(
-    root_dir: Path, lean_path: Path, repo: LeanGitRepo
-) -> List[Path]:
-    all_deps = []
-    stack = [lean_path]
-
-    while stack != []:
-        json_path = to_json_path(root_dir, stack.pop(), repo)
-        tf = TracedFile.from_traced_file(root_dir, json_path, repo)
-        for _, d in tf.get_direct_dependencies(repo):
-            if d not in all_deps:
-                all_deps.append(d)
-                stack.append(d)
-
-    return all_deps
+def _kill_descendants(proc: psutil.Process) -> None:
+    for child in proc.children():
+        _kill_descendants(child)
+    proc.kill()
 
 
 class Dojo:
@@ -315,7 +305,14 @@ class Dojo:
     def _cleanup_proc(self) -> None:
         """Clean up the subprocess."""
         logger.debug(f"Cleaning up the subprocess {self.proc.pid}.")
-        os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
+        _kill_descendants(psutil.Process(self.proc.pid))
+        """
+        self.proc.terminate()
+        try:
+            self.proc.wait(timeout=0.5)
+        except TimeoutExpired:
+            self.proc.kill()
+        """
 
     def _cleanup_tmp_dir(self) -> None:
         """Clean up the temporary directory."""
