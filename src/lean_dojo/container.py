@@ -229,6 +229,7 @@ class NativeContainer(Container):
                 universal_newlines=True,
                 encoding="utf-8",
                 bufsize=1,
+                preexec_fn=os.setpgrp,
             )
 
         return proc
@@ -341,6 +342,7 @@ class DockerContainer(Container):
             universal_newlines=True,
             encoding="utf-8",
             bufsize=1,
+            preexec_fn=os.setpgrp,
         )
         return proc
 

@@ -314,11 +314,8 @@ class Dojo:
 
     def _cleanup_proc(self) -> None:
         """Clean up the subprocess."""
-        self.proc.terminate()
-        try:
-            self.proc.wait(timeout=0.5)
-        except TimeoutExpired:
-            self.proc.kill()
+        logger.debug(f"Cleaning up the subprocess {self.proc.pid}.")
+        os.killpg(os.getpgid(self.proc.pid), signal.SIGKILL)
 
     def _cleanup_tmp_dir(self) -> None:
         """Clean up the temporary directory."""
