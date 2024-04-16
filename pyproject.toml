@@ -33,6 +33,7 @@ dependencies = [
   "loguru",
   "filelock",
   "psutil",
+  "types-psutil",
   "tqdm",
   "toml",
   "types-toml",
