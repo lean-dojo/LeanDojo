@@ -344,13 +344,6 @@ class TracedTheorem:
 
         return proof
 
-    def get_namespaces(self) -> Tuple[List[str], List[str]]:
-        """Return the namespaces that the theorem is located in,
-        as well as the namespaces that are merely open.
-        """
-        assert self.traced_file is not None
-        return self.traced_file.get_namespaces(self)
-
     def get_premise_full_names(self) -> List[str]:
         """Return the fully qualified names of all premises used in the proof."""
         names = []
