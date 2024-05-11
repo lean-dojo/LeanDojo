@@ -384,9 +384,12 @@ class TracedTheorem:
         tacs = []
 
         def _callback(node, _):
-            if type(node) not in (
-                TacticTacticseq1IndentedNode,
-                TacticTacticseqbracketedNode,
+            if not isinstance(
+                node,
+                (
+                    TacticTacticseq1IndentedNode,
+                    TacticTacticseqbracketedNode,
+                ),
             ):
                 return
             for tac_node in node.get_tactic_nodes(atomic_only):
@@ -593,11 +596,13 @@ class TracedFile:
 
         def _callback(node: Node, _):
             if (
-                type(node)
-                in (
-                    CommandNamespaceNode,
-                    CommandSectionNode,
-                    CommandNoncomputablesectionNode,
+                isinstance(
+                    node,
+                    (
+                        CommandNamespaceNode,
+                        CommandSectionNode,
+                        CommandNoncomputablesectionNode,
+                    ),
                 )
                 and node.name is not None
             ):
@@ -622,12 +627,17 @@ class TracedFile:
                 object.__setattr__(node, "full_name", full_name)
                 if isinstance(node, CommandDeclarationNode) and node.is_theorem:
                     object.__setattr__(node.get_theorem_node(), "full_name", full_name)
-            elif type(node) in (
-                TacticTacticseq1IndentedNode,
-                TacticTacticseqbracketedNode,
+            elif isinstance(
+                node,
+                (
+                    TacticTacticseq1IndentedNode,
+                    TacticTacticseqbracketedNode,
+                ),
             ):
                 for tac_node in node.get_tactic_nodes():
-                    assert type(tac_node) in (OtherNode, TacticTacticseqbracketedNode)
+                    assert isinstance(
+                        tac_node, (OtherNode, TacticTacticseqbracketedNode)
+                    )
                     if (tac_node.start, tac_node.end) not in pos2tactics:
                         continue
                     t = pos2tactics[(tac_node.start, tac_node.end)]
@@ -669,7 +679,7 @@ class TracedFile:
                         )
                         object.__setattr__(node, "def_start", def_start)
                         object.__setattr__(node, "def_end", def_end)
-            elif type(node) in (ModuleImportNode,):
+            elif isinstance(node, ModuleImportNode):
                 node_module_name = object.__getattribute__(node, "module")
                 if node_module_name is not None:
                     suffix = node_module_name.replace(".", "/")
@@ -736,10 +746,13 @@ class TracedFile:
             node: Union[CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode], _
         ) -> None:
             nonlocal result, private_result
-            if type(node) not in (
-                CommandTheoremNode,
-                LemmaNode,
-                MathlibTacticLemmaNode,
+            if not isinstance(
+                node,
+                (
+                    CommandTheoremNode,
+                    LemmaNode,
+                    MathlibTacticLemmaNode,
+                ),
             ):
                 return False
             if node.full_name == thm.full_name:
@@ -764,10 +777,13 @@ class TracedFile:
         def _callback(
             node: Union[CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode], _
         ) -> None:
-            if type(node) not in (
-                CommandTheoremNode,
-                LemmaNode,
-                MathlibTacticLemmaNode,
+            if not isinstance(
+                node,
+                (
+                    CommandTheoremNode,
+                    LemmaNode,
+                    MathlibTacticLemmaNode,
+                ),
             ):
                 return False
             repo, path = self._get_repo_and_relative_path()

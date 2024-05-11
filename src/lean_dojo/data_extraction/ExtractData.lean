@@ -177,20 +177,18 @@ def toAbsolute (path : FilePath) : IO FilePath := do
 
 private def trim (path : FilePath) : FilePath :=
   assert! path.isRelative
-  match path.components with
-  | "." :: tl => mkFilePath tl
-  | _ => path
+  mkFilePath $ path.components.filter (· != ".")
 
 
 def packagesDir : FilePath :=
-  if Lake.defaultPackagesDir == "packages" then  -- Lean >= v4.3.0-rc2
+  if Lake.defaultPackagesDir == "packages"  then
     ".lake" / Lake.defaultPackagesDir
-  else  -- Lean < v4.3.0-rc2
+  else
     Lake.defaultPackagesDir
 
 
 def buildDir : FilePath :=
-  if Lake.defaultPackagesDir == "packages" then  -- Lean >= v4.3.0-rc2
+  if Lake.defaultPackagesDir.fileName == "packages" then  -- Lean >= v4.3.0-rc2
     ".lake/build"
   else  -- Lean < v4.3.0-rc2
    "build"

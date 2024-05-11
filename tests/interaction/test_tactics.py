@@ -33,9 +33,9 @@ def test_example_pow_two_pow_sub_pow_two_pow(mathlib4_repo: LeanGitRepo) -> None
         assert not dojo.is_successful
 
 
-def test_example_mem_nil_iff(std4_repo: LeanGitRepo) -> None:
+def test_example_mem_nil_iff(batteries_repo: LeanGitRepo) -> None:
     thm = Theorem(
-        std4_repo,
+        batteries_repo,
         "Std/Data/List/Lemmas.lean",
         "List.mem_nil_iff",
     )
@@ -138,9 +138,9 @@ def test_example_coe_monoidHom_mk(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_length_le(std4_repo: LeanGitRepo) -> None:
+def test_example_length_le(batteries_repo: LeanGitRepo) -> None:
     thm = Theorem(
-        std4_repo,
+        batteries_repo,
         "Std/Data/List/Lemmas.lean",
         "List.IsSuffix.length_le",
     )
@@ -279,9 +279,9 @@ def test_example_mem_eqLocus(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_neg_lt_sub_right_of_lt_add(std4_repo: LeanGitRepo) -> None:
+def test_example_neg_lt_sub_right_of_lt_add(batteries_repo: LeanGitRepo) -> None:
     thm = Theorem(
-        std4_repo,
+        batteries_repo,
         "Std/Data/Int/Order.lean",
         "Int.neg_lt_sub_right_of_lt_add",
     )

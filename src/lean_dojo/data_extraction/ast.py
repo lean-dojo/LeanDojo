@@ -392,9 +392,8 @@ class MathlibTacticLemmaNode(Node):
 
     def get_proof_node(self) -> Node:
         decl_val_node = self.children[1].children[3]
-        if type(decl_val_node) in (
-            CommandDeclvalsimpleNode,
-            CommandWherestructinstNode,
+        if isinstance(
+            decl_val_node, (CommandDeclvalsimpleNode, CommandWherestructinstNode)
         ):
             return decl_val_node.children[1]
         else:
@@ -442,9 +441,12 @@ class LemmaNode(Node):
 
     def get_proof_node(self) -> Node:
         decl_val_node = self.children[1].children[3]
-        if type(decl_val_node) in (
-            CommandDeclvalsimpleNode,
-            CommandWherestructinstNode,
+        if isinstance(
+            decl_val_node,
+            (
+                CommandDeclvalsimpleNode,
+                CommandWherestructinstNode,
+            ),
         ):
             return decl_val_node.children[1]
         else:
@@ -476,17 +478,21 @@ class CommandDeclarationNode(Node):
             name = None
         else:
             assert isinstance(children[0], CommandDeclmodifiersNode)
-            assert type(children[1]) in (
-                CommandDefNode,
-                CommandTheoremNode,
-                CommandInductiveNode,
-                CommandClassinductiveNode,
-                CommandStructureNode,
-                CommandInstanceNode,
-                CommandAbbrevNode,
-                CommandOpaqueNode,
-                CommandAxiomNode,
-                CommandExampleNode,
+            assert isinstance(
+                children[1],
+                (
+                    CommandDefNode,
+                    CommandDefinitionNode,
+                    CommandTheoremNode,
+                    CommandInductiveNode,
+                    CommandClassinductiveNode,
+                    CommandStructureNode,
+                    CommandInstanceNode,
+                    CommandAbbrevNode,
+                    CommandOpaqueNode,
+                    CommandAxiomNode,
+                    CommandExampleNode,
+                ),
             )
             name = children[1].name
 
@@ -629,7 +635,7 @@ class CommandStructureNode(Node):
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert type(children[0]) in (CommandStructuretkNode, CommandClasstkNode)
+        assert isinstance(children[0], (CommandStructuretkNode, CommandClasstkNode))
         if isinstance(children[1], CommandDeclidAntiquotNode):
             name = None
         else:
@@ -711,9 +717,12 @@ class TermHoleNode(Node):
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
-        assert len(children) == 1 and type(children[0]) in (
-            AtomNode,
-            TokenAntiquotNode,
+        assert len(children) == 1 and isinstance(
+            children[0],
+            (
+                AtomNode,
+                TokenAntiquotNode,
+            ),
         )
         return cls(lean_file, start, end, children)
 
@@ -727,10 +736,13 @@ class LeanBinderidentNode(Node):
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
-        assert len(children) == 1 and type(children[0]) in (
-            TermHoleNode,
-            IdentNode,
-            IdentAntiquotNode,
+        assert len(children) == 1 and isinstance(
+            children[0],
+            (
+                TermHoleNode,
+                IdentNode,
+                IdentAntiquotNode,
+            ),
         )
         return cls(lean_file, start, end, children)
 
@@ -801,9 +813,13 @@ class StdTacticAliasAliaslrNode(Node):
         assert isinstance(children[6], AtomNode) and children[6].val == "⟩"
 
         name = []
-        assert type(children[3]) in (LeanBinderidentNode, LeanBinderidentAntiquotNode)
+        assert isinstance(
+            children[3], (LeanBinderidentNode, LeanBinderidentAntiquotNode)
+        )
         name.append(children[3].get_ident())
-        assert type(children[5]) in (LeanBinderidentNode, LeanBinderidentAntiquotNode)
+        assert isinstance(
+            children[5], (LeanBinderidentNode, LeanBinderidentAntiquotNode)
+        )
         name.append(children[5].get_ident())
         name = [n for n in name if n is not None]
 
@@ -942,6 +958,37 @@ class CommandDefNode(Node):
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
     ) -> "CommandDefNode":
+        assert node_data["info"] == "none"
+        start, end = None, None
+        children = _parse_children(node_data, lean_file)
+
+        if isinstance(children[0], TokenAntiquotNode) or isinstance(
+            children[1], CommandDeclidAntiquotNode
+        ):
+            name = None
+        else:
+            assert isinstance(children[0], AtomNode) and children[0].val == "def"
+            assert isinstance(children[1], CommandDeclidNode)
+            decl_id_node = children[1]
+            ident_node = decl_id_node.children[0]
+
+            if isinstance(ident_node, IdentNode):
+                name = ident_node.val
+            else:
+                assert isinstance(ident_node, IdentAntiquotNode)
+                name = ident_node.get_ident()
+
+        return cls(lean_file, start, end, children, name)
+
+
+@dataclass(frozen=True)
+class CommandDefinitionNode(Node):
+    name: str
+
+    @classmethod
+    def from_data(
+        cls, node_data: Dict[str, Any], lean_file: LeanFile
+    ) -> "CommandDefinitionNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -1105,10 +1152,13 @@ class CommandTheoremNode(Node):
         if not isinstance(children[1], CommandDeclidAntiquotNode):
             assert isinstance(children[2], CommandDeclsigNode)
             decl_val_node = children[3]
-            assert type(decl_val_node) in (
-                CommandDeclvalsimpleNode,
-                CommandDeclvaleqnsNode,
-                CommandWherestructinstNode,
+            assert isinstance(
+                decl_val_node,
+                (
+                    CommandDeclvalsimpleNode,
+                    CommandDeclvaleqnsNode,
+                    CommandWherestructinstNode,
+                ),
             )
 
             if isinstance(decl_val_node, CommandDeclvalsimpleNode):
@@ -1129,9 +1179,12 @@ class CommandTheoremNode(Node):
 
     def get_proof_node(self) -> Node:
         decl_val_node = self.children[3]
-        if type(decl_val_node) in (
-            CommandDeclvalsimpleNode,
-            CommandWherestructinstNode,
+        if isinstnace(
+            decl_val_node,
+            (
+                CommandDeclvalsimpleNode,
+                CommandWherestructinstNode,
+            ),
         ):
             return decl_val_node.children[1]
         else:
@@ -1184,10 +1237,13 @@ class TacticTacticseqNode(Node):
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
-        assert len(children) == 1 and type(children[0]) in (
-            TacticTacticseq1IndentedNode,
-            TacticTacticseqbracketedNode,
-            TacticTacticseq1IndentedAntiquotNode,
+        assert len(children) == 1 and isinstance(
+            children[0],
+            (
+                TacticTacticseq1IndentedNode,
+                TacticTacticseqbracketedNode,
+                TacticTacticseq1IndentedAntiquotNode,
+            ),
         )
         return cls(lean_file, start, end, children)
 
@@ -1273,9 +1329,12 @@ def contains_tactic(node: Node) -> bool:
     result = False
 
     def _callback(x, _) -> bool:
-        if x is not node and type(x) in (
-            TacticTacticseq1IndentedNode,
-            TacticTacticseqbracketedNode,
+        if x is not node and isinstance(
+            x,
+            (
+                TacticTacticseq1IndentedNode,
+                TacticTacticseqbracketedNode,
+            ),
         ):
             nonlocal result
             result = True
@@ -1495,14 +1554,15 @@ class OtherNode(Node):
 
 def is_potential_premise_lean4(node: Node) -> bool:
     """Check if ``node`` is a theorem/definition that can be used as a premise."""
-    if (isinstance(node, CommandDeclarationNode) and not node.is_example) or type(
-        node
-    ) in (
-        LemmaNode,
-        MathlibTacticLemmaNode,
-        LeanElabCommandCommandIrreducibleDefNode,
-        StdTacticAliasAliasNode,
-        StdTacticAliasAliaslrNode,
+    if (isinstance(node, CommandDeclarationNode) and not node.is_example) or isinstance(
+        node,
+        (
+            LemmaNode,
+            MathlibTacticLemmaNode,
+            LeanElabCommandCommandIrreducibleDefNode,
+            StdTacticAliasAliasNode,
+            StdTacticAliasAliaslrNode,
+        ),
     ):
         return node.name is not None
     else:
@@ -1511,6 +1571,6 @@ def is_potential_premise_lean4(node: Node) -> bool:
 
 def is_mutual_lean4(node: Node) -> bool:
     return (
-        type(node) in (IdentNode, CommandTheoremNode, StdTacticAliasAliaslrNode)
+        isinstance(node, (IdentNode, CommandTheoremNode, StdTacticAliasAliaslrNode))
         and node.is_mutual
     )

@@ -3,12 +3,12 @@ import pytest
 from lean_dojo import *
 
 
-STD4_URL = "https://github.com/leanprover/std4"
+BATTERIES_URL = "https://github.com/leanprover/batteries"
 AESOP_URL = "https://github.com/leanprover-community/aesop"
 MATHLIB4_URL = "https://github.com/leanprover-community/mathlib4"
 LEAN4_EXAMPLE_URL = "https://github.com/yangky11/lean4-example"
 URLS = [
-    STD4_URL,
+    BATTERIES_URL,
     AESOP_URL,
     MATHLIB4_URL,
     LEAN4_EXAMPLE_URL,
@@ -28,9 +28,9 @@ def lean4_example_repo():
 
 
 @pytest.fixture(scope="session")
-def std4_repo():
-    commit = get_latest_commit(STD4_URL)
-    return LeanGitRepo(STD4_URL, commit)
+def batteries_repo():
+    commit = get_latest_commit(BATTERIES_URL)
+    return LeanGitRepo(BATTERIES_URL, commit)
 
 
 @pytest.fixture(scope="session")
