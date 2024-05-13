@@ -1179,7 +1179,7 @@ class CommandTheoremNode(Node):
 
     def get_proof_node(self) -> Node:
         decl_val_node = self.children[3]
-        if isinstnace(
+        if isinstance(
             decl_val_node,
             (
                 CommandDeclvalsimpleNode,
