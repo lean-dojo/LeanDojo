@@ -1,4 +1,5 @@
 -- REPL for interacting with Lean 4 via the command line.
+import Lean.Message
 import Lean.Elab.Tactic
 import Lean.Elab.Frontend
 
@@ -228,7 +229,7 @@ private def handleRunTac (req : Request) : TacticReplM Response := do
         let s ← getThe Core.State
         if s.messages.hasErrors then
           let messages := s.messages.toList.filter fun m => m.severity == MessageSeverity.error
-          return { error := join $ ← (messages.map Message.data).mapM fun md => md.toString }
+          return { error := join $ ← (messages.map (·.data)).mapM fun md => md.toString }
       catch ex =>
         return {error := ← ex.toMessageData.toString}
 

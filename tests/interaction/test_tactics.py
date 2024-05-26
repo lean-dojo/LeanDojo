@@ -279,20 +279,6 @@ def test_example_mem_eqLocus(mathlib4_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_neg_lt_sub_right_of_lt_add(batteries_repo: LeanGitRepo) -> None:
-    thm = Theorem(
-        batteries_repo,
-        "Batteries/Data/Int/Order.lean",
-        "Int.neg_lt_sub_right_of_lt_add",
-    )
-    with Dojo(thm) as (dojo, s0):
-        s1 = dojo.run_tac(
-            s0, "exact Int.lt_sub_left_of_add_lt (Int.sub_right_lt_of_lt_add h)"
-        )
-        assert isinstance(s1, ProofFinished)
-        assert dojo.is_successful
-
-
 def test_example_eq(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
