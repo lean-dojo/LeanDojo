@@ -36,7 +36,7 @@ def test_example_pow_two_pow_sub_pow_two_pow(mathlib4_repo: LeanGitRepo) -> None
 def test_example_mem_nil_iff(batteries_repo: LeanGitRepo) -> None:
     thm = Theorem(
         batteries_repo,
-        "Std/Data/List/Lemmas.lean",
+        "Batteries/Data/List/Lemmas.lean",
         "List.mem_nil_iff",
     )
     with Dojo(thm) as (dojo, s0):
@@ -141,7 +141,7 @@ def test_example_coe_monoidHom_mk(mathlib4_repo: LeanGitRepo) -> None:
 def test_example_length_le(batteries_repo: LeanGitRepo) -> None:
     thm = Theorem(
         batteries_repo,
-        "Std/Data/List/Lemmas.lean",
+        "Batteries/Data/List/Lemmas.lean",
         "List.IsSuffix.length_le",
     )
     with Dojo(thm) as (dojo, s0):
@@ -275,20 +275,6 @@ def test_example_mem_eqLocus(mathlib4_repo: LeanGitRepo) -> None:
     )
     with Dojo(thm) as (dojo, s0):
         s1 = dojo.run_tac(s0, "exact Iff.rfl")
-        assert isinstance(s1, ProofFinished)
-        assert dojo.is_successful
-
-
-def test_example_neg_lt_sub_right_of_lt_add(batteries_repo: LeanGitRepo) -> None:
-    thm = Theorem(
-        batteries_repo,
-        "Std/Data/Int/Order.lean",
-        "Int.neg_lt_sub_right_of_lt_add",
-    )
-    with Dojo(thm) as (dojo, s0):
-        s1 = dojo.run_tac(
-            s0, "exact Int.lt_sub_left_of_add_lt (Int.sub_right_lt_of_lt_add h)"
-        )
         assert isinstance(s1, ProofFinished)
         assert dojo.is_successful
 

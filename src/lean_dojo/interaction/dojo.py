@@ -374,8 +374,15 @@ class Dojo:
 
         repl_file = "Lean4Repl.lean"
         repl_dst = Path(repl_file)
-        with open("lakefile.lean", "a") as oup:
-            oup.write("\nlean_lib Lean4Repl {\n\n}\n")
+
+        if os.path.exists("lakefile.lean"):
+            with open("lakefile.lean", "a") as oup:
+                oup.write("\nlean_lib Lean4Repl {\n\n}\n")
+        else:
+            assert os.path.exists("lakefile.toml")
+            with open("lakefile.toml", "a") as oup:
+                oup.write('\n[[lean_lib]]\nname = "Lean4Repl"\n')
+
         if os.path.exists("lakefile.olean"):
             os.remove("lakefile.olean")
         if os.path.exists(".lake/lakefile.olean"):

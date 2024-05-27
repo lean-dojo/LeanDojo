@@ -15,7 +15,7 @@ from functools import cache
 from github import Github, Auth
 from dataclasses import dataclass, field
 from github.Repository import Repository
-from typing import List, Dict, Any, Generator, Union, Optional, Tuple
+from typing import List, Dict, Any, Generator, Union, Optional, Tuple, Iterator
 
 from ..utils import (
     execute,
@@ -360,9 +360,13 @@ class RepoInfoCache:
 info_cache = RepoInfoCache()
 
 
-_GIT_REQUIREMENT_REGEX = re.compile(
+_LAKEFILE_LEAN_GIT_REQUIREMENT_REGEX = re.compile(
     r"require\s+(?P<name>\S+)\s+from\s+git\s+\"(?P<url>.+?)\"(\s+@\s+\"(?P<rev>\S+)\")?"
 )
+
+_LAKEFILE_LEAN_LOCAL_REQUIREMENT_REGEX = re.compile(r"require \S+ from \"")
+
+_LAKEFILE_TOML_REQUIREMENT_REGEX = re.compile(r"(?<=\[\[require\]\]).+(?=\n\n)")
 
 
 def is_supported_version(v) -> bool:
@@ -511,12 +515,7 @@ class LeanGitRepo:
             for pkg in lake_manifest["packages"]:
                 deps[pkg["name"]] = LeanGitRepo(pkg["url"], pkg["rev"])
         except Exception:
-            lakefile = (
-                self.get_config("lakefile.lean")
-                if path is None
-                else {"content": (Path(path) / "lakefile.lean").open().read()}
-            )
-            for name, repo in self._parse_lakefile_dependencies(lakefile["content"]):
+            for name, repo in self._parse_lakefile_dependencies(path):
                 if name not in deps:
                     deps[name] = repo
                 for dd_name, dd_repo in repo.get_dependencies().items():
@@ -525,15 +524,33 @@ class LeanGitRepo:
         return deps
 
     def _parse_lakefile_dependencies(
-        self, lakefile: str
+        self, path: Union[str, Path, None]
     ) -> List[Tuple[str, "LeanGitRepo"]]:
-        _LOCAL_REQUIREMENT_REGEX = r"require \S+ from \""
-        if re.search(_LOCAL_REQUIREMENT_REGEX, lakefile):
+        if self.uses_lakefile_lean():
+            return self._parse_lakefile_lean_dependencies(path)
+        else:
+            return self._parse_lakefile_toml_dependencies(path)
+
+    def _parse_lakefile_lean_dependencies(
+        self, path: Union[str, Path, None]
+    ) -> List[Tuple[str, "LeanGitRepo"]]:
+        lakefile = (
+            self.get_config("lakefile.lean")["content"]
+            if path is None
+            else (Path(path) / "lakefile.lean").open().read()
+        )
+
+        if _LAKEFILE_LEAN_LOCAL_REQUIREMENT_REGEX.search(lakefile):
             raise ValueError("Local dependencies are not supported.")
 
+        return self._parse_deps(_LAKEFILE_LEAN_GIT_REQUIREMENT_REGEX.finditer(lakefile))
+
+    def _parse_deps(
+        self, matches: Union[Iterator[re.Match[str]], Dict[str, str]]
+    ) -> List[Tuple[str, "LeanGitRepo"]]:
         deps = []
 
-        for m in _GIT_REQUIREMENT_REGEX.finditer(lakefile):
+        for m in matches:
             url = m["url"]
             if url.endswith(".git"):
                 url = url[:-4]
@@ -555,6 +572,32 @@ class LeanGitRepo:
             deps.append((m["name"], LeanGitRepo(url, commit)))
 
         return deps
+
+    def _parse_lakefile_toml_dependencies(
+        self, path: Union[str, Path, None]
+    ) -> List[Tuple[str, "LeanGitRepo"]]:
+        lakefile = (
+            self.get_config("lakefile.toml")["content"]
+            if path is None
+            else (Path(path) / "lakefile.toml").open().read()
+        )
+        matches = dict()
+
+        for requirement in _LAKEFILE_TOML_REQUIREMENT_REGEX.finditer(lakefile):
+            for line in requirement.strip().splitlines():
+                key, value = line.split("=")
+                key = key.strip()
+                value = value.strip()
+                if key == "path":
+                    raise ValueError("Local dependencies are not supported.")
+                if key == "git":
+                    matches["url"] = value
+                if key == "rev":
+                    matches["rev"] = value
+                if key == "name":
+                    matches["name"] = value
+
+        return self._parse_deps(lakefile, matches)
 
     def get_license(self) -> Optional[str]:
         """Return the content of the ``LICENSE`` file."""
@@ -581,6 +624,16 @@ class LeanGitRepo:
             return json.loads(content)
         else:
             return {"content": content}
+
+    def uses_lakefile_lean(self) -> bool:
+        """Check if the repo uses a ``lakefile.lean``."""
+        url = self._get_config_url("lakefile.lean")
+        return url_exists(url)
+
+    def uses_lakefile_toml(self) -> bool:
+        """Check if the repo uses a ``lakefile.toml``."""
+        url = self._get_config_url("lakefile.toml")
+        return url_exists(url)
 
 
 @dataclass(frozen=True)

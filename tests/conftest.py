@@ -3,7 +3,7 @@ import pytest
 from lean_dojo import *
 
 
-BATTERIES_URL = "https://github.com/leanprover/batteries"
+BATTERIES_URL = "https://github.com/leanprover-community/batteries"
 AESOP_URL = "https://github.com/leanprover-community/aesop"
 MATHLIB4_URL = "https://github.com/leanprover-community/mathlib4"
 LEAN4_EXAMPLE_URL = "https://github.com/yangky11/lean4-example"
