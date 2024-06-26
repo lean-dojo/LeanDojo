@@ -251,7 +251,7 @@ class Dojo:
 
         except Exception as ex:
             os.chdir(self.origin_dir)
-            shutil.rmtree(self.tmp_dir)
+            shutil.rmtree(self.tmp_dir, ignore_errors=True)
             raise ex
 
     def _locate_traced_file(self, traced_repo_path: Path) -> TracedFile:
@@ -319,7 +319,7 @@ class Dojo:
         logger.debug("Cleaning up the temporary directory.")
         os.chdir(self.origin_dir)
         if self.tmp_dir is not None and os.path.exists(self.tmp_dir):
-            shutil.rmtree(self.tmp_dir)
+            shutil.rmtree(self.tmp_dir, ignore_errors=True)
 
     def __exit__(self, exc_type: None, exc_val: None, exc_tb: None) -> None:
         """Exit Dojo.
