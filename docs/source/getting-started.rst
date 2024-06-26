@@ -307,7 +307,7 @@ can be downloaded from `our AWS S3 <https://lean-dojo.s3.amazonaws.com>`_ (see :
 
    from lean_dojo import *
 
-   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "fd14c4c8b29cc74a082e5ae6f64c2fb25b28e15e")
+   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "7b6ecb9ad4829e4e73600a3329baeb3b5df8d23f")
    theorem = Theorem(repo, "Lean4Example.lean", "hello_world")
 
    with Dojo(theorem) as (dojo, init_state):
