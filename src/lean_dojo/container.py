@@ -103,7 +103,7 @@ def _copy_file_or_dir(src: Path, dst: Path) -> None:
     else:
         assert src.is_dir() and not src.is_relative_to(dst)
         if dst.exists():
-            shutil.rmtree(dst)
+            shutil.rmtree(dst, ignore_errors=True)
         shutil.copytree(src, dst, symlinks=True)
 
 
@@ -141,12 +141,12 @@ class NativeContainer(Container):
                         p = src / path.relative_to(dst)
                         p.parent.mkdir(parents=True, exist_ok=True)
                         _copy_file_or_dir(path, p)
-                    shutil.rmtree(dst)
+                    shutil.rmtree(dst, ignore_errors=True)
                 else:
                     with report_critical_failure(
                         f"Failed to override the directory {src}"
                     ):
-                        shutil.rmtree(src)
+                        shutil.rmtree(src, ignore_errors=True)
                         shutil.move(dst, src)
 
             for path in dst.parents:
