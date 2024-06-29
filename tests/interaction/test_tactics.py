@@ -33,14 +33,14 @@ def test_example_pow_two_pow_sub_pow_two_pow(mathlib4_repo: LeanGitRepo) -> None
         assert not dojo.is_successful
 
 
-def test_example_mem_nil_iff(batteries_repo: LeanGitRepo) -> None:
+def test_example_append_subset(batteries_repo: LeanGitRepo) -> None:
     thm = Theorem(
         batteries_repo,
         "Batteries/Data/List/Lemmas.lean",
-        "List.mem_nil_iff",
+        "List.append_subset",
     )
     with Dojo(thm) as (dojo, s0):
-        s1 = dojo.run_tac(s0, "simp")
+        s1 = dojo.run_tac(s0, "simp [subset_def, or_imp, forall_and]")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_successful
 

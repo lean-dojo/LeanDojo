@@ -422,17 +422,20 @@ class LemmaNode(Node):
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert isinstance(children[0], CommandDeclmodifiersNode)
-        assert isinstance(children[1], GroupNode)
-        assert (
-            isinstance(children[1].children[0], AtomNode)
-            and children[1].children[0].val == "lemma"
-        )
-        declid_node = children[1].children[1]
-        assert isinstance(declid_node, CommandDeclidNode)
-        ident_node = declid_node.children[0]
-        assert isinstance(ident_node, IdentNode)
-        name = ident_node.val
+        if isinstance(children[0], CommandDeclmodifiersAntiquotNode):
+            name = None
+        else:
+            assert isinstance(children[0], CommandDeclmodifiersNode)
+            assert isinstance(children[1], GroupNode)
+            assert (
+                isinstance(children[1].children[0], AtomNode)
+                and children[1].children[0].val == "lemma"
+            )
+            declid_node = children[1].children[1]
+            assert isinstance(declid_node, CommandDeclidNode)
+            ident_node = declid_node.children[0]
+            assert isinstance(ident_node, IdentNode)
+            name = ident_node.val
 
         return cls(lean_file, start, end, children, name)
 
