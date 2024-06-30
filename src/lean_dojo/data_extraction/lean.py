@@ -15,6 +15,7 @@ from functools import cache
 from github import Github, Auth
 from dataclasses import dataclass, field
 from github.Repository import Repository
+from github.GithubException import GithubException
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple, Iterator
 
 from ..utils import (
@@ -89,9 +90,10 @@ def _to_commit_hash(repo: Repository, label: str) -> str:
     """Convert a tag or branch to a commit hash."""
     logger.debug(f"Querying the commit hash for {repo.name} {label}")
 
-    for branch in repo.get_branches():
-        if branch.name == label:
-            return branch.commit.sha
+    try:
+        return repo.get_branch(label).commit.sha
+    except GithubException:
+        pass
 
     for tag in repo.get_tags():
         if tag.name == label:
