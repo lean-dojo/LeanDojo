@@ -144,7 +144,9 @@ class Dojo:
             self.file_path = Path(self.file_path)
 
         if self.hard_timeout is None:
-            logger.warning("Using Lean 4 without a hard timeout may hang indefinitely.")
+            logger.warning(
+                "Running tactics without a hard timeout may hang indefinitely."
+            )
 
     @property
     def uses_tactics(self) -> bool:
