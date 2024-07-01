@@ -6,12 +6,12 @@ import time
 import shlex
 import signal
 import psutil
-import tempfile
 import subprocess
 from pathlib import Path
 from loguru import logger
 from dataclasses import dataclass, field
-from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
+from typing import Union, Tuple, List, Dict, Any, Optional
+from tempfile import NamedTemporaryFile, _TemporaryFileWrapper
 
 from .parse_goals import parse_goals, Goal
 from ..utils import to_json_path, working_directory
@@ -109,7 +109,7 @@ class Dojo:
     additional_imports: List[str]
     repo: LeanGitRepo
     file_path: Path
-    modified_file: TextIO
+    modified_file: _TemporaryFileWrapper[str]
     is_successful: Optional[bool] = None
     is_crashed: bool = False
     has_timedout: bool = False
@@ -283,7 +283,7 @@ class Dojo:
         return "\n".join(f"import {_}" for _ in imports) + "\n\n"
 
     def _modify_file(self, traced_file: TracedFile) -> None:
-        self.modified_file = tempfile.NamedTemporaryFile(
+        self.modified_file = NamedTemporaryFile(
             "wt",
             prefix=self.file_path.stem,
             suffix=self.file_path.suffix,
