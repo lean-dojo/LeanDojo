@@ -3,14 +3,15 @@ import os
 import sys
 import json
 import time
+import shlex
 import signal
 import shutil
 import psutil
+import subprocess
 from pathlib import Path
 from loguru import logger
 from tempfile import mkdtemp
 from shutil import ignore_patterns
-from subprocess import TimeoutExpired
 from dataclasses import dataclass, field
 from typing import Union, Tuple, List, Dict, Any, Optional
 
@@ -23,7 +24,6 @@ from ..utils import to_json_path
 from .parse_goals import parse_goals, Goal
 from ..data_extraction.trace import get_traced_repo_path
 from ..data_extraction.lean import Theorem, LeanGitRepo, Pos
-from ..container import get_container, Mount, NativeContainer, DockerContainer
 from ..data_extraction.traced_data import TracedFile, get_code_without_comments
 
 
@@ -191,31 +191,17 @@ class Dojo:
             self._modify_file(traced_file)
 
             # Run the modified file in a container.
-            self.container = get_container()
-            logger.debug(f"Launching the proof using {type(self.container)}")
-            mts = [Mount(Path.cwd(), Path(f"/workspace/{self.repo.name}"))]
-            self.container.run(
-                "lake build Lean4Repl",
-                mts,
-                as_current_user=True,
-                capture_output=True,
-                work_dir=f"/workspace/{self.repo.name}",
-                cpu_limit=None,
-                memory_limit=None,
-                envs={},
-            )
-            assert re.fullmatch(r"\d+g", TACTIC_MEMORY_LIMIT)
             memory_limit = 1024 * int(TACTIC_MEMORY_LIMIT[:-1])
             cmd = f"lake env lean --threads={TACTIC_CPU_LIMIT} --memory={memory_limit} {self.file_path}"
 
-            self.proc = self.container.run_interactive(
-                cmd,
-                mts,
-                cpu_limit=None,
-                memory_limit=None,
-                work_dir=f"/workspace/{self.repo.name}",
-                as_current_user=True,
-                envs={},
+            self.proc = subprocess.Popen(
+                shlex.split(cmd),
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True,
+                encoding="utf-8",
+                bufsize=1,
             )
 
             # Get the initial tactic state.
@@ -288,19 +274,10 @@ class Dojo:
     def _cleanup(self) -> None:
         logger.debug("Cleaning up.")
         try:
-            self._cleanup_container()
             self._cleanup_proc()
         finally:
             self._cleanup_tmp_dir()
             self._uninstall_handlers()
-
-    def _cleanup_container(self) -> None:
-        """Clean up the container."""
-        logger.debug("Cleaning up the container.")
-        assert isinstance(self.container, DockerContainer) or isinstance(
-            self.container, NativeContainer
-        )
-        self.container.cleanup()
 
     def _cleanup_proc(self) -> None:
         """Clean up the subprocess."""
@@ -372,29 +349,10 @@ class Dojo:
                 + lean_file[pos:]
             )
 
-        repl_file = "Lean4Repl.lean"
-        repl_dst = Path(repl_file)
-
-        if os.path.exists("lakefile.lean"):
-            with open("lakefile.lean", "a") as oup:
-                oup.write("\nlean_lib Lean4Repl {\n\n}\n")
-        else:
-            assert os.path.exists("lakefile.toml")
-            with open("lakefile.toml", "a") as oup:
-                oup.write('\n[[lean_lib]]\nname = "Lean4Repl"\n')
-
         if os.path.exists("lakefile.olean"):
             os.remove("lakefile.olean")
         if os.path.exists(".lake/lakefile.olean"):
             os.remove(".lake/lakefile.olean")
-
-        # Copy the REPL code to the right directory.
-        repl_src = Path(__file__).with_name(repl_file)
-        repl_code = repl_src.open().read()
-        if repl_dst.exists():
-            raise DojoInitError(f"{repl_dst} exists")
-        with repl_dst.open("wt") as oup:
-            oup.write(repl_code)
 
         # Write the modified code to the file.
         with self.file_path.open("wt") as oup:
