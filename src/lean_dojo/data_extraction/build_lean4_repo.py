@@ -159,7 +159,7 @@ def main() -> None:
 
     num_procs = int(os.environ["NUM_PROCS"])
     repo_name = args.repo_name
-    os.chdir(repo_name)
+    os.chdir(repo_name+"/cedar-lean")
 
     # Build the repo using lake.
     logger.info(f"Building {repo_name}")
@@ -186,6 +186,7 @@ def main() -> None:
     if not args.no_deps:
         dirs_to_monitor.append(packages_path)
     logger.info(f"Tracing {repo_name}")
+    run_cmd("mv ../ExtractData.lean ExtractData.lean", capture_output=True)
     with launch_progressbar(dirs_to_monitor):
         cmd = f"lake env lean --threads {num_procs} --run ExtractData.lean"
         if args.no_deps:

@@ -33,6 +33,7 @@ def _trace(repo: LeanGitRepo, build_deps: bool) -> None:
     logger.debug(f"Tracing {repo}")
     container = get_container()
     mts = {
+        # TODO: should we mount a different directory here?
         Path.cwd() / repo.name: f"/workspace/{repo.name}",
         LEAN4_BUILD_SCRIPT_PATH: f"/workspace/{LEAN4_BUILD_SCRIPT_PATH.name}",
         LEAN4_DATA_EXTRACTOR_PATH: f"/workspace/{repo.name}/{LEAN4_DATA_EXTRACTOR_PATH.name}",
@@ -80,7 +81,7 @@ def get_traced_repo_path(repo: LeanGitRepo, build_deps: bool = True) -> Path:
         with working_directory() as tmp_dir:
             logger.debug(f"Working in the temporary directory {tmp_dir}")
             _trace(repo, build_deps)
-            traced_repo = TracedRepo.from_traced_files(tmp_dir / repo.name, build_deps)
+            traced_repo = TracedRepo.from_traced_files(tmp_dir / repo.path_to_lake_proj, build_deps)
             traced_repo.save_to_disk()
             path = cache.store(tmp_dir / repo.name)
     else:

@@ -407,6 +407,10 @@ class LeanGitRepo:
     You can also use tags such as ``v3.5.0``. They will be converted to commit hashes.
     """
 
+    inner_lake_path: str = None
+    """If the lake project isn't at the repository root, the path to the lake project root. None otherwise.
+    """
+
     repo: Repository = field(init=False, repr=False)
     """A :class:`github.Repository` object.
     """
@@ -422,6 +426,9 @@ class LeanGitRepo:
             raise ValueError(f"{self.url} is not a valid URL")
         object.__setattr__(self, "url", normalize_url(self.url))
         object.__setattr__(self, "repo", url_to_repo(self.url))
+        if self.inner_lake_path is not None and (self.inner_lake_path.startswith("/") or self.inner_lake_path.endswith("/")):
+            raise ValueError(f"{self.inner_lake_path} should not start or end with '/'")
+        object.__setattr__(self, "inner_lake_path", self.inner_lake_path)
 
         # Convert tags or branches to commit hashes
         if not (len(self.commit) == 40 and _COMMIT_REGEX.fullmatch(self.commit)):
@@ -454,6 +461,13 @@ class LeanGitRepo:
         """Construct a :class:`LeanGitRepo` object from the path to a local Git repo."""
         url, commit = get_repo_info(path)
         return cls(url, commit)
+
+    @property
+    def path_to_lake_proj(self) -> str:
+        if self.inner_lake_path is None:
+            return self.repo.name
+        else:
+            return self.repo.name+"/"+self.inner_lake_path
 
     @property
     def name(self) -> str:
@@ -612,11 +626,15 @@ class LeanGitRepo:
     def _get_config_url(self, filename: str) -> str:
         assert "github.com" in self.url, f"Unsupported URL: {self.url}"
         url = self.url.replace("github.com", "raw.githubusercontent.com")
-        return f"{url}/{self.commit}/{filename}"
+        if self.inner_lake_path is None:
+            return f"{url}/{self.commit}/{filename}"
+        else:
+            return f"{url}/{self.commit}/{self.inner_lake_path}/{filename}"
 
     def get_config(self, filename: str, num_retries: int = 2) -> Dict[str, Any]:
         """Return the repo's files."""
         config_url = self._get_config_url(filename)
+        print(f"Get config with URL: {config_url}")
         content = read_url(config_url, num_retries)
         if filename.endswith(".toml"):
             return toml.loads(content)
