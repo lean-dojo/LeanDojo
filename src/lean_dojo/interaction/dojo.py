@@ -194,7 +194,7 @@ class Dojo:
                     "Currently LeanDojo does not support interacting with proofs in prelude files."
                 )
             elif isinstance(ex, EOFError):
-                raise DojoInitError("EOF")
+                raise DojoInitError("Unexpected EOF")
             else:
                 raise ex
 
@@ -323,7 +323,7 @@ class Dojo:
         traced_theorem = traced_file.get_traced_theorem(self.entry)
         if traced_theorem is None:
             raise DojoInitError(
-                f"Failed to locate the theorem with `{self.entry.full_name}` as its fully qualified name"
+                f"Failed to locate the theorem with `{self.entry.full_name}` as its fully qualified name."
             )
         proof_start, proof_end = traced_theorem.locate_proof()
         lean_file = traced_file.lean_file
@@ -333,7 +333,13 @@ class Dojo:
         code_before_theorem = get_code_without_comments(
             lean_file, lean_file.start_pos, traced_theorem.start, traced_file.comments
         )
-        code_thereom = lean_file[traced_theorem.start : proof_start].strip()
+        code_thereom = get_code_without_comments(
+            lean_file, traced_theorem.start, proof_start, traced_file.comments
+        ).strip()
+        if code_thereom.endswith(" where"):
+            raise DojoInitError(
+                "Cannot interact with theorems with the `where` keyword."
+            )
         if not code_thereom.endswith(":="):
             code_thereom += " := "
         modified_code = (
