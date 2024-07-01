@@ -14,7 +14,7 @@ exclude = [
 name = "lean-dojo"
 version = "2.0.0"
 authors = [
-  { name="Kaiyu Yang", email="kaiyuy@caltech.edu" },
+  { name="Kaiyu Yang", email="kaiyuy@meta.com" },
 ]
 description = "LeanDojo: Machine Learning for Theorem Proving in Lean"
 keywords = ["theorem proving", "machine learning", "Lean"]
