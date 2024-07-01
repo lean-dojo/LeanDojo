@@ -4,7 +4,7 @@ from lean_dojo import *
 
 
 def test_example_1(mathlib4_repo: LeanGitRepo) -> None:
-    entry = (mathlib4_repo, "Mathlib/LinearAlgebra/Basic.lean", 90)
+    entry = (mathlib4_repo, "Mathlib/Algebra/Module/Equiv.lean", 951)
     with Dojo(entry) as (dojo, s0):
         s1 = dojo.run_cmd(s0, "#eval 1")
         assert isinstance(s1, CommandState) and s1.message == "1"

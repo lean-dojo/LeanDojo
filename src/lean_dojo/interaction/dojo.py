@@ -329,15 +329,17 @@ class Dojo:
         lean_file = traced_file.lean_file
 
         code_import = self._get_imports()
-        code_proof = "\nby\n  lean_dojo_repl\n  sorry\n"
+        code_proof = "by\n  lean_dojo_repl\n  sorry\n"
         code_before_theorem = get_code_without_comments(
             lean_file, lean_file.start_pos, traced_theorem.start, traced_file.comments
         )
-        code_thereom = lean_file[traced_theorem.start : proof_start]
+        code_thereom = lean_file[traced_theorem.start : proof_start].strip()
+        if not code_thereom.endswith(":="):
+            code_thereom += " := "
         modified_code = (
             code_import
             + code_before_theorem
-            + "\nset_option maxHeartbeats 0 in\n"
+            + "\n\nset_option maxHeartbeats 0 in\n"
             + code_thereom
             + code_proof
             + lean_file[proof_end:]
