@@ -35,7 +35,7 @@ def batteries_repo():
 
 @pytest.fixture(scope="session")
 def mathlib4_repo():
-    commit = "fe4454af900584467d21f4fd4fe951d29d9332a7"
+    commit = "3dd9564edf25fffd2bc398b8e12a6e2565ce7e2e"
     return LeanGitRepo(MATHLIB4_URL, commit)
 
 
