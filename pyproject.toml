@@ -5,7 +5,6 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.sdist]
 exclude = [
   "/.github",
-  "/docker",
   "/docs",
   "/images",
   "/scripts",
@@ -13,9 +12,9 @@ exclude = [
 
 [project]
 name = "lean-dojo"
-version = "1.9.1"
+version = "2.0.0"
 authors = [
-  { name="Kaiyu Yang", email="kaiyuy@caltech.edu" },
+  { name="Kaiyu Yang", email="kaiyuy@meta.com" },
 ]
 description = "LeanDojo: Machine Learning for Theorem Proving in Lean"
 keywords = ["theorem proving", "machine learning", "Lean"]

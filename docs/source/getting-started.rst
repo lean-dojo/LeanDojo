@@ -48,7 +48,7 @@ We use LeanDojo to trace the repo in Python by specifying its URL and a commit h
 
    from lean_dojo import LeanGitRepo, trace
 
-   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "04e29174a45eefaccb49b835a372aa762321194e")
+   repo = LeanGitRepo("https://github.com/yangky11/lean4-example", "7b6ecb9ad4829e4e73600a3329baeb3b5df8d23f")
    trace(repo, dst_dir="traced_lean4-example")
 
 After a few minutes, it generates a :file:`traced_lean4-example` directory with the subdirectories below.

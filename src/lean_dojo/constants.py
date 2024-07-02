@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-__version__ = "1.9.1"
+__version__ = "2.0.0"
 
 logger.remove()
 if "VERBOSE" in os.environ or "DEBUG" in os.environ:
@@ -30,7 +30,7 @@ CACHE_DIR = (
 """Cache directory for storing traced repos (see :ref:`caching`).
 """
 
-REMOTE_CACHE_URL = "https://lean-dojo.s3.amazonaws.com"
+REMOTE_CACHE_URL = "https://dl.fbaipublicfiles.com/lean-dojo"
 """URL of the remote cache (see :ref:`caching`)."""
 
 DISABLE_REMOTE_CACHE = "DISABLE_REMOTE_CACHE" in os.environ
@@ -61,26 +61,14 @@ LOAD_USED_PACKAGES_ONLY = "LOAD_USED_PACKAGES_ONLY" in os.environ
 LEAN4_BUILD_DIR = Path(".lake/build")
 
 TACTIC_CPU_LIMIT = int(os.getenv("TACTIC_CPU_LIMIT", 1))
-"""Number of CPUs for executing tactics when interacting with Lean (only useful when running within Docker).
+"""Number of CPUs for executing tactics when interacting with Lean.
 """
 
 TACTIC_MEMORY_LIMIT = os.getenv("TACTIC_MEMORY_LIMIT", "32g")
-"""Maximum memory when interacting with Lean (only useful when running within Docker).
+"""Maximum memory when interacting with Lean.
 """
 
-CONTAINER = os.getenv("CONTAINER", "native")
-"""Container to use for running LeanDojo. Default to ``native`` but also support ``docker``. Using ``docker`` is recommended for Lean 3.
-"""
-
-DOCKER_AVAILABLE = os.system("docker version 1>/dev/null 2>/dev/null") == 0
-
-DOCKER_TAG = "yangky11/lean-dojo"
-
-if CONTAINER == "docker":
-    assert (
-        DOCKER_AVAILABLE
-    ), "Failed to access Docker. Please make sure Docker is running and you have access. Alternatively, you can try to run without Docker by setting the `CONTAINER` environment variable to `native` (see https://leandojo.readthedocs.io/en/latest/user-guide.html#advanced-running-within-docker)."
-    os.system(f"docker pull {DOCKER_TAG} 1>/dev/null 2>/dev/null")
+assert re.fullmatch(r"\d+g", TACTIC_MEMORY_LIMIT)
 
 
 def check_git_version(min_version: Tuple[int, int, int]) -> Tuple[int, int, int]:
