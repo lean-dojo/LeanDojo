@@ -98,7 +98,10 @@ class DojoInitError(Exception):
 def _kill_descendants(proc: psutil.Process) -> None:
     for child in proc.children():
         _kill_descendants(child)
-    proc.kill()
+    try:
+        proc.kill()
+    except psutil.NoSuchProcess:
+        pass
 
 
 class Dojo:
