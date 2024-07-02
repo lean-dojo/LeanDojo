@@ -30,7 +30,7 @@ CACHE_DIR = (
 """Cache directory for storing traced repos (see :ref:`caching`).
 """
 
-REMOTE_CACHE_URL = "https://lean-dojo.s3.amazonaws.com"
+REMOTE_CACHE_URL = "https://dl.fbaipublicfiles.com/lean-dojo"
 """URL of the remote cache (see :ref:`caching`)."""
 
 DISABLE_REMOTE_CACHE = "DISABLE_REMOTE_CACHE" in os.environ
