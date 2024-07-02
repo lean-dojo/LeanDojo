@@ -342,7 +342,7 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
     env.header.mainModule
 
   let mut defPath := toString $ ← Path.findLean modName
-  if defPath.startsWith "./" then
+  while defPath.startsWith "./" do
     defPath := defPath.drop 2
   if defPath.startsWith "/lake/" then
     defPath := ".lake/" ++ (defPath.drop 6)
