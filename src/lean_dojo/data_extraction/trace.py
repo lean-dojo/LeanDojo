@@ -94,7 +94,7 @@ def is_new_version(v: str) -> bool:
 
 
 def check_files(packages_path: str, no_deps: bool) -> None:
-    """Check if all *.lean files have been processed to produce *.ast.json and *.dep_paths files."""
+    """Check if all \*.lean files have been processed to produce \*.ast.json and \*.dep_paths files."""
     cwd = Path.cwd()
     packages_path = cwd / packages_path
     jsons = {
