@@ -29,7 +29,7 @@ LeanDojo draws on numerous existing tools for interacting with and extracting da
 The author benefited a lot from the lessons he learned when designing and implementing 
 `CoqGym <https://github.com/princeton-vl/CoqGym>`_. 
 LeanDojo's interaction implementation partially incorporates `lean-gym <https://github.com/openai/lean-gym>`_'s code but 
-fixes some critical issues and expanded its functionality. When prototyping the data extraction part of LeanDojo, the author 
+fixes some critical issues and expands its functionality. When prototyping the data extraction part of LeanDojo, the author 
 found `Jason Rute <https://jasonrute.github.io/>`_'s `lean_proof_recording <https://github.com/jasonrute/lean_proof_recording>`_ helpful.
 Its design was a hacky but extremely clever piece of art. Fortunately, we didn't have to follow that design thanks to Lean's AST exporting mechanism 
 (:code:`lean --ast --tsast --tspp`) implemented by `Mario Carneiro <https://www.cmu.edu/hoskinson/people/mario-carneiro.html>`_, 
