@@ -20,12 +20,4 @@ Tracing Repos
 
 The most likely reason is your machine doesn't have enough memory. The amount of 
 memory required depends on the repo you're tracing. For large repos, such as mathlib, you need at least 32 GB memory. If getting more memory is not an option, 
-you can try a smaller repo. If your machine has enough memory but the process still gets killed, please check
-whether your Docker has access to all resources of host machine (see `here <https://docs.docker.com/desktop/settings/mac/#resources>`_).
-
-Interacting with Lean
-*********************
-
-* :code:`docker: Error response from daemon: invalid mount config for type "bind": bind source path does not exist`
-
-Make sure Docker has access to the :code:`/tmp` directory. If you're using Docker Desktop, go to Settings -> Resources -> File sharing.
+you can try a smaller repo. 

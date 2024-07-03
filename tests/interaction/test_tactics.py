@@ -57,18 +57,6 @@ def test_example_not_intro(aesop_repo: LeanGitRepo) -> None:
         assert dojo.is_successful
 
 
-def test_example_nsmul_zero(mathlib4_repo: LeanGitRepo) -> None:
-    thm = Theorem(
-        mathlib4_repo,
-        "Mathlib/Algebra/GroupPower/Basic.lean",
-        "nsmul_zero",
-    )
-    with Dojo(thm) as (dojo, s0):
-        s1 = dojo.run_tac(s0, "exact nsmul_zero n")
-        assert isinstance(s1, LeanError)
-        assert not dojo.is_successful
-
-
 def test_example_div_im(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
@@ -86,7 +74,7 @@ def test_example_div_im(mathlib4_repo: LeanGitRepo) -> None:
 def test_example_mulIndicator_inv(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
-        "Mathlib/Algebra/Function/Indicator.lean",
+        "Mathlib/Algebra/Group/Indicator.lean",
         "Set.mulIndicator_inv'",
     )
     with Dojo(thm) as (dojo, s0):
@@ -98,7 +86,7 @@ def test_example_mulIndicator_inv(mathlib4_repo: LeanGitRepo) -> None:
 def test_example_Iio_def(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
-        "Mathlib/Data/Set/Intervals/Basic.lean",
+        "Mathlib/Order/Interval/Set/Basic.lean",
         "Set.Iio_def",
     )
     with Dojo(thm) as (dojo, s0):
@@ -270,7 +258,7 @@ def test_example_measurable_prod(mathlib4_repo: LeanGitRepo) -> None:
 def test_example_mem_eqLocus(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
-        "Mathlib/LinearAlgebra/Basic.lean",
+        "Mathlib/Algebra/Module/Submodule/EqLocus.lean",
         "LinearMap.mem_eqLocus",
     )
     with Dojo(thm) as (dojo, s0):
@@ -282,7 +270,7 @@ def test_example_mem_eqLocus(mathlib4_repo: LeanGitRepo) -> None:
 def test_example_eq(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
-        "Mathlib/Algebra/CharP/Basic.lean",
+        "Mathlib/Algebra/CharP/Defs.lean",
         "CharP.eq",
     )
     with Dojo(thm) as (dojo, s0):

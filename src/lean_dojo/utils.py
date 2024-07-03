@@ -107,6 +107,7 @@ def execute(
     Returns:
         Optional[Tuple[str, str]]: The command's output, including stdout and stderr (None if ``capture_output == False``).
     """
+    logger.debug(cmd)
     try:
         res = subprocess.run(cmd, shell=True, capture_output=capture_output, check=True)
     except subprocess.CalledProcessError as ex:

@@ -54,7 +54,7 @@ pip install .
 
 * [LeanDojo Website](https://leandojo.org/): The official website of LeanDojo.
 * [LeanDojo Benchmark](https://doi.org/10.5281/zenodo.8016385) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8016385.svg)](https://doi.org/10.5281/zenodo.8016385): The dataset used in our paper, consisting of theorems and proofs extracted from [mathlib](https://github.com/leanprover-community/mathlib/commits/19c869efa56bbb8b500f2724c0b77261edbfa28c) by [generate-benchmark-lean3.ipynb](./scripts/generate-benchmark-lean3.ipynb). 
-* [LeanDojo Benchmark 4](https://doi.org/10.5281/zenodo.8040109) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8040109.svg)](https://doi.org/10.5281/zenodo.8040109): The Lean 4 version of LeanDojo Benchmark, consisting of theorems and proofs extracted from [mathlib4](https://github.com/leanprover-community/mathlib4/commit/fe4454af900584467d21f4fd4fe951d29d9332a7) by [generate-benchmark-lean4.ipynb](./scripts/generate-benchmark-lean4.ipynb).
+* [LeanDojo Benchmark 4](https://doi.org/10.5281/zenodo.8040109) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.8040109.svg)](https://doi.org/10.5281/zenodo.8040109): The Lean 4 version of LeanDojo Benchmark, consisting of theorems and proofs extracted from [mathlib4](https://github.com/leanprover-community/mathlib4/commit/29dcec074de168ac2bf835a77ef68bbe069194c5) by [generate-benchmark-lean4.ipynb](./scripts/generate-benchmark-lean4.ipynb).
 * [ReProver](https://github.com/lean-dojo/ReProver): The ReProver (Retrieval-Augmented Prover) model in our paper.
 * [LeanDojo ChatGPT Plugin](https://github.com/lean-dojo/LeanDojoChatGPT)
 * [Lean Copilot: Running language models as copilots for theorem proving in Lean](https://github.com/lean-dojo/LeanCopilot)
