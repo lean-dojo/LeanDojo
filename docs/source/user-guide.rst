@@ -74,7 +74,7 @@ Theorems and Proofs
 
 Theorems can be proved in Lean in multiple styles (term-style, tactic-style, mixed-style, etc.). 
 We focus on tactic-style proofs. A proof is a sequence of tactics. Think of a tactic as 
-a proof step. Each tactic transforms current goals into (hopefully simpler) sub-goals. And the proof 
+a proof step. Each tactic transforms current goals into (hopefully simpler) sub-goals. The proof 
 is complete when all remaining goals become trivial. Below is an example of interacting 
 with a proof assistant to prove the theorem about summing :math:`n` positive integers.
 
@@ -128,7 +128,7 @@ Conceptually, a traced repo is simply a collection of traced files. These files 
 directed acyclic graph (DAG) by importing each other. They include not only files from the target
 repo but also dependencies that are actually used by the target repo. Taking `lean-liquid <https://github.com/leanprover-community/lean-liquid>`_ in Lean 3
 as an example, it depends on `mathlib <https://github.com/leanprover-community/mathlib>`_ and `Lean's standard library <https://github.com/leanprover-community/lean/tree/master/library>`_.
-The corresponding traced repo include all traced files from lean-liquid, as well as some 
+The corresponding traced repo includes all traced files from lean-liquid, as well as some 
 files from mathlib and Lean's standard library that are actually used by lean-liquid.
 After tracing finishes, these files are stored on the disk in the following directories:
 
@@ -147,7 +147,7 @@ Lean's standard library is in :file:`lean-liquid/_target/deps/lean/library`.
 Source files of lean-liquid itself are in :file:`lean-liquid/src`.
 Mathlib and other dependencies (if any) are in :file:`lean-liquid/_target/deps`.
 
-In Lean 4, dependencies are storied in :file:`lake-packages` instead of :file:`_target/deps`.
+In Lean 4, dependencies are stored in :file:`lake-packages` instead of :file:`_target/deps`.
 
 In LeanDojo, traced repos are implemented by the :class:`lean_dojo.data_extraction.traced_data.TracedRepo` class.
 
@@ -189,7 +189,7 @@ Constructing Benchmark Datasets Using LeanDojo
 **********************************************
 
 Traced repos/files/theorems provide all information we need, and we can construct concrete 
-machine learning datasets by some additional post-processing. See our examples of constructing 
+machine learning datasets with some additional post-processing. See our examples of constructing 
 datasets from `Lean 3's mathlib <https://github.com/lean-dojo/LeanDojo/blob/main/scripts/generate-benchmark-lean3.ipynb>`_ and `Lean 4's mathlib4 <https://github.com/lean-dojo/LeanDojo/blob/main/scripts/generate-benchmark-lean4.ipynb>`_.
 
 
@@ -216,7 +216,7 @@ Traced repos in the cache are portable across machines. We host a number of them
 and LeanDojo will automatically download them if they are not in the local cache. To disable this behavior and 
 build all repos locally, set the :code:`DISABLE_REMOTE_CACHE` environment variable to any value.
 
-The caching mechanism in LeanDojo is implemented in `cache.py <https://github.com/lean-dojo/LeanDojo/blob/main/src/lean_dojo/data_extraction/cache.py>`_
+The caching mechanism in LeanDojo is implemented in `cache.py <https://github.com/lean-dojo/LeanDojo/blob/main/src/lean_dojo/data_extraction/cache.py>`_.
 
 
 .. _environment-variables:
