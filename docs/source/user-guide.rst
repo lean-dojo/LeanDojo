@@ -25,7 +25,7 @@ Any external prover (potentially based on machine learning) can interact with Do
   :width: 800
   :alt: An illustration of how LeanDojo works
 
-Next, we explain each concept in mode detail.
+Next, we explain each concept in more detail.
 
 
 .. _lean-repo-and-files:
