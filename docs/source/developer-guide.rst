@@ -1,7 +1,7 @@
 Developer Guide
 ===============
 
-This page includes information that are **hidden from most users but useful if you want to contribute to LeanDojo**. 
+This page includes information that is **hidden from most users but useful if you want to contribute to LeanDojo**. 
 It requires additional dependencies installed via :code:`pip install "lean-dojo[all]"`.
 
 
