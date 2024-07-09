@@ -9,6 +9,7 @@ import toml
 import time
 import urllib
 import webbrowser
+import github
 from pathlib import Path
 from loguru import logger
 from functools import cache
@@ -118,9 +119,23 @@ def _to_commit_hash(repo: Repository, label: str) -> str:
     for tag in repo.get_tags():
         if tag.name == label:
             return tag.commit.sha
+    raise 
 
-    raise ValueError(f"Invalid tag or branch: `{label}` for {repo}")
-
+def _to_commit_hash(repo: Repository, label: str) -> str:
+    """Convert a tag or branch to a commit hash."""
+    if isinstance(repo, github.Repository.Repository):
+        # GitHub repository
+        try:
+            commit = repo.get_commit(label).sha
+        except Exception as e:
+            raise ValueError(f"Invalid tag or branch: `{label}` for {repo}")
+    else:
+        # Local or remote Git repository
+        try:
+            commit = repo.rev_parse(label).hexsha
+        except GitCommandError as e:
+            raise ValueError(f"Error converting ref to commit hash: {e}")
+    return commit
 
 @dataclass(eq=True, unsafe_hash=True)
 class Pos:
@@ -485,9 +500,14 @@ class LeanGitRepo:
             lean_version = self.commit
         else:
             config = self.get_config("lean-toolchain")
-            lean_version = get_lean4_commit_from_config(config)
-            v = get_lean4_version_from_config(config["content"])
-            if not is_supported_version(v):
+            toolchain = config["content"]
+            m = _LEAN4_VERSION_REGEX.fullmatch(toolchain.strip())
+            if m is not None:
+                lean_version = m["version"]
+            else:
+                lean_version_commit = get_lean4_commit_from_config(config)
+                lean_version = get_lean4_version_from_config(toolchain)
+            if not is_supported_version(lean_version):
                 logger.warning(
                     f"{self} relies on an unsupported Lean version: {lean_version}"
                 )
@@ -661,8 +681,13 @@ class LeanGitRepo:
 
     def get_config(self, filename: str, num_retries: int = 2) -> Dict[str, Any]:
         """Return the repo's files."""
-        config_url = self._get_config_url(filename)
-        content = read_url(config_url, num_retries)
+        if self.repo_type == 'github':
+            config_url = self._get_config_url(filename)
+            content = read_url(config_url, num_retries)
+        else:
+            working_dir = self.repo.working_dir
+            with open(os.path.join(working_dir, filename), "r") as f:
+                content = f.read()
         if filename.endswith(".toml"):
             return toml.loads(content)
         elif filename.endswith(".json"):
