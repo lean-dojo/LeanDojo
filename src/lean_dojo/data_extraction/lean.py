@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 from github.Repository import Repository
 from github.GithubException import GithubException
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple, Iterator
+from urllib.parse import urlparse
+from git import Repo, GitCommandError
 
 from ..utils import (
     execute,
@@ -43,27 +45,46 @@ else:
     )
     GITHUB = Github()
 
-LEAN4_REPO = GITHUB.get_repo("leanprover/lean4")
+# LEAN4_REPO = GITHUB.get_repo("leanprover/lean4")
+LEAN4_REPO = None
 """The GitHub Repo for Lean 4 itself."""
 
-LEAN4_NIGHTLY_REPO = GITHUB.get_repo("leanprover/lean4-nightly")
+# LEAN4_NIGHTLY_REPO = GITHUB.get_repo("leanprover/lean4-nightly")
+LEAN4_NIGHTLY_REPO = None
 """The GitHub Repo for Lean 4 nightly releases."""
 
 _URL_REGEX = re.compile(r"(?P<url>.*?)/*")
 
 
-def normalize_url(url: str) -> str:
+def normalize_url(url: str, repo_type:str ='github') -> str:
+    if repo_type == 'local':
+        return os.path.abspath(url) # Convert to absolute path if local
     return _URL_REGEX.fullmatch(url)["url"]  # Remove trailing `/`.
 
 
 @cache
-def url_to_repo(url: str, num_retries: int = 2) -> Repository:
+def url_to_repo(url: str, num_retries: int = 2, repo_type: str = 'github') -> Repo:
+    """Convert a URL to a Repo object.
+    
+    Args:
+        url (str): The URL of the repository.
+        num_retries (int): Number of retries in case of failure.
+        repo_type (str): The type of the repository. Defaults to 'github'.
+
+    Returns:
+        Repo: A Git Repo object.
+    """
     url = normalize_url(url)
     backoff = 1
 
     while True:
         try:
-            return GITHUB.get_repo("/".join(url.split("/")[-2:]))
+            if repo_type == 'github':
+                return GITHUB.get_repo("/".join(url.split("/")[-2:]))
+            elif repo_type == 'local':
+                return Repo(url)
+            else:
+                return Repo.clone_from(url, '/tmp/repo_clone')  # We might need to change this with TMP_DIR
         except Exception as ex:
             if num_retries <= 0:
                 raise ex
@@ -71,7 +92,6 @@ def url_to_repo(url: str, num_retries: int = 2) -> Repository:
             logger.debug(f'url_to_repo("{url}") failed. Retrying...')
             time.sleep(backoff)
             backoff *= 2
-
 
 @cache
 def get_latest_commit(url: str) -> str:
@@ -330,6 +350,11 @@ def get_lean4_version_from_config(toolchain: str) -> str:
 
 def get_lean4_commit_from_config(config_dict: Dict[str, Any]) -> str:
     """Return the required Lean commit given a ``lean-toolchain`` config."""
+    global LEAN4_NIGHTLY_REPO, LEAN4_REPO
+    if LEAN4_REPO is None:
+        LEAN4_REPO = GITHUB.get_repo("leanprover/lean4")
+    if LEAN4_NIGHTLY_REPO is None:
+        LEAN4_NIGHTLY_REPO = GITHUB.get_repo("leanprover/lean4-nightly")
     assert "content" in config_dict, "config_dict must have a 'content' field"
     config = config_dict["content"].strip()
     prefix = "leanprover/lean4:"
@@ -398,9 +423,9 @@ class LeanGitRepo:
     """Git repo of a Lean project."""
 
     url: str
-    """The repo's Github URL.
+    """The repo's URL.
 
-    Note that we only support Github as of now.
+    It can be a GitHub URL that starts with https://, a local path, or any other valid Git URL.
     """
 
     commit: str
@@ -417,13 +442,31 @@ class LeanGitRepo:
     """Required Lean version.
     """
 
+    repo_type: str = field(init=False, repr=False)
+    """Type of the repo. It can be ``github``, ``local`` or ``remote``.
+    """
+
     def __post_init__(self) -> None:
-        if "github.com" not in self.url:
-            raise ValueError(f"{self.url} is not a Github URL")
-        if not self.url.startswith("https://"):
+        parsed_url = urlparse(self.url)
+        
+        if parsed_url.scheme in ["http", "https"]:
+            object.__setattr__(self, "url", normalize_url(self.url))
+            # case 1 - GitHub URL
+            if "github.com" in self.url:
+                if not self.url.startswith("https://"):
+                    raise ValueError(f"{self.url} should start with https://")
+                repo_type = "github"
+            # case 2 - remote Git URL
+            else:
+                repo_type = "remote"
+        # case 3 - local path
+        elif os.path.exists(parsed_url.path):
+            repo_type = "local"
+        else:
             raise ValueError(f"{self.url} is not a valid URL")
-        object.__setattr__(self, "url", normalize_url(self.url))
-        object.__setattr__(self, "repo", url_to_repo(self.url))
+        object.__setattr__(self, "repo_type", repo_type)
+        object.__setattr__(self, "url", normalize_url(self.url, repo_type=repo_type))
+        object.__setattr__(self, "repo", url_to_repo(self.url, repo_type=repo_type))
 
         # Convert tags or branches to commit hashes
         if not (len(self.commit) == 40 and _COMMIT_REGEX.fullmatch(self.commit)):
