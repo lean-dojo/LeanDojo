@@ -110,19 +110,6 @@ def cleanse_string(s: Union[str, Path]) -> str:
 def _to_commit_hash(repo: Repository, label: str) -> str:
     """Convert a tag or branch to a commit hash."""
     logger.debug(f"Querying the commit hash for {repo.name} {label}")
-
-    try:
-        return repo.get_branch(label).commit.sha
-    except GithubException:
-        pass
-
-    for tag in repo.get_tags():
-        if tag.name == label:
-            return tag.commit.sha
-    raise 
-
-def _to_commit_hash(repo: Repository, label: str) -> str:
-    """Convert a tag or branch to a commit hash."""
     if isinstance(repo, github.Repository.Repository):
         # GitHub repository
         try:
