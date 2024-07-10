@@ -8,7 +8,7 @@ from pathlib import Path
 from loguru import logger
 from filelock import FileLock
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, Generator
+from typing import Optional, Tuple, Generator, Union
 
 from ..utils import (
     execute,
@@ -90,11 +90,12 @@ class Cache:
             else:
                 return None
 
-    def store(self, src: Path) -> Path:
+    def store(self, src: Path, dirpath: Union[Path, None]=None) -> Path:
         """Store a traced repo at path ``src``. Return its path in the cache."""
         url, commit = get_repo_info(src)
-        dirpath = self.cache_dir / _format_dirname(url, commit)
         _, repo_name = _split_git_url(url)
+        if dirpath is None:
+            dirpath = self.cache_dir / _format_dirname(url, commit)
         if not dirpath.exists():
             with self.lock:
                 with report_critical_failure(_CACHE_CORRPUTION_MSG):

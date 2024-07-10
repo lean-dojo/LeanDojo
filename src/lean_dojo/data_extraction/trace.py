@@ -16,7 +16,7 @@ from contextlib import contextmanager
 from subprocess import CalledProcessError
 from typing import Union, Optional, List, Generator
 
-from .cache import cache
+from .cache import cache, get_repo_info, _format_dirname
 from .lean import LeanGitRepo
 from ..constants import NUM_PROCS
 from .traced_data import TracedRepo
@@ -212,7 +212,12 @@ def get_traced_repo_path(repo: LeanGitRepo, build_deps: bool = True) -> Path:
             _trace(repo, build_deps)
             traced_repo = TracedRepo.from_traced_files(tmp_dir / repo.name, build_deps)
             traced_repo.save_to_disk()
-            path = cache.store(tmp_dir / repo.name)
+            if repo.repo_type == "local": # avoid using the temp prefix
+                url, commit = get_repo_info(Path(repo.url))
+                dirpath = cache.cache_dir / _format_dirname(url, commit)
+                path = cache.store(tmp_dir / repo.name, dirpath)
+            else:
+                path = cache.store(tmp_dir / repo.name)
     else:
         logger.debug("The traced repo is available in the cache.")
     return path

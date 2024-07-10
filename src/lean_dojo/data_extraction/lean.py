@@ -77,18 +77,22 @@ def url_to_repo(url: str, num_retries: int = 2, repo_type: str = 'github') -> Re
     """
     url = normalize_url(url)
     backoff = 1
+    temp_dir = os.path.join(TMP_DIR or '/tmp', str(uuid.uuid4())[:8])
 
     while True:
         try:
             if repo_type == 'github':
                 return GITHUB.get_repo("/".join(url.split("/")[-2:]))
             elif repo_type == 'local':
-                if os.path.exists(url):
-                    return Repo(url)
-                else:
+                if not os.path.exists(url):
                     raise ValueError(f"Local path {url} does not exist")
+                try:
+                    Repo(url)
+                except:
+                    raise ValueError(f"Local path {url} is not a git repo")
+                shutil.copytree(url, f"{temp_dir}/{os.path.basename(url)}")
+                return Repo(f"{temp_dir}/{os.path.basename(url)}")      
             else:
-                temp_dir = os.path.join(TMP_DIR or '/tmp', str(uuid.uuid4())[:8])
                 return Repo.clone_from(url, f"{temp_dir}/{os.path.basename(url)}")
         except Exception as ex:
             if num_retries <= 0:
