@@ -520,6 +520,8 @@ class LeanGitRepo:
         webbrowser.open(self.commit_url)
 
     def exists(self) -> bool:
+        if self.repo_type == 'local':
+            return os.path.exists(self.url)
         return url_exists(self.commit_url)
 
     def clone_and_checkout(self) -> None:

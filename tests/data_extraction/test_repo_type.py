@@ -1,6 +1,5 @@
 from lean_dojo import LeanGitRepo
 from git import Repo
-from github import Github
 import os, shutil
 
 # GitHub repository details
@@ -18,9 +17,10 @@ def clone_repo_if_not_exists(repo_url, local_path, label='main'):
     repo = Repo.clone_from(repo_url, local_path)
     repo.git.checkout(label)
 
+# Clone the GitHub repository to the local path
+clone_repo_if_not_exists(GITHUB_REPO_URL, LOCAL_REPO_PATH)
+
 def test_local_with_branch():
-    # Clone the GitHub repository to the local path
-    clone_repo_if_not_exists(GITHUB_REPO_URL, LOCAL_REPO_PATH)
     
     # Initialize GitHub repo
     github_repo = LeanGitRepo(url=GITHUB_REPO_URL, commit="main")

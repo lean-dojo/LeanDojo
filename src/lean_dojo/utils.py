@@ -171,7 +171,6 @@ def repo_type_of_url(url: str) -> str:
     else:
         logger.warning(f"{url} is not a valid URL")
 
-
 @cache
 def get_repo_info(path: Path) -> Tuple[str, str]:
     """Get the URL and commit hash of the Git repo at ``path``.
@@ -184,7 +183,11 @@ def get_repo_info(path: Path) -> Tuple[str, str]:
     """
     with working_directory(path):
         # Get the URL.
-        url_msg, _ = execute(f"git remote get-url origin", capture_output=True)
+        try:
+            url_msg, _ = execute(f"git remote get-url origin", capture_output=True)
+        except Exception as e: # local repo
+            logger.debug("Local repo with no remote origin.")
+            url_msg = str(path)
         url = url_msg.strip()
         # Get the commit.
         commit_msg, _ = execute(f"git log -n 1", capture_output=True)
