@@ -9,6 +9,6 @@ def test_timeout_1(lean4_example_repo: LeanGitRepo) -> None:
         "Lean4Example.lean",
         "hello_world",
     )
-    with Dojo(thm, hard_timeout=10) as (dojo, init_state):
-        with pytest.raises(DojoHardTimeoutError):
+    with Dojo(thm) as (dojo, init_state):
+        with pytest.raises(DojoTacticTimeoutError):
             dojo.run_tac(init_state, "sleep 99999999999999")
