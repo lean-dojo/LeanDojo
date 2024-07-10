@@ -9,7 +9,7 @@ import toml
 import time
 import urllib
 import webbrowser
-import github
+import shutil
 from pathlib import Path
 from loguru import logger
 from functools import cache
@@ -18,8 +18,8 @@ from dataclasses import dataclass, field
 from github.Repository import Repository
 from github.GithubException import GithubException
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple, Iterator
-from urllib.parse import urlparse
 from git import Repo, GitCommandError
+import uuid
 
 from ..utils import (
     execute,
@@ -27,8 +27,9 @@ from ..utils import (
     url_exists,
     get_repo_info,
     working_directory,
+    repo_type_of_url,
 )
-from ..constants import LEAN4_URL
+from ..constants import LEAN4_URL, TMP_DIR
 
 
 GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN", None)
@@ -62,7 +63,6 @@ def normalize_url(url: str, repo_type:str ='github') -> str:
         return os.path.abspath(url) # Convert to absolute path if local
     return _URL_REGEX.fullmatch(url)["url"]  # Remove trailing `/`.
 
-
 @cache
 def url_to_repo(url: str, num_retries: int = 2, repo_type: str = 'github') -> Repo:
     """Convert a URL to a Repo object.
@@ -83,9 +83,13 @@ def url_to_repo(url: str, num_retries: int = 2, repo_type: str = 'github') -> Re
             if repo_type == 'github':
                 return GITHUB.get_repo("/".join(url.split("/")[-2:]))
             elif repo_type == 'local':
-                return Repo(url)
+                if os.path.exists(url):
+                    return Repo(url)
+                else:
+                    raise ValueError(f"Local path {url} does not exist")
             else:
-                return Repo.clone_from(url, '/tmp/repo_clone')  # We might need to change this with TMP_DIR
+                temp_dir = os.path.join(TMP_DIR or '/tmp', str(uuid.uuid4())[:8])
+                return Repo.clone_from(url, f"{temp_dir}/{os.path.basename(url)}")
         except Exception as ex:
             if num_retries <= 0:
                 raise ex
@@ -107,21 +111,25 @@ def cleanse_string(s: Union[str, Path]) -> str:
 
 
 @cache
-def _to_commit_hash(repo: Repository, label: str) -> str:
+def _to_commit_hash(repo: Union[Repository, Repo], label: str) -> str:
     """Convert a tag or branch to a commit hash."""
-    logger.debug(f"Querying the commit hash for {repo.name} {label}")
-    if isinstance(repo, github.Repository.Repository):
-        # GitHub repository
+    # GitHub repository
+    if isinstance(repo, Repository):
+        logger.debug(f"Querying the commit hash for {repo.name} {label}")
         try:
             commit = repo.get_commit(label).sha
-        except Exception as e:
-            raise ValueError(f"Invalid tag or branch: `{label}` for {repo}")
-    else:
-        # Local or remote Git repository
+        except GithubException as e:
+            raise ValueError(f"Invalid tag or branch: `{label}` for {repo.name}")
+    # Local or remote Git repository
+    elif isinstance(repo, Repo):
+        logger.debug(f"Querying the commit hash for {repo.working_dir} repository {label}")
         try:
-            commit = repo.rev_parse(label).hexsha
+            # Resolve the label to a commit hash
+            commit = repo.commit(label).hexsha
         except GitCommandError as e:
             raise ValueError(f"Error converting ref to commit hash: {e}")
+    else:
+        raise TypeError("Unsupported repository type")
     return commit
 
 @dataclass(eq=True, unsafe_hash=True)
@@ -436,7 +444,7 @@ class LeanGitRepo:
     You can also use tags such as ``v3.5.0``. They will be converted to commit hashes.
     """
 
-    repo: Repository = field(init=False, repr=False)
+    repo: Union[Repository, Repo] = field(init=False, repr=False)
     """A :class:`github.Repository` object.
     """
 
@@ -449,26 +457,14 @@ class LeanGitRepo:
     """
 
     def __post_init__(self) -> None:
-        parsed_url = urlparse(self.url)
-        
-        if parsed_url.scheme in ["http", "https"]:
-            object.__setattr__(self, "url", normalize_url(self.url))
-            # case 1 - GitHub URL
-            if "github.com" in self.url:
-                if not self.url.startswith("https://"):
-                    raise ValueError(f"{self.url} should start with https://")
-                repo_type = "github"
-            # case 2 - remote Git URL
-            else:
-                repo_type = "remote"
-        # case 3 - local path
-        elif os.path.exists(parsed_url.path):
-            repo_type = "local"
-        else:
+        repo_type = repo_type_of_url(self.url)
+        if repo_type is None:
             raise ValueError(f"{self.url} is not a valid URL")
         object.__setattr__(self, "repo_type", repo_type)
         object.__setattr__(self, "url", normalize_url(self.url, repo_type=repo_type))
         object.__setattr__(self, "repo", url_to_repo(self.url, repo_type=repo_type))
+        if self.repo_type != 'github':
+            self.repo.git.checkout(self.commit)
 
         # Convert tags or branches to commit hashes
         if not (len(self.commit) == 40 and _COMMIT_REGEX.fullmatch(self.commit)):
@@ -492,7 +488,7 @@ class LeanGitRepo:
             if m is not None:
                 lean_version = m["version"]
             else:
-                lean_version_commit = get_lean4_commit_from_config(config)
+                # lean_version_commit = get_lean4_commit_from_config(config)
                 lean_version = get_lean4_version_from_config(toolchain)
             if not is_supported_version(lean_version):
                 logger.warning(
@@ -509,7 +505,7 @@ class LeanGitRepo:
 
     @property
     def name(self) -> str:
-        return self.repo.name
+        return os.path.basename(self.url)
 
     @property
     def is_lean4(self) -> bool:
@@ -529,12 +525,15 @@ class LeanGitRepo:
     def clone_and_checkout(self) -> None:
         """Clone the repo to the current working directory and checkout a specific commit."""
         logger.debug(f"Cloning {self}")
-        execute(f"git clone -n --recursive {self.url}", capture_output=True)
-        with working_directory(self.name):
-            execute(
-                f"git checkout {self.commit} && git submodule update --recursive",
-                capture_output=True,
-            )
+        if self.repo_type == 'github' or self.repo_type == 'remote':
+            execute(f"git clone -n --recursive {self.url}", capture_output=True)
+            with working_directory(self.name):
+                execute(
+                    f"git checkout {self.commit} && git submodule update --recursive",
+                    capture_output=True,
+                )
+        else:
+            shutil.copytree(self.url, self.name)
 
     def get_dependencies(
         self, path: Union[str, Path, None] = None

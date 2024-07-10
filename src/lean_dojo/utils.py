@@ -16,6 +16,7 @@ from functools import cache
 from contextlib import contextmanager
 from ray.util.actor_pool import ActorPool
 from typing import Tuple, Union, List, Generator, Optional
+from urllib.parse import urlparse
 
 from .constants import NUM_WORKERS, TMP_DIR, LEAN4_PACKAGES_DIR, LEAN4_BUILD_DIR
 
@@ -142,6 +143,33 @@ _CAMEL_CASE_REGEX = re.compile(r"(_|-)+")
 def camel_case(s: str) -> str:
     """Convert the string ``s`` to camel case."""
     return _CAMEL_CASE_REGEX.sub(" ", s).title().replace(" ", "")
+
+def repo_type_of_url(url: str) -> str:
+    """Get the type of the repository.
+    
+    Args:
+        url (str): The URL of the repository.
+
+    Returns:
+        str: The type of the repository.
+    """
+    parsed_url = urlparse(url)
+    if parsed_url.scheme in ["http", "https"]:
+        # case 1 - GitHub URL
+        if "github.com" in url:
+            if not url.startswith("https://"):
+                logger.warning(f"{url} should start with https://")
+                return
+            else:
+                return "github"
+        # case 2 - remote Git URL
+        else:
+            return "remote"
+    # case 3 - local path
+    elif os.path.exists(parsed_url.path):
+        return "local"
+    else:
+        logger.warning(f"{url} is not a valid URL")
 
 
 @cache
