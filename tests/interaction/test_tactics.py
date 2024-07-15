@@ -297,3 +297,17 @@ def test_example_nonempty_iInter_of_nonempty_biInter(
         )
         assert isinstance(s1, ProofFinished)
         assert dojo.is_successful
+
+def test_example_toBaseChange_involute(mathlib4_repo: LeanGitRepo) -> None:
+    thm = Theorem(
+        mathlib4_repo,
+        "Mathlib/LinearAlgebra/CliffordAlgebra/BaseChange.lean",
+        "CliffordAlgebra.toBaseChange_involute",
+    )
+    with Dojo(thm) as (dojo, s0):
+        s1 = dojo.run_tac(
+            s0,
+            "exact DFunLike.congr_fun (toBaseChange_comp_involute A Q) x",
+        )
+        assert isinstance(s1, ProofFinished)
+        assert dojo.is_successful
