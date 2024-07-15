@@ -46,9 +46,6 @@ else:
 LEAN4_REPO = GITHUB.get_repo("leanprover/lean4")
 """The GitHub Repo for Lean 4 itself."""
 
-LEAN4_NIGHTLY_REPO = GITHUB.get_repo("leanprover/lean4-nightly")
-"""The GitHub Repo for Lean 4 nightly releases."""
-
 _URL_REGEX = re.compile(r"(?P<url>.*?)/*")
 
 
@@ -333,18 +330,9 @@ def get_lean4_commit_from_config(config_dict: Dict[str, Any]) -> str:
     assert "content" in config_dict, "config_dict must have a 'content' field"
     config = config_dict["content"].strip()
     prefix = "leanprover/lean4:"
-
-    if config == f"{prefix}nightly":
-        latest_tag = LEAN4_NIGHTLY_REPO.get_tags()[0]
-        return latest_tag.commit.sha
-
     assert config.startswith(prefix), f"Invalid Lean 4 version: {config}"
     version = config[len(prefix) :]
-
-    if version.startswith("nightly"):
-        return _to_commit_hash(LEAN4_NIGHTLY_REPO, version)
-    else:
-        return _to_commit_hash(LEAN4_REPO, version)
+    return _to_commit_hash(LEAN4_REPO, version)
 
 
 URL = TAG = COMMIT = str
