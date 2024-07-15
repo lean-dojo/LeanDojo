@@ -298,6 +298,7 @@ def test_example_nonempty_iInter_of_nonempty_biInter(
         assert isinstance(s1, ProofFinished)
         assert dojo.is_successful
 
+
 def test_example_toBaseChange_involute(mathlib4_repo: LeanGitRepo) -> None:
     thm = Theorem(
         mathlib4_repo,
