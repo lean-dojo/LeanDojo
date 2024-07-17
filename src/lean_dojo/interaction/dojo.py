@@ -160,6 +160,11 @@ class Dojo:
 
         # Replace the human-written proof with a `repl` tactic.
         traced_repo_path = get_traced_repo_path(self.repo)
+        repl_path = traced_repo_path / "Lean4Repl.lean"
+        assert (
+            repl_path.exists()
+        ), "Unable to find Lean4Repl.lean in the traced repo. The traced repo was likely produced by an outdated version of LeanDojo. See https://github.com/lean-dojo/LeanDojo/releases/tag/v2.0.0."
+
         try:
             traced_file = self._locate_traced_file(traced_repo_path)
         except FileNotFoundError:
