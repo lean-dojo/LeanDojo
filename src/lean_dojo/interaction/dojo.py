@@ -188,6 +188,8 @@ class Dojo:
                 )
             elif isinstance(ex, EOFError):
                 raise DojoInitError("Unexpected EOF")
+            elif isinstance(ex, DojoTacticTimeoutError):
+                raise DojoInitError("Timeout during initialization")
             else:
                 raise ex
 
