@@ -1,32 +1,37 @@
+import pytest
 from lean_dojo import LeanGitRepo
-from git import Repo
-import os, shutil
+import os
 
-# GitHub repository details
-GITHUB_REPO_URL = "https://github.com/yangky11/lean4-example"
-GITHUB_COMMIT_HASH = "3f8c5eb303a225cdef609498b8d87262e5ef344b"
-GITEE_REPO_URL = "https://gitee.com/rexzong/lean4-example"
-
-# Local repository path (make sure this path exists and is the clone of the above GitHub repo)
-
-LOCAL_REPO_PATH = f"{os.path.dirname(__file__)}/testdata/lean4-example"
-
-def clone_repo_if_not_exists(repo_url, local_path, label='main'):
-    if os.path.exists(local_path):
-        shutil.rmtree(local_path)
-    repo = Repo.clone_from(repo_url, local_path)
-    repo.git.checkout(label)
-
-# Clone the GitHub repository to the local path
-clone_repo_if_not_exists(GITHUB_REPO_URL, LOCAL_REPO_PATH)
-
-def test_local_with_branch():
-    
+def test_local_with_branch(clean_clone_and_checkout, lean4_example_url, local_test_path):
     # Initialize GitHub repo
-    github_repo = LeanGitRepo(url=GITHUB_REPO_URL, commit="main")
+    github_repo = LeanGitRepo(url=lean4_example_url, commit="main")
 
     # Initialize local repo
-    local_repo = LeanGitRepo(url=LOCAL_REPO_PATH, commit="main")
+    local_repo_path = os.path.join(local_test_path, 'lean4-example')
+    clean_clone_and_checkout(lean4_example_url, local_repo_path, 'main')
+    local_repo = LeanGitRepo(url=local_repo_path, commit="main")
+    from_path_repo = LeanGitRepo.from_path(local_repo_path)
+
+    # Check if commit hashes match
+    assert github_repo.commit == local_repo.commit == from_path_repo.commit
+    assert github_repo.lean_version == local_repo.lean_version == from_path_repo.lean_version
+    
+    # check the repo type
+    assert github_repo.repo_type == 'github'
+    assert local_repo.repo_type == 'local'
+    assert from_path_repo.repo_type == 'local'
+
+def test_local_with_commit(clean_clone_and_checkout, lean4_example_url, local_test_path):
+    # GitHub commit hash from conftest.py
+    COMMIT_HASH = "3f8c5eb303a225cdef609498b8d87262e5ef344b"
+
+    # Initialize GitHub repo
+    github_repo = LeanGitRepo(url=lean4_example_url, commit=COMMIT_HASH)
+
+    # Initialize local repo
+    local_repo_path = os.path.join(local_test_path, 'lean4-example')
+    clean_clone_and_checkout(lean4_example_url, local_repo_path, 'main') # use main branch
+    local_repo = LeanGitRepo(url=local_repo_path, commit=COMMIT_HASH) # checkout to commit hash
 
     # Check if commit hashes match
     assert github_repo.commit == local_repo.commit
@@ -36,32 +41,19 @@ def test_local_with_branch():
     assert github_repo.repo_type == 'github'
     assert local_repo.repo_type == 'local'
 
-def test_local_with_commit():
-    # Clone the GitHub repository to the local path
-    clone_repo_if_not_exists(GITHUB_REPO_URL, LOCAL_REPO_PATH, GITHUB_COMMIT_HASH)
-    
+def test_remote_url(lean4_example_url, remote_example_url):
+    # GitHub commit hash from conftest.py
+    COMMIT_HASH = "3f8c5eb303a225cdef609498b8d87262e5ef344b"
+
     # Initialize GitHub repo
-    github_repo = LeanGitRepo(url=GITHUB_REPO_URL, commit=GITHUB_COMMIT_HASH)
-
-    # Initialize local repo
-    local_repo = LeanGitRepo(url=LOCAL_REPO_PATH, commit=GITHUB_COMMIT_HASH)
-
-    # Check if commit hashes match
-    assert github_repo.commit == local_repo.commit
-    assert github_repo.lean_version == local_repo.lean_version
-    
-    # check the repo type
-    assert github_repo.repo_type == 'github'
-    assert local_repo.repo_type == 'local'
-
-def test_remote_url():
-    # Initialize GitHub repo
-    github_repo = LeanGitRepo(url=GITHUB_REPO_URL, commit=GITHUB_COMMIT_HASH)
+    github_repo = LeanGitRepo(url=lean4_example_url, commit=COMMIT_HASH)
     # Initialize Gitee repo
-    LeanGitRepo(url=GITEE_REPO_URL, commit="main") # get commit by branch
-    gitee_repo = LeanGitRepo(url=GITEE_REPO_URL, commit=GITHUB_COMMIT_HASH)
+    _ = LeanGitRepo(url=remote_example_url, commit="main") # get commit by branch
+    gitee_repo = LeanGitRepo(url=remote_example_url, commit=COMMIT_HASH)
+    
     # Check if commit hashes match
     assert github_repo.commit == gitee_repo.commit
     assert github_repo.lean_version == gitee_repo.lean_version
+    
     # check the repo type
     assert gitee_repo.repo_type == 'remote'

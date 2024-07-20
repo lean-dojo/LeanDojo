@@ -467,7 +467,7 @@ class LeanGitRepo:
         object.__setattr__(self, "repo_type", repo_type)
         object.__setattr__(self, "url", normalize_url(self.url, repo_type=repo_type))
         object.__setattr__(self, "repo", url_to_repo(self.url, repo_type=repo_type))
-        if self.repo_type != 'github':
+        if self.repo_type != 'github': # checkout to the commit for the `git.Repo` object
             self.repo.git.checkout(self.commit)
 
         # Convert tags or branches to commit hashes
@@ -540,6 +540,7 @@ class LeanGitRepo:
                 )
         else:
             shutil.copytree(self.url, self.name)
+            Repo(self.name).git.checkout(self.commit)
 
     def get_dependencies(
         self, path: Union[str, Path, None] = None

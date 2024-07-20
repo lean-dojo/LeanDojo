@@ -1,54 +1,44 @@
-from pathlib import Path
+import pytest
 from lean_dojo import *
 from git import Repo
 import os, shutil
+from pathlib import Path
 
-# repository details
-GITHUB_REPO_URL = "https://github.com/yangky11/lean4-example"
-GITHUB_COMMIT_HASH = "3f8c5eb303a225cdef609498b8d87262e5ef344b"
-GITEE_REPO_URL = "https://gitee.com/rexzong/lean4-example"
+# Avoid using remote cache
+os.environ['DISABLE_REMOTE_CACHE'] = 'true'
 
-LOCAL_REPO_PATH = f"{os.path.dirname(__file__)}/testdata/lean4-example"
-LOCAL_TRACE_DIR = f"{os.path.dirname(__file__)}/testdata/lean4-example-traced"
+@pytest.fixture(scope="session")
+def local_trace_dir(local_test_path):
+    return os.path.join(local_test_path, 'lean4-example-traced')
 
-
-def clone_repo_and_remove_remote(repo_url, local_path, label='main'):
-    if os.path.exists(local_path):
-        shutil.rmtree(local_path)
-    repo = Repo.clone_from(repo_url, local_path)
-    repo.git.checkout(label)
-    remote = repo.remote(name='origin')
-    remote.remove(repo, 'origin')
-
-# Clone the GitHub repository to the local path
-clone_repo_and_remove_remote(GITHUB_REPO_URL, LOCAL_REPO_PATH)
-
-def test_remote_trace():
-    remote_repo = LeanGitRepo(url=GITEE_REPO_URL, commit="main")
+def test_remote_trace(remote_example_url, local_trace_dir):
+    remote_repo = LeanGitRepo(url=remote_example_url, commit="main")
     assert remote_repo.repo_type == 'remote'
-    if os.path.exists(LOCAL_TRACE_DIR):
-        shutil.rmtree(LOCAL_TRACE_DIR)
-    traced_repo = trace(remote_repo, LOCAL_TRACE_DIR)
+    if os.path.exists(local_trace_dir):
+        shutil.rmtree(local_trace_dir)
+    traced_repo = trace(remote_repo, local_trace_dir)
     traced_repo.check_sanity()
-    assert traced_repo.repo.repo_type == 'remote'
+    assert traced_repo.repo.repo_type == 'local'
     
-def test_local_trace():
-    local_repo = LeanGitRepo(url=LOCAL_REPO_PATH, commit="main")
+def test_local_trace(clean_clone_and_checkout, lean4_example_url, local_test_path, local_trace_dir):
+    local_repo_path = os.path.join(local_test_path, 'lean4-example')
+    clean_clone_and_checkout(lean4_example_url, local_repo_path)
+    local_repo = LeanGitRepo(url=local_repo_path, commit="main")
     assert local_repo.repo_type == 'local'
-    if os.path.exists(LOCAL_TRACE_DIR):
-        shutil.rmtree(LOCAL_TRACE_DIR)
-    traced_repo = trace(local_repo, LOCAL_TRACE_DIR)
+    if os.path.exists(local_trace_dir):
+        shutil.rmtree(local_trace_dir)
+    traced_repo = trace(local_repo, local_trace_dir)
     traced_repo.check_sanity()
     assert traced_repo.repo.repo_type == 'local'
 
-def test_github_trace():
-    remote_repo = LeanGitRepo(url=GITHUB_REPO_URL, commit="main")
+def test_github_trace(lean4_example_url, local_trace_dir):
+    remote_repo = LeanGitRepo(url=lean4_example_url, commit="main")
     assert remote_repo.repo_type == 'github'
-    if os.path.exists(LOCAL_TRACE_DIR):
-        shutil.rmtree(LOCAL_TRACE_DIR)
-    traced_repo = trace(remote_repo, LOCAL_TRACE_DIR)
+    if os.path.exists(local_trace_dir):
+        shutil.rmtree(local_trace_dir)
+    traced_repo = trace(remote_repo, local_trace_dir)
     traced_repo.check_sanity()
-    assert traced_repo.repo.repo_type == 'github'
+    assert traced_repo.repo.repo_type == 'local'
 
 def test_trace(traced_repo):
     traced_repo.check_sanity()

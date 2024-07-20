@@ -183,21 +183,18 @@ def get_repo_info(path: Path) -> Tuple[str, str]:
     """
     with working_directory(path):
         # Get the URL.
-        try:
-            url_msg, _ = execute(f"git remote get-url origin", capture_output=True)
-        except Exception as e: # local repo
-            logger.debug("Local repo with no remote origin.")
-            url_msg = str(path)
-        url = url_msg.strip()
+        # url_msg, _ = execute(f"git remote get-url origin", capture_output=True)
+        # url = url_msg.strip()
+        url = str(path) # use the absolute path
         # Get the commit.
         commit_msg, _ = execute(f"git log -n 1", capture_output=True)
         m = re.search(r"(?<=^commit )[a-z0-9]+", commit_msg)
         assert m is not None
         commit = m.group()
 
-    if url.startswith("git@"):
-        assert url.endswith(".git")
-        url = url[: -len(".git")].replace(":", "/").replace("git@", "https://")
+    # if url.startswith("git@"):
+    #     assert url.endswith(".git")
+    #     url = url[: -len(".git")].replace(":", "/").replace("git@", "https://")
 
     return url, commit
 
