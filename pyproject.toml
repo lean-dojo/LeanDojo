@@ -12,7 +12,7 @@ exclude = [
 
 [project]
 name = "lean-dojo"
-version = "2.0.0"
+version = "2.0.3"
 authors = [
   { name="Kaiyu Yang", email="kaiyuy@meta.com" },
 ]
@@ -33,6 +33,7 @@ dependencies = [
   "filelock",
   "gitpython",
   "psutil",
+  "pexpect",
   "types-psutil",
   "tqdm",
   "toml",

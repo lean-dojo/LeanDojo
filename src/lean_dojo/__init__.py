@@ -19,7 +19,7 @@ from .interaction.dojo import (
     TimeoutError,
     TacticResult,
     DojoCrashError,
-    DojoHardTimeoutError,
+    DojoTacticTimeoutError,
     DojoInitError,
     Dojo,
     ProofFinished,
