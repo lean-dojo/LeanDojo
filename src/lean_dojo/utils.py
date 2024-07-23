@@ -181,21 +181,12 @@ def get_repo_info(path: Path) -> Tuple[str, str]:
     Returns:
         Tuple[str, str]: URL and (most recent) hash commit
     """
-    with working_directory(path):
-        # Get the URL.
-        # url_msg, _ = execute(f"git remote get-url origin", capture_output=True)
-        # url = url_msg.strip()
-        url = str(path) # use the absolute path
-        # Get the commit.
-        commit_msg, _ = execute(f"git log -n 1", capture_output=True)
-        m = re.search(r"(?<=^commit )[a-z0-9]+", commit_msg)
-        assert m is not None
-        commit = m.group()
-
-    # if url.startswith("git@"):
-    #     assert url.endswith(".git")
-    #     url = url[: -len(".git")].replace(":", "/").replace("git@", "https://")
-
+    url = str(path.absolute()) # use the absolute path
+    # Get the commit.
+    commit_msg, _ = execute(f"git log -n 1", capture_output=True)
+    m = re.search(r"(?<=^commit )[a-z0-9]+", commit_msg)
+    assert m is not None
+    commit = m.group()
     return url, commit
 
 

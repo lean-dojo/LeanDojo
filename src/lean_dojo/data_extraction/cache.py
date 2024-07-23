@@ -90,17 +90,17 @@ class Cache:
             else:
                 return None
 
-    def store(self, src: Path, dirpath: Union[Path, None]=None) -> Path:
+    def store(self, src: Path, cache_path: Union[Path, None]=None) -> Path:
         """Store a traced repo at path ``src``. Return its path in the cache."""
-        url, commit = get_repo_info(src)
-        _, repo_name = _split_git_url(url)
-        if dirpath is None:
-            dirpath = self.cache_dir / _format_dirname(url, commit)
-        if not dirpath.exists():
+        if cache_path is None:
+            url, commit = get_repo_info(src)
+            _, repo_name = _split_git_url(url)
+            cache_path = self.cache_dir / _format_dirname(url, commit) / repo_name
+        if not cache_path.exists():
             with self.lock:
                 with report_critical_failure(_CACHE_CORRPUTION_MSG):
-                    shutil.copytree(src, dirpath / repo_name)
-        return dirpath / repo_name
+                    shutil.copytree(src, cache_path)
+        return cache_path
 
 
 cache = Cache(CACHE_DIR)

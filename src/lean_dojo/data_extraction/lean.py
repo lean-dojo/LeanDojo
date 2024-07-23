@@ -487,8 +487,10 @@ class LeanGitRepo:
         object.__setattr__(self, "lean_version", lean_version)
 
     @classmethod
-    def from_path(cls, path: Path) -> "LeanGitRepo":
+    def from_path(cls, path: Union[str, Path]) -> "LeanGitRepo":
         """Construct a :class:`LeanGitRepo` object from the path to a local Git repo."""
+        if isinstance(path, str):
+            path = Path(path)
         url, commit = get_repo_info(path)
         return cls(url, commit)
 

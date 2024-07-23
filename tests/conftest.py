@@ -15,7 +15,7 @@ URLS = [
     LEAN4_EXAMPLE_URL,
 ]
 
-TEST_GITHUB_COMMIT_HASH = "3f8c5eb303a225cdef609498b8d87262e5ef344b"
+EXAMPLE_COMMIT_HASH = "3f8c5eb303a225cdef609498b8d87262e5ef344b"
 REMOTE_EXAMPLE_URL = "https://gitee.com/rexzong/lean4-example"
 LOCAL_TEST_PATH = f"{os.path.dirname(__file__)}/testdata"
 
@@ -32,6 +32,10 @@ def clean_clone_and_checkout():
 @pytest.fixture(scope="session")
 def lean4_example_url():
     return LEAN4_EXAMPLE_URL
+
+@pytest.fixture(scope="session")
+def example_commit_hash():
+    return EXAMPLE_COMMIT_HASH
 
 @pytest.fixture(scope="session")
 def remote_example_url():
