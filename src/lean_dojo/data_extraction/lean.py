@@ -469,12 +469,10 @@ class LeanGitRepo:
     def clone_and_checkout(self) -> None:
         """Clone the repo to the current working directory and checkout a specific commit."""
         logger.debug(f"Cloning {self}")
-        # Clone the repository
-        repo = Repo.clone_from(self.url, Path(self.name))
-        # Checkout the specific commit
+        repo = Repo.clone_from(self.url, Path(self.name), no_checkout=True)
         repo.git.checkout(self.commit)
-        # Initialize and update submodules
-        repo.submodule_update(recursive=True)
+        repo.submodule_update(init=True, recursive=True)
+
 
     def get_dependencies(
         self, path: Union[str, Path, None] = None
