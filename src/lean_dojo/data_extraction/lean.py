@@ -43,7 +43,7 @@ else:
     )
     GITHUB = Github()
 
-LEAN4_REPO = GITHUB.get_repo("leanprover/lean4")
+LEAN4_REPO = None
 """The GitHub Repo for Lean 4 itself."""
 
 _URL_REGEX = re.compile(r"(?P<url>.*?)/*")
@@ -88,15 +88,9 @@ def _to_commit_hash(repo: Repository, label: str) -> str:
     logger.debug(f"Querying the commit hash for {repo.name} {label}")
 
     try:
-        return repo.get_branch(label).commit.sha
-    except GithubException:
-        pass
-
-    for tag in repo.get_tags():
-        if tag.name == label:
-            return tag.commit.sha
-
-    raise ValueError(f"Invalid tag or branch: `{label}` for {repo}")
+        return repo.get_commit(label).sha
+    except Exception:
+        raise ValueError(f"Invalid tag or branch: `{label}` for {repo}")
 
 
 @dataclass(eq=True, unsafe_hash=True)
@@ -328,6 +322,9 @@ def get_lean4_version_from_config(toolchain: str) -> str:
 def get_lean4_commit_from_config(config_dict: Dict[str, Any]) -> str:
     """Return the required Lean commit given a ``lean-toolchain`` config."""
     assert "content" in config_dict, "config_dict must have a 'content' field"
+    global LEAN4_REPO
+    if LEAN4_REPO is None:
+        LEAN4_REPO = GITHUB.get_repo("leanprover/lean4")
     config = config_dict["content"].strip()
     prefix = "leanprover/lean4:"
     assert config.startswith(prefix), f"Invalid Lean 4 version: {config}"
@@ -447,7 +444,7 @@ class LeanGitRepo:
 
     @property
     def name(self) -> str:
-        return self.repo.name
+        return os.path.basename(self.url)
 
     @property
     def is_lean4(self) -> bool:
