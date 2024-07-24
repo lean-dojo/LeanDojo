@@ -427,9 +427,14 @@ class LeanGitRepo:
             lean_version = self.commit
         else:
             config = self.get_config("lean-toolchain")
-            lean_version = get_lean4_commit_from_config(config)
-            v = get_lean4_version_from_config(config["content"])
-            if not is_supported_version(v):
+            toolchain = config["content"]
+            m = _LEAN4_VERSION_REGEX.fullmatch(toolchain.strip())
+            if m is not None:
+                lean_version = m["version"]
+            else:
+                # lean_version_commit = get_lean4_commit_from_config(config)
+                lean_version = get_lean4_version_from_config(toolchain)
+            if not is_supported_version(lean_version):
                 logger.warning(
                     f"{self} relies on an unsupported Lean version: {lean_version}"
                 )
