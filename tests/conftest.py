@@ -15,13 +15,16 @@ URLS = [
     LEAN4_EXAMPLE_URL,
 ]
 
+
 @pytest.fixture(scope="session")
 def example_commit_hash():
     return EXAMPLE_COMMIT_HASH
 
+
 @pytest.fixture(scope="session")
 def lean4_example_url():
     return LEAN4_EXAMPLE_URL
+
 
 @pytest.fixture(scope="session")
 def monkeysession():

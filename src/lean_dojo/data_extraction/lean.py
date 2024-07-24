@@ -473,7 +473,6 @@ class LeanGitRepo:
         repo.git.checkout(self.commit)
         repo.submodule_update(init=True, recursive=True)
 
-
     def get_dependencies(
         self, path: Union[str, Path, None] = None
     ) -> Dict[str, "LeanGitRepo"]:
