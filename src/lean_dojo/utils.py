@@ -237,9 +237,13 @@ def read_url(url: str, num_retries: int = 2) -> str:
 
 @cache
 def url_exists(url: str) -> bool:
-    """Return True if the URL ``url`` exists."""
+    """Return True if the URL ``url`` exists, using the GITHUB_ACCESS_TOKEN for authentication if provided."""
     try:
-        with urllib.request.urlopen(url) as _:
+        request = urllib.request.Request(url)
+        gh_token = os.getenv("GITHUB_ACCESS_TOKEN")
+        if gh_token is not None:
+            request.add_header("Authorization", f"token {gh_token}")
+        with urllib.request.urlopen(request) as _:
             return True
     except urllib.error.HTTPError:
         return False
