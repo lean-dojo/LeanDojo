@@ -59,11 +59,11 @@ class Cache:
         lock_path = self.cache_dir.with_suffix(".lock")
         object.__setattr__(self, "lock", FileLock(lock_path))
 
-    def get(self, url: str, commit: str) -> Optional[Path]:
+    def get(self, url: str, commit: str, prefix: str = "") -> Optional[Path]:
         """Get the path of a traced repo with URL ``url`` and commit hash ``commit``. Return None if no such repo can be found."""
         _, repo_name = _split_git_url(url)
         dirname = _format_dirname(url, commit)
-        dirpath = self.cache_dir / dirname
+        dirpath = self.cache_dir / prefix / dirname
 
         with self.lock:
             if dirpath.exists():
@@ -90,18 +90,20 @@ class Cache:
             else:
                 return None
 
-    def store(self, src: Path, fmt_name: str = "") -> Path:
-        """Store a traced repo at path ``src``. Return its path in the cache."""
-        url, commit = get_repo_info(src)
-        if fmt_name == "":  # if not specified, extract from the traced repo
-            fmt_name = _format_dirname(url, commit)
-        dirpath = self.cache_dir / fmt_name
-        _, repo_name = _split_git_url(url)
+    def store(self, src: Path, rel_cache_dir: Path) -> Path:
+        """Store a traced repo at path ``src``. Return its path in the cache.
+
+        Args:
+            src (Path): Path to the repo.
+            rel_cache_name (Path): The relative path of the stored repo in the cache.
+        """
+        dirpath = self.cache_dir / rel_cache_dir.parent
+        cache_path = self.cache_dir / rel_cache_dir
         if not dirpath.exists():
             with self.lock:
                 with report_critical_failure(_CACHE_CORRPUTION_MSG):
-                    shutil.copytree(src, dirpath / repo_name)
-        return dirpath / repo_name
+                    shutil.copytree(src, cache_path)
+        return cache_path
 
 
 cache = Cache(CACHE_DIR)

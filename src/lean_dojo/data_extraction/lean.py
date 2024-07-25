@@ -18,6 +18,9 @@ from github.Repository import Repository
 from github.GithubException import GithubException
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple, Iterator
 from git import Repo
+from ..constants import TMP_DIR
+import uuid
+import shutil
 
 
 from ..utils import (
@@ -26,6 +29,8 @@ from ..utils import (
     url_exists,
     get_repo_info,
     working_directory,
+    is_git_repo,
+    repo_type_of_url,
 )
 from ..constants import LEAN4_URL
 from .cache import _format_dirname
@@ -52,18 +57,46 @@ LEAN4_REPO = None
 _URL_REGEX = re.compile(r"(?P<url>.*?)/*")
 
 
-def normalize_url(url: str) -> str:
+def normalize_url(url: str, repo_type: str = "github") -> str:
+    if repo_type == "local":
+        return os.path.abspath(url)  # Convert to absolute path if local
     return _URL_REGEX.fullmatch(url)["url"]  # Remove trailing `/`.
 
 
 @cache
-def url_to_repo(url: str, num_retries: int = 2) -> Repository:
+def url_to_repo(
+    url: str,
+    num_retries: int = 2,
+    repo_type: Union[str, None] = None,
+    tmp_dir: Union[Path] = None,
+) -> Union[Repo, Repository]:
+    """Convert a URL to a Repo object.
+
+    Args:
+        url (str): The URL of the repository.
+        num_retries (int): Number of retries in case of failure.
+        repo_type (Optional[str]): The type of the repository. Defaults to None.
+        tmp_dir (Optional[Path]): The temporary directory to clone the repo to. Defaults to None.
+
+    Returns:
+        Repo: A Git Repo object.
+    """
     url = normalize_url(url)
     backoff = 1
-
+    tmp_dir = tmp_dir or os.path.join(TMP_DIR or "/tmp", str(uuid.uuid4())[:8])
+    repo_type = repo_type or repo_type_of_url(url)
     while True:
         try:
-            return GITHUB.get_repo("/".join(url.split("/")[-2:]))
+            if repo_type == "github":
+                return GITHUB.get_repo("/".join(url.split("/")[-2:]))
+            with working_directory(tmp_dir):
+                repo_name = os.path.basename(url)
+                if repo_type == "local":
+                    assert is_git_repo(url), f"Local path {url} is not a git repo"
+                    shutil.copytree(url, repo_name)
+                    return Repo(repo_name)
+                else:
+                    return Repo.clone_from(url, repo_name)
         except Exception as ex:
             if num_retries <= 0:
                 raise ex
@@ -77,7 +110,10 @@ def url_to_repo(url: str, num_retries: int = 2) -> Repository:
 def get_latest_commit(url: str) -> str:
     """Get the hash of the latest commit of the Git repo at ``url``."""
     repo = url_to_repo(url)
-    return repo.get_branch(repo.default_branch).commit.sha
+    if isinstance(repo, Repository):
+        return repo.get_branch(repo.default_branch).commit.sha
+    else:
+        return repo.head.commit.hexsha
 
 
 def cleanse_string(s: Union[str, Path]) -> str:
@@ -85,20 +121,28 @@ def cleanse_string(s: Union[str, Path]) -> str:
     return str(s).replace("/", "_").replace(":", "_")
 
 
-@cache
-def _to_commit_hash(repo: Repository, label: str) -> str:
+def _to_commit_hash(repo: Union[Repository, Repo], label: str) -> str:
     """Convert a tag or branch to a commit hash."""
-    logger.debug(f"Querying the commit hash for {repo.name} {label}")
-
-    try:
-        return repo.get_branch(label).commit.sha
-    except GithubException:
-        pass
-
-    for tag in repo.get_tags():
-        if tag.name == label:
-            return tag.commit.sha
-    raise ValueError(f"Invalid tag or branch: `{label}` for {repo}")
+    # GitHub repository
+    if isinstance(repo, Repository):
+        logger.debug(f"Querying the commit hash for {repo.name} {label}")
+        try:
+            commit = repo.get_commit(label).sha
+        except GithubException as e:
+            raise ValueError(f"Invalid tag or branch: `{label}` for {repo.name}")
+    # Local or remote Git repository
+    elif isinstance(repo, Repo):
+        logger.debug(
+            f"Querying the commit hash for {repo.working_dir} repository {label}"
+        )
+        try:
+            # Resolve the label to a commit hash
+            commit = repo.commit(label).hexsha
+        except Exception as e:
+            raise ValueError(f"Error converting ref to commit hash: {e}")
+    else:
+        raise TypeError("Unsupported repository type")
+    return commit
 
 
 @dataclass(eq=True, unsafe_hash=True)
@@ -320,6 +364,11 @@ _COMMIT_REGEX = re.compile(r"[0-9a-z]+")
 _LEAN4_VERSION_REGEX = re.compile(r"leanprover/lean4:(?P<version>.+?)")
 
 
+def is_commit_hash(s: str):
+    """Check if a string is a valid commit hash."""
+    return len(s) == 40 and _COMMIT_REGEX.fullmatch(s)
+
+
 def get_lean4_version_from_config(toolchain: str) -> str:
     """Return the required Lean version given a ``lean-toolchain`` config."""
     m = _LEAN4_VERSION_REGEX.fullmatch(toolchain.strip())
@@ -419,12 +468,12 @@ class LeanGitRepo:
         object.__setattr__(self, "repo", url_to_repo(self.url))
 
         # Convert tags or branches to commit hashes
-        if not (len(self.commit) == 40 and _COMMIT_REGEX.fullmatch(self.commit)):
+        if not is_commit_hash(self.commit):
             if (self.url, self.commit) in info_cache.tag2commit:
                 commit = info_cache.tag2commit[(self.url, self.commit)]
             else:
                 commit = _to_commit_hash(self.repo, self.commit)
-                assert _COMMIT_REGEX.fullmatch(commit), f"Invalid commit hash: {commit}"
+                assert is_commit_hash(commit)
                 info_cache.tag2commit[(self.url, self.commit)] = commit
             object.__setattr__(self, "commit", commit)
 
