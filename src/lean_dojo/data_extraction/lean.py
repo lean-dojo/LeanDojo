@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 from github.Repository import Repository
 from github.GithubException import GithubException
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple, Iterator
+from git import Repo
+
 
 from ..utils import (
     execute,
@@ -457,7 +459,7 @@ class LeanGitRepo:
 
     @property
     def commit_url(self) -> str:
-        return os.path.join(self.url, f"tree/{self.commit}")
+        return f"{self.url}/tree/{self.commit}"
 
     def show(self) -> None:
         """Show the repo in the default browser."""
@@ -469,12 +471,9 @@ class LeanGitRepo:
     def clone_and_checkout(self) -> None:
         """Clone the repo to the current working directory and checkout a specific commit."""
         logger.debug(f"Cloning {self}")
-        execute(f"git clone -n --recursive {self.url}", capture_output=True)
-        with working_directory(self.name):
-            execute(
-                f"git checkout {self.commit} && git submodule update --recursive",
-                capture_output=True,
-            )
+        repo = Repo.clone_from(self.url, Path(self.name), no_checkout=True)
+        repo.git.checkout(self.commit)
+        repo.submodule_update(init=True, recursive=True)
 
     def get_dependencies(
         self, path: Union[str, Path, None] = None
