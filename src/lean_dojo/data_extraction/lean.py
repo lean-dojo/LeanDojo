@@ -28,6 +28,7 @@ from ..utils import (
     working_directory,
 )
 from ..constants import LEAN4_URL
+from .cache import _format_dirname
 
 
 GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN", None)
@@ -90,9 +91,14 @@ def _to_commit_hash(repo: Repository, label: str) -> str:
     logger.debug(f"Querying the commit hash for {repo.name} {label}")
 
     try:
-        return repo.get_commit(label).sha
-    except Exception:
-        raise ValueError(f"Invalid tag or branch: `{label}` for {repo}")
+        return repo.get_branch(label).commit.sha
+    except GithubException:
+        pass
+
+    for tag in repo.get_tags():
+        if tag.name == label:
+            return tag.commit.sha
+    raise ValueError(f"Invalid tag or branch: `{label}` for {repo}")
 
 
 @dataclass(eq=True, unsafe_hash=True)
@@ -429,13 +435,7 @@ class LeanGitRepo:
             lean_version = self.commit
         else:
             config = self.get_config("lean-toolchain")
-            toolchain = config["content"]
-            m = _LEAN4_VERSION_REGEX.fullmatch(toolchain.strip())
-            if m is not None:
-                lean_version = m["version"]
-            else:
-                # lean_version_commit = get_lean4_commit_from_config(config)
-                lean_version = get_lean4_version_from_config(toolchain)
+            lean_version = get_lean4_version_from_config(config["content"])
             if not is_supported_version(lean_version):
                 logger.warning(
                     f"{self} relies on an unsupported Lean version: {lean_version}"
@@ -444,9 +444,9 @@ class LeanGitRepo:
         object.__setattr__(self, "lean_version", lean_version)
 
     @classmethod
-    def from_path(cls, path: Path) -> "LeanGitRepo":
+    def from_path(cls, path: Union[Path, str]) -> "LeanGitRepo":
         """Construct a :class:`LeanGitRepo` object from the path to a local Git repo."""
-        url, commit = get_repo_info(path)
+        url, commit = get_repo_info(Path(path))
         return cls(url, commit)
 
     @property
@@ -460,6 +460,11 @@ class LeanGitRepo:
     @property
     def commit_url(self) -> str:
         return f"{self.url}/tree/{self.commit}"
+
+    @property
+    def format_dirname(self) -> str:
+        """Return the formatted cache directory name"""
+        return _format_dirname(self.url, self.commit)
 
     def show(self) -> None:
         """Show the repo in the default browser."""

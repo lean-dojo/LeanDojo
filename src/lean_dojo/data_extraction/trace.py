@@ -212,7 +212,7 @@ def get_traced_repo_path(repo: LeanGitRepo, build_deps: bool = True) -> Path:
             _trace(repo, build_deps)
             traced_repo = TracedRepo.from_traced_files(tmp_dir / repo.name, build_deps)
             traced_repo.save_to_disk()
-            path = cache.store(tmp_dir / repo.name)
+            path = cache.store(tmp_dir / repo.name, repo.format_dirname)
     else:
         logger.debug("The traced repo is available in the cache.")
     return path

@@ -90,10 +90,12 @@ class Cache:
             else:
                 return None
 
-    def store(self, src: Path) -> Path:
+    def store(self, src: Path, fmt_name: str = "") -> Path:
         """Store a traced repo at path ``src``. Return its path in the cache."""
         url, commit = get_repo_info(src)
-        dirpath = self.cache_dir / _format_dirname(url, commit)
+        if fmt_name == "":  # if not specified, extract from the traced repo
+            fmt_name = _format_dirname(url, commit)
+        dirpath = self.cache_dir / fmt_name
         _, repo_name = _split_git_url(url)
         if not dirpath.exists():
             with self.lock:
