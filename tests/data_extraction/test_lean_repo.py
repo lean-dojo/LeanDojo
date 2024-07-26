@@ -3,9 +3,10 @@ from lean_dojo import LeanGitRepo
 from lean_dojo.constants import LEAN4_URL
 from git import Repo
 from github.Repository import Repository
-from lean_dojo.utils import working_directory, repo_type_of_url
+from lean_dojo.utils import working_directory
 from lean_dojo.data_extraction.lean import (
     _to_commit_hash,
+    repo_type_of_url,
     url_to_repo,
     get_latest_commit,
     is_commit_hash,
@@ -24,6 +25,8 @@ def test_url_to_repo(lean4_example_url, remote_example_url):
     ## test url_to_repo & repo_type_of_url
     github_repo = url_to_repo(lean4_example_url)
     assert repo_type_of_url(lean4_example_url) == "github"
+    assert repo_type_of_url("git@github.com:yangky11/lean4-example.git") == "github"
+    assert repo_type_of_url("git@github.com:yangky11/lean4-example") == "github"
     assert isinstance(github_repo, Repository)
     assert github_repo.name == repo_name
 

@@ -21,16 +21,15 @@ from git import Repo
 from ..constants import TMP_DIR
 import uuid
 import shutil
+from urllib.parse import urlparse
 
 
 from ..utils import (
-    execute,
     read_url,
     url_exists,
     get_repo_info,
     working_directory,
     is_git_repo,
-    repo_type_of_url,
 )
 from ..constants import LEAN4_URL
 from .cache import _format_dirname
@@ -56,11 +55,42 @@ LEAN4_REPO = None
 
 _URL_REGEX = re.compile(r"(?P<url>.*?)/*")
 
+_SSH_TO_HTTPS_REGEX = re.compile(r"^git@github\.com:(.+)/(.+)(?:\.git)?$")
+
 
 def normalize_url(url: str, repo_type: str = "github") -> str:
     if repo_type == "local":
         return os.path.abspath(url)  # Convert to absolute path if local
     return _URL_REGEX.fullmatch(url)["url"]  # Remove trailing `/`.
+
+
+def repo_type_of_url(url: str) -> Union[str, None]:
+    """Get the type of the repository.
+
+    Args:
+        url (str): The URL of the repository.
+    Returns:
+        str: The type of the repository.
+    """
+    m = _SSH_TO_HTTPS_REGEX.match(url)
+    url = f"https://github.com/{m.group(1)}/{m.group(2)}" if m else url
+    parsed_url = urlparse(url)
+    if parsed_url.scheme in ["http", "https"]:
+        # case 1 - GitHub URL
+        if "github.com" in url:
+            if not url.startswith("https://"):
+                logger.warning(f"{url} should start with https://")
+                return
+            else:
+                return "github"
+        # case 2 - remote URL
+        elif url_exists(url):  # not check whether it is a git URL
+            return "remote"
+    # case 3 - local path
+    elif is_git_repo(Path(parsed_url.path)):
+        return "local"
+    logger.warning(f"{url} is not a valid URL")
+    return None
 
 
 @cache
