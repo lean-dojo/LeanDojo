@@ -16,7 +16,7 @@ from contextlib import contextmanager
 from subprocess import CalledProcessError
 from typing import Union, Optional, List, Generator
 
-from .cache import cache, get_repo_info, _format_dirname
+from .cache import cache
 from .lean import LeanGitRepo
 from ..constants import NUM_PROCS
 from .traced_data import TracedRepo
@@ -204,7 +204,7 @@ def get_traced_repo_path(repo: LeanGitRepo, build_deps: bool = True) -> Path:
     Returns:
         Path: The path of the traced repo in the cache, e.g. :file:`/home/kaiyu/.cache/lean_dojo/leanprover-community-mathlib-2196ab363eb097c008d4497125e0dde23fb36db2`
     """
-    path = cache.get(repo.url, repo.commit)
+    path = cache.get(repo.format_dirname / repo.name)
     if path is None:
         logger.info(f"Tracing {repo}")
         with working_directory() as tmp_dir:
@@ -212,10 +212,9 @@ def get_traced_repo_path(repo: LeanGitRepo, build_deps: bool = True) -> Path:
             _trace(repo, build_deps)
             traced_repo = TracedRepo.from_traced_files(tmp_dir / repo.name, build_deps)
             traced_repo.save_to_disk()
-            # cache path: $HOME/.cache/lean_dojo/{_format_dirname}/{repo_name}
-            url, commit = get_repo_info(Path(repo.url))
-            cache_path = cache.cache_dir / _format_dirname(url, commit) / repo.name
-            path = cache.store(tmp_dir / repo.name, cache_path)
+            src_dir = tmp_dir / repo.name
+            rel_cache_dir = Path(repo.format_dirname) / repo.name
+            path = cache.store(src_dir, rel_cache_dir)
     else:
         logger.debug("The traced repo is available in the cache.")
     return path

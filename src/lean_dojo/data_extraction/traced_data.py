@@ -1031,7 +1031,7 @@ class TracedRepo:
         The function raises exceptions in case of unsuccessful checks.
         """
         logger.debug(f"Checking the sanity of {self}")
-        assert isinstance(self.repo, (LeanGitRepo, Repo))
+        assert isinstance(self.repo, LeanGitRepo)
         assert isinstance(self.dependencies, dict)
         for k, v in self.dependencies.items():
             assert isinstance(k, str) and isinstance(v, LeanGitRepo)

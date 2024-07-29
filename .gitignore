@@ -130,5 +130,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-testdata
-.vscode
+
+# vscode debug config
+.vscode/
