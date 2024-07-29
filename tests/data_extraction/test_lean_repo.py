@@ -43,6 +43,7 @@ def test_github_type(lean4_example_url, example_commit_hash):
     )
 
     ## LeanGitRepo
+    LeanGitRepo(lean4_example_url, "main")  # init with branch
     repo = LeanGitRepo(lean4_example_url, example_commit_hash)
     assert repo.url == lean4_example_url
     assert repo.repo_type == "github"
@@ -71,6 +72,7 @@ def test_remote_type(remote_example_url, example_commit_hash):
     )
 
     ## LeanGitRepo
+    LeanGitRepo(remote_example_url, "main")
     repo = LeanGitRepo(remote_example_url, example_commit_hash)
     assert repo.url == remote_example_url
     assert repo.repo_type == "remote"
@@ -117,6 +119,7 @@ def test_local_type(lean4_example_url, example_commit_hash):
         assert _to_commit_hash(repo, "v0.1.0") == example_commit_hash
 
         ## LeanGitRepo
+        LeanGitRepo(local_url, "main")
         repo = LeanGitRepo(local_url, example_commit_hash)
         repo2 = LeanGitRepo.from_path(local_url)  # test from_path
         assert repo.url == local_url == repo2.url

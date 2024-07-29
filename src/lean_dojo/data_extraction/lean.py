@@ -94,6 +94,16 @@ def repo_type_of_url(url: str) -> Union[str, None]:
     return None
 
 
+def _format_dirname(url: str, commit: str) -> str:
+    user_name, repo_name = _split_git_url(url)
+    repo_type = repo_type_of_url(url)
+    assert repo_type is not None, f"Invalid url {url}"
+    if repo_type == "github":
+        return f"{user_name}-{repo_name}-{commit}"
+    else:  # git repo
+        return f"gitpython-{repo_name}-{commit}"
+
+
 @cache
 def url_to_repo(
     url: str,
@@ -506,25 +516,29 @@ class LeanGitRepo:
         # set repo and commit
         if repo_type == "github":
             repo = url_to_repo(self.url, repo_type=repo_type)
-            # Convert tags or branches to commit hashes
-            if not is_commit_hash(self.commit):
-                if (self.url, self.commit) in info_cache.tag2commit:
-                    commit = info_cache.tag2commit[(self.url, self.commit)]
-                else:
-                    commit = _to_commit_hash(repo, self.commit)
-                    assert is_commit_hash(commit), f"Invalid commit hash: {commit}"
-                    info_cache.tag2commit[(self.url, commit)] = commit
-                object.__setattr__(self, "commit", commit)
         else:
             # get repo from cache
-            cache_repo_path = repo_cache.get(
-                REPO_CACHE_PREFIX / self.format_dirname / self.name
+            rel_cache_dir = lambda url, commit: Path(
+                f"{REPO_CACHE_PREFIX}/{_format_dirname(url, commit)}/{self.name}"
             )
-            # clone and store the repo if not in cache
-            if cache_repo_path is None:
-                cache_repo_path = self.add_to_cache()
-            repo = Repo(cache_repo_path)
-            object.__setattr__(self, "commit", _to_commit_hash(repo, self.commit))
+            cache_repo_dir = repo_cache.get(rel_cache_dir(self.url, self.commit))
+            if cache_repo_dir is None:
+                with working_directory() as tmp_dir:
+                    repo = url_to_repo(self.url, repo_type=repo_type, tmp_dir=tmp_dir)
+                    commit = _to_commit_hash(repo, self.commit)
+                    cache_repo_dir = repo_cache.store(
+                        repo.working_dir, rel_cache_dir(self.url, commit)
+                    )
+            repo = Repo(cache_repo_dir)
+        # Convert tags or branches to commit hashes
+        if not is_commit_hash(self.commit):
+            if (self.url, self.commit) in info_cache.tag2commit:
+                commit = info_cache.tag2commit[(self.url, self.commit)]
+            else:
+                commit = _to_commit_hash(repo, self.commit)
+                assert is_commit_hash(commit), f"Invalid commit hash: {commit}"
+                info_cache.tag2commit[(self.url, commit)] = commit
+            object.__setattr__(self, "commit", commit)
         object.__setattr__(self, "repo", repo)
 
         # Determine the required Lean version.
@@ -561,26 +575,10 @@ class LeanGitRepo:
         return f"{self.url}/tree/{self.commit}"
 
     @property
-    def format_dirname(self) -> str:
+    def format_dirname(self) -> Path:
         """Return the formatted cache directory name"""
-        if self.repo_type == "github":
-            user_name, repo_name = _split_git_url(self.url)
-        else:  # f"gitpython-{repo_name}-{commit}"
-            user_name, repo_name = "gitpython", self.name
-        return Path(f"{user_name}-{repo_name}-{self.commit}")
-
-    def add_to_cache(self) -> Path:
-        """Store the repo in the cache directory."""
-        assert self.repo_type in [
-            "local",
-            "remote",
-        ], f"Unsupported cache repo type: {self.repo_type}"
-        with working_directory() as tmp_dir:
-            repo = url_to_repo(self.url, repo_type=self.repo_type, tmp_dir=tmp_dir)
-            commit = _to_commit_hash(repo, self.commit)
-            repo.git.checkout(commit)
-            rel_cache_dir = REPO_CACHE_PREFIX / self.format_dirname / self.name
-            return repo_cache.store(repo.working_dir, rel_cache_dir)
+        assert is_commit_hash(self.commit), f"Invalid commit hash: {self.commit}"
+        return Path(_format_dirname(self.url, self.commit))
 
     def show(self) -> None:
         """Show the repo in the default browser."""
