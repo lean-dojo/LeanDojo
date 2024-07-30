@@ -11,7 +11,7 @@ Requirements
 
 * Supported platforms: Linux, Windows (WSL), and macOS
 * Git >= 2.25
-* 3.9 <= Python < 3.11
+* 3.9 <= Python < 3.12
 * wget
 * `elan <https://github.com/leanprover/elan>`_
 * Generate a `GitHub personal access token <https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#personal-access-tokens-classic>`_ and set the environment variable :code:`GITHUB_ACCESS_TOKEN` to it
