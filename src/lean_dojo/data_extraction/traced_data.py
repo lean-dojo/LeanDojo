@@ -15,6 +15,7 @@ from pathlib import Path
 from loguru import logger
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any, Tuple, Union
+from git import Repo
 
 from ..utils import (
     is_git_repo,

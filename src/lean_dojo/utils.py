@@ -5,7 +5,7 @@ import re
 import os
 import ray
 import time
-import urllib
+import urllib, urllib.request, urllib.error
 import typing
 import hashlib
 import tempfile
@@ -16,6 +16,7 @@ from functools import cache
 from contextlib import contextmanager
 from ray.util.actor_pool import ActorPool
 from typing import Tuple, Union, List, Generator, Optional
+from urllib.parse import urlparse
 
 from .constants import NUM_WORKERS, TMP_DIR, LEAN4_PACKAGES_DIR, LEAN4_BUILD_DIR
 
@@ -144,6 +145,34 @@ def camel_case(s: str) -> str:
     return _CAMEL_CASE_REGEX.sub(" ", s).title().replace(" ", "")
 
 
+def repo_type_of_url(url: str) -> str:
+    """Get the type of the repository.
+
+    Args:
+        url (str): The URL of the repository.
+
+    Returns:
+        str: The type of the repository.
+    """
+    parsed_url = urlparse(url)
+    if parsed_url.scheme in ["http", "https"]:
+        # case 1 - GitHub URL
+        if "github.com" in url:
+            if not url.startswith("https://"):
+                logger.warning(f"{url} should start with https://")
+                return
+            else:
+                return "github"
+        # case 2 - remote Git URL
+        else:
+            return "remote"
+    # case 3 - local path
+    elif os.path.exists(parsed_url.path):
+        return "local"
+    else:
+        logger.warning(f"{url} is not a valid URL")
+
+
 @cache
 def get_repo_info(path: Path) -> Tuple[str, str]:
     """Get the URL and commit hash of the Git repo at ``path``.
@@ -154,20 +183,12 @@ def get_repo_info(path: Path) -> Tuple[str, str]:
     Returns:
         Tuple[str, str]: URL and (most recent) hash commit
     """
-    with working_directory(path):
-        # Get the URL.
-        url_msg, _ = execute(f"git remote get-url origin", capture_output=True)
-        url = url_msg.strip()
-        # Get the commit.
-        commit_msg, _ = execute(f"git log -n 1", capture_output=True)
-        m = re.search(r"(?<=^commit )[a-z0-9]+", commit_msg)
-        assert m is not None
-        commit = m.group()
-
-    if url.startswith("git@"):
-        assert url.endswith(".git")
-        url = url[: -len(".git")].replace(":", "/").replace("git@", "https://")
-
+    url = str(path.absolute())  # use the absolute path
+    # Get the commit.
+    commit_msg, _ = execute(f"git log -n 1", capture_output=True)
+    m = re.search(r"(?<=^commit )[a-z0-9]+", commit_msg)
+    assert m is not None
+    commit = m.group()
     return url, commit
 
 
@@ -196,7 +217,11 @@ def read_url(url: str, num_retries: int = 2) -> str:
     backoff = 1
     while True:
         try:
-            with urllib.request.urlopen(url) as f:
+            request = urllib.request.Request(url)
+            gh_token = os.getenv("GITHUB_ACCESS_TOKEN")
+            if gh_token is not None:
+                request.add_header("Authorization", f"token {gh_token}")
+            with urllib.request.urlopen(request) as f:
                 return f.read().decode()
         except Exception as ex:
             if num_retries <= 0:
@@ -209,9 +234,13 @@ def read_url(url: str, num_retries: int = 2) -> str:
 
 @cache
 def url_exists(url: str) -> bool:
-    """Return True if the URL ``url`` exists."""
+    """Return True if the URL ``url`` exists, using the GITHUB_ACCESS_TOKEN for authentication if provided."""
     try:
-        with urllib.request.urlopen(url) as _:
+        request = urllib.request.Request(url)
+        gh_token = os.getenv("GITHUB_ACCESS_TOKEN")
+        if gh_token is not None:
+            request.add_header("Authorization", f"token {gh_token}")
+        with urllib.request.urlopen(request) as _:
             return True
     except urllib.error.HTTPError:
         return False

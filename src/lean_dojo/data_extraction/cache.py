@@ -8,12 +8,11 @@ from pathlib import Path
 from loguru import logger
 from filelock import FileLock
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, Generator
+from typing import Optional, Tuple, Generator, Union
 
 from ..utils import (
     execute,
     url_exists,
-    get_repo_info,
     report_critical_failure,
 )
 from ..constants import (
@@ -32,11 +31,6 @@ def _split_git_url(url: str) -> Tuple[str, str]:
     user_name = fields[-2]
     repo_name = fields[-1]
     return user_name, repo_name
-
-
-def _format_dirname(url: str, commit: str) -> str:
-    user_name, repo_name = _split_git_url(url)
-    return f"{user_name}-{repo_name}-{commit}"
 
 
 _CACHE_CORRPUTION_MSG = "The cache may have been corrputed!"
@@ -59,16 +53,16 @@ class Cache:
         lock_path = self.cache_dir.with_suffix(".lock")
         object.__setattr__(self, "lock", FileLock(lock_path))
 
-    def get(self, url: str, commit: str) -> Optional[Path]:
-        """Get the path of a traced repo with URL ``url`` and commit hash ``commit``. Return None if no such repo can be found."""
-        _, repo_name = _split_git_url(url)
-        dirname = _format_dirname(url, commit)
+    def get(self, rel_cache_dir: Path) -> Optional[Path]:
+        """Get the cache repo at ``CACHE_DIR / rel_cache_dir`` from the cache."""
+        dirname = rel_cache_dir.parent
         dirpath = self.cache_dir / dirname
+        cache_path = self.cache_dir / rel_cache_dir
 
         with self.lock:
             if dirpath.exists():
-                assert (dirpath / repo_name).exists()
-                return dirpath / repo_name
+                assert cache_path.exists()
+                return cache_path
 
             elif not DISABLE_REMOTE_CACHE:
                 url = os.path.join(REMOTE_CACHE_URL, f"{dirname}.tar.gz")
@@ -83,23 +77,27 @@ class Cache:
                     with tarfile.open(f"{dirpath}.tar.gz") as tar:
                         tar.extractall(self.cache_dir)
                     os.remove(f"{dirpath}.tar.gz")
-                    assert (dirpath / repo_name).exists()
+                    assert (cache_path).exists()
 
-                return dirpath / repo_name
+                return cache_path
 
             else:
                 return None
 
-    def store(self, src: Path) -> Path:
-        """Store a traced repo at path ``src``. Return its path in the cache."""
-        url, commit = get_repo_info(src)
-        dirpath = self.cache_dir / _format_dirname(url, commit)
-        _, repo_name = _split_git_url(url)
+    def store(self, src: Path, rel_cache_dir: Path) -> Path:
+        """Store a repo at path ``src``. Return its path in the cache.
+
+        Args:
+            src (Path): Path to the repo.
+            rel_cache_dir (Path): The relative path of the stored repo in the cache.
+        """
+        dirpath = self.cache_dir / rel_cache_dir.parent
+        cache_path = self.cache_dir / rel_cache_dir
         if not dirpath.exists():
             with self.lock:
                 with report_critical_failure(_CACHE_CORRPUTION_MSG):
-                    shutil.copytree(src, dirpath / repo_name)
-        return dirpath / repo_name
+                    shutil.copytree(src, cache_path)
+        return cache_path
 
 
 cache = Cache(CACHE_DIR)
