@@ -5,8 +5,10 @@ Objects of these classes contain only surface information, without extracting an
 import re
 import os
 import json
+import uuid
 import toml
 import time
+import shutil
 import urllib
 import webbrowser
 import shutil
@@ -20,18 +22,15 @@ from github.Repository import Repository
 from github.GithubException import GithubException
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple, Iterator
 
-from ..constants import TMP_DIR
-import uuid
-import shutil
-from urllib.parse import urlparse
-from .cache import cache as repo_cache
 from ..utils import (
     read_url,
     url_exists,
     working_directory,
     is_git_repo,
 )
-from ..constants import LEAN4_URL
+from .cache import cache as repo_cache
+from ..constants import TMP_DIR, LEAN4_URL
+
 
 GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN", None)
 """GiHub personal access token is optional. 
@@ -74,7 +73,7 @@ def repo_type_of_url(url: str) -> Union[str, None]:
     """
     m = _SSH_TO_HTTPS_REGEX.match(url)
     url = f"https://github.com/{m.group(1)}/{m.group(2)}" if m else url
-    parsed_url = urlparse(url)
+    parsed_url = urllib.parse.urlparse(url)
     if parsed_url.scheme in ["http", "https"]:
         # case 1 - GitHub URL
         if "github.com" in url:

@@ -7,8 +7,8 @@ import tarfile
 from pathlib import Path
 from loguru import logger
 from filelock import FileLock
+from typing import Optional, Generator
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, Generator
 
 from ..utils import (
     execute,
@@ -20,6 +20,7 @@ from ..constants import (
     DISABLE_REMOTE_CACHE,
     REMOTE_CACHE_URL,
 )
+
 
 _CACHE_CORRPUTION_MSG = "The cache may have been corrputed!"
 
@@ -42,7 +43,11 @@ class Cache:
         object.__setattr__(self, "lock", FileLock(lock_path))
 
     def get(self, rel_cache_dir: Path) -> Optional[Path]:
-        """Get the cache repo at ``CACHE_DIR / rel_cache_dir`` from the cache."""
+        """Get the cache repo at ``CACHE_DIR / rel_cache_dir`` from the cache.
+
+        Args:
+            rel_cache_dir (Path): The relative path of the stored repo in the cache.
+        """
         dirname = rel_cache_dir.parent
         dirpath = self.cache_dir / dirname
         cache_path = self.cache_dir / rel_cache_dir
