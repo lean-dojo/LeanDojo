@@ -204,16 +204,16 @@ def get_traced_repo_path(repo: LeanGitRepo, build_deps: bool = True) -> Path:
     Returns:
         Path: The path of the traced repo in the cache, e.g. :file:`/home/kaiyu/.cache/lean_dojo/leanprover-community-mathlib-2196ab363eb097c008d4497125e0dde23fb36db2`
     """
-    path = cache.get(repo.format_dirname / repo.name)
+    rel_cache_dir = repo.format_dirname / repo.name
+    path = cache.get(rel_cache_dir)
     if path is None:
         logger.info(f"Tracing {repo}")
         with working_directory() as tmp_dir:
             logger.debug(f"Working in the temporary directory {tmp_dir}")
             _trace(repo, build_deps)
-            traced_repo = TracedRepo.from_traced_files(tmp_dir / repo.name, build_deps)
-            traced_repo.save_to_disk()
             src_dir = tmp_dir / repo.name
-            rel_cache_dir = Path(repo.format_dirname) / repo.name
+            traced_repo = TracedRepo.from_traced_files(src_dir, build_deps)
+            traced_repo.save_to_disk()
             path = cache.store(src_dir, rel_cache_dir)
     else:
         logger.debug("The traced repo is available in the cache.")
