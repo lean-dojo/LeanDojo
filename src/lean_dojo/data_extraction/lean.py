@@ -8,8 +8,9 @@ import json
 import toml
 import time
 import urllib
-import webbrowser
 import shutil
+import tempfile
+import webbrowser
 from enum import Enum
 from pathlib import Path
 from loguru import logger
