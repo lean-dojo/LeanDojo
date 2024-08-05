@@ -37,10 +37,10 @@ def test_example_append_subset(batteries_repo: LeanGitRepo) -> None:
     thm = Theorem(
         batteries_repo,
         "Batteries/Data/List/Lemmas.lean",
-        "List.append_subset",
+        "List.disjoint_append_left",
     )
     with Dojo(thm) as (dojo, s0):
-        s1 = dojo.run_tac(s0, "simp [subset_def, or_imp, forall_and]")
+        s1 = dojo.run_tac(s0, "simp [Disjoint, or_imp, forall_and]")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_successful
 

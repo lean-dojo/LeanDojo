@@ -181,6 +181,7 @@ def cleanse_string(s: Union[str, Path]) -> str:
     return str(s).replace("/", "_").replace(":", "_")
 
 
+@cache
 def _to_commit_hash(repo: Union[Repository, Repo], label: str) -> str:
     """Convert a tag or branch to a commit hash."""
     if isinstance(repo, Repository):  # GitHub repository
