@@ -38,6 +38,7 @@ from .ast import (
     CommandTheoremNode,
     CommandModuledocNode,
     CommandNamespaceNode,
+    CommandDoccommentNode,
     CommandDeclarationNode,
     MathlibTacticLemmaNode,
     TacticTacticseqbracketedNode,
