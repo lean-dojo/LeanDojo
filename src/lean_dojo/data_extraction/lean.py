@@ -67,7 +67,7 @@ def normalize_url(url: str, repo_type: RepoType = RepoType.GITHUB) -> str:
     if repo_type == RepoType.LOCAL:  # Convert to absolute path if local.
         return os.path.abspath(url)
     # Remove trailing `/`.
-    return _URL_REGEX.fullmatch(url)["url"]
+    return _URL_REGEX.fullmatch(url)["url"]  # type: ignore
 
 
 def get_repo_type(url: str) -> Optional[RepoType]:
@@ -80,7 +80,7 @@ def get_repo_type(url: str) -> Optional[RepoType]:
     """
     m = _SSH_TO_HTTPS_REGEX.match(url)
     url = f"https://github.com/{m.group(1)}/{m.group(2)}" if m else url
-    parsed_url = urllib.parse.urlparse(url)
+    parsed_url = urllib.parse.urlparse(url)  # type: ignore
     if parsed_url.scheme in ["http", "https"]:
         # Case 1 - GitHub URL.
         if "github.com" in url:
@@ -125,7 +125,7 @@ def url_to_repo(
     url: str,
     num_retries: int = 2,
     repo_type: Optional[RepoType] = None,
-    tmp_dir: Union[Path] = None,
+    tmp_dir: Optional[Path] = None,
 ) -> Union[Repo, Repository]:
     """Convert a URL to a Repo object.
 
@@ -140,9 +140,8 @@ def url_to_repo(
     """
     url = normalize_url(url)
     backoff = 1
-    tmp_dir = tmp_dir or os.path.join(
-        TMP_DIR or "/tmp", next(tempfile._get_candidate_names())
-    )
+    if tmp_dir is None:
+        tmp_dir = (TMP_DIR or Path("/tmp")) / next(tempfile._get_candidate_names())  # type: ignore
     repo_type = repo_type or get_repo_type(url)
     assert repo_type is not None, f"Invalid url {url}"
     while True:
@@ -199,7 +198,7 @@ def _to_commit_hash(repo: Union[Repository, Repo], label: str) -> str:
             # Resolve the label to a commit hash
             return repo.commit(label).hexsha
         except Exception as ex:
-            raise ValueError(f"Error converting ref to commit hash: {e}")
+            raise ValueError(f"Error converting ref to commit hash: {ex}")
 
 
 @dataclass(eq=True, unsafe_hash=True)
@@ -446,7 +445,9 @@ def get_lean4_commit_from_config(config_dict: Dict[str, Any]) -> str:
     return _to_commit_hash(LEAN4_REPO, version)
 
 
-URL = TAG = COMMIT = str
+URL = str
+TAG = str
+COMMIT = str
 
 
 @dataclass(frozen=True)
@@ -685,13 +686,13 @@ class LeanGitRepo:
         deps = []
 
         for m in matches:
-            url = m["url"]
+            url = m["url"]  # type: ignore
             if url.endswith(".git"):
                 url = url[:-4]
             if url.startswith("git@"):
                 url = "https://" + url[4:].replace(":", "/")
 
-            rev = m["rev"]
+            rev = m["rev"]  # type: ignore
             if rev is None:
                 commit = get_latest_commit(url)
             elif len(rev) == 40 and _COMMIT_REGEX.fullmatch(rev):
@@ -703,7 +704,7 @@ class LeanGitRepo:
                     commit = get_latest_commit(url)
                 assert _COMMIT_REGEX.fullmatch(commit)
 
-            deps.append((m["name"], LeanGitRepo(url, commit)))
+            deps.append((m["name"], LeanGitRepo(url, commit)))  # type: ignore
 
         return deps
 
@@ -717,8 +718,8 @@ class LeanGitRepo:
         )
         matches = dict()
 
-        for requirement in _LAKEFILE_TOML_REQUIREMENT_REGEX.finditer(lakefile):
-            for line in requirement.strip().splitlines():
+        for req in _LAKEFILE_TOML_REQUIREMENT_REGEX.finditer(lakefile):
+            for line in req.group().strip().splitlines():
                 key, value = line.split("=")
                 key = key.strip()
                 value = value.strip()
@@ -731,7 +732,7 @@ class LeanGitRepo:
                 if key == "name":
                     matches["name"] = value
 
-        return self._parse_deps(lakefile, matches)
+        return self._parse_deps(matches)
 
     def get_license(self) -> Optional[str]:
         """Return the content of the ``LICENSE`` file."""
@@ -740,7 +741,7 @@ class LeanGitRepo:
         license_url = f"{url}/{self.commit}/LICENSE"
         try:
             return read_url(license_url)
-        except urllib.error.HTTPError:
+        except urllib.error.HTTPError:  # type: ignore
             return None
 
     def _get_config_url(self, filename: str) -> str:

@@ -54,7 +54,7 @@ def _monitor(paths: List[Path], num_total: int) -> None:
 
 
 @contextmanager
-def launch_progressbar(paths: List[Union[str, Path]]) -> Generator[None, None, None]:
+def launch_progressbar(paths: List[Path]) -> Generator[None, None, None]:
     """Launch an async progressbar to monitor the progress of tracing the repo."""
     paths = [Path(p) for p in paths]
     olean_files = list(
@@ -71,7 +71,7 @@ def get_lean_version() -> str:
     """Get the version of Lean."""
     output = execute("lean --version", capture_output=True)[0].strip()
     m = re.match(r"Lean \(version (?P<version>\S+?),", output)
-    return m["version"]
+    return m["version"]  # type: ignore
 
 
 def is_new_version(v: str) -> bool:
@@ -93,7 +93,7 @@ def is_new_version(v: str) -> bool:
         return True
 
 
-def check_files(packages_path: str, no_deps: bool) -> None:
+def check_files(packages_path: Path, no_deps: bool) -> None:
     """Check if all \*.lean files have been processed to produce \*.ast.json and \*.dep_paths files."""
     cwd = Path.cwd()
     packages_path = cwd / packages_path
@@ -142,12 +142,12 @@ def _trace(repo: LeanGitRepo, build_deps: bool) -> None:
         # Copy the Lean 4 stdlib into the path of packages.
         lean_prefix = execute(f"lean --print-prefix", capture_output=True)[0].strip()
         if is_new_version(get_lean_version()):
-            packages_path = ".lake/packages"
-            build_path = ".lake/build"
+            packages_path = Path(".lake/packages")
+            build_path = Path(".lake/build")
         else:
-            packages_path = "lake-packages"
-            build_path = "build"
-        shutil.copytree(lean_prefix, f"{packages_path}/lean4")
+            packages_path = Path("lake-packages")
+            build_path = Path("build")
+        shutil.copytree(lean_prefix, str(packages_path / "lean4"))
 
         # Run ExtractData.lean to extract ASTs, tactic states, and premise information.
         shutil.copyfile(LEAN4_DATA_EXTRACTOR_PATH, LEAN4_DATA_EXTRACTOR_PATH.name)
