@@ -13,12 +13,13 @@ import shutil
 from pathlib import Path
 from loguru import logger
 from functools import cache
+from git import Repo, BadName
 from github import Github, Auth
 from dataclasses import dataclass, field
 from github.Repository import Repository
 from github.GithubException import GithubException
 from typing import List, Dict, Any, Generator, Union, Optional, Tuple, Iterator
-from git import Repo, BadName
+
 from ..constants import TMP_DIR
 import uuid
 import shutil
@@ -28,7 +29,6 @@ from .cache import _split_git_url
 from ..utils import (
     read_url,
     url_exists,
-    get_repo_info,
     working_directory,
     is_git_repo,
 )

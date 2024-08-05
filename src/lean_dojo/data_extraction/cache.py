@@ -8,7 +8,7 @@ from pathlib import Path
 from loguru import logger
 from filelock import FileLock
 from dataclasses import dataclass, field
-from typing import Optional, Tuple, Generator, Union
+from typing import Optional, Tuple, Generator
 
 from ..utils import (
     execute,

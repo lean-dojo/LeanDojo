@@ -5,7 +5,7 @@ import re
 import os
 import ray
 import time
-import urllib, urllib.request, urllib.error
+import urllib
 import typing
 import hashlib
 import tempfile
@@ -16,7 +16,6 @@ from functools import cache
 from contextlib import contextmanager
 from ray.util.actor_pool import ActorPool
 from typing import Tuple, Union, List, Generator, Optional
-from urllib.parse import urlparse
 
 from .constants import NUM_WORKERS, TMP_DIR, LEAN4_PACKAGES_DIR, LEAN4_BUILD_DIR
 
@@ -143,53 +142,6 @@ _CAMEL_CASE_REGEX = re.compile(r"(_|-)+")
 def camel_case(s: str) -> str:
     """Convert the string ``s`` to camel case."""
     return _CAMEL_CASE_REGEX.sub(" ", s).title().replace(" ", "")
-
-
-def repo_type_of_url(url: str) -> str:
-    """Get the type of the repository.
-
-    Args:
-        url (str): The URL of the repository.
-
-    Returns:
-        str: The type of the repository.
-    """
-    parsed_url = urlparse(url)
-    if parsed_url.scheme in ["http", "https"]:
-        # case 1 - GitHub URL
-        if "github.com" in url:
-            if not url.startswith("https://"):
-                logger.warning(f"{url} should start with https://")
-                return
-            else:
-                return "github"
-        # case 2 - remote Git URL
-        else:
-            return "remote"
-    # case 3 - local path
-    elif os.path.exists(parsed_url.path):
-        return "local"
-    else:
-        logger.warning(f"{url} is not a valid URL")
-
-
-@cache
-def get_repo_info(path: Path) -> Tuple[str, str]:
-    """Get the URL and commit hash of the Git repo at ``path``.
-
-    Args:
-        path (Path): Path to the Git repo.
-
-    Returns:
-        Tuple[str, str]: URL and (most recent) hash commit
-    """
-    url = str(path.absolute())  # use the absolute path
-    # Get the commit.
-    commit_msg, _ = execute(f"git log -n 1", capture_output=True)
-    m = re.search(r"(?<=^commit )[a-z0-9]+", commit_msg)
-    assert m is not None
-    commit = m.group()
-    return url, commit
 
 
 def is_optional_type(tp: type) -> bool:
