@@ -54,7 +54,7 @@ def test_github_type(lean4_example_url, example_commit_hash):
     assert repo.commit_url == f"{lean4_example_url}/tree/{example_commit_hash}"
     # cache name
     assert isinstance(repo.repo, Repository)
-    assert str(repo.format_dirname()) == f"yangky11-{repo_name}-{example_commit_hash}"
+    assert str(repo.get_cache_dirname()) == f"yangky11-{repo_name}-{example_commit_hash}"
 
 
 def test_remote_type(remote_example_url, example_commit_hash):
@@ -83,7 +83,7 @@ def test_remote_type(remote_example_url, example_commit_hash):
     assert repo.commit_url == f"{remote_example_url}/tree/{example_commit_hash}"
     # cache name
     assert isinstance(repo.repo, Repo)
-    assert str(repo.format_dirname()) == f"gitpython-{repo_name}-{example_commit_hash}"
+    assert str(repo.get_cache_dirname()) == f"gitpython-{repo_name}-{example_commit_hash}"
 
 
 def test_local_type(lean4_example_url, example_commit_hash):
@@ -131,6 +131,6 @@ def test_local_type(lean4_example_url, example_commit_hash):
         # cache name
         assert isinstance(repo.repo, Repo) and isinstance(repo2.repo, Repo)
         assert (
-            str(repo.format_dirname()) == f"gitpython-{repo_name}-{example_commit_hash}"
+            str(repo.get_cache_dirname()) == f"gitpython-{repo_name}-{example_commit_hash}"
         )
-        assert str(repo2.format_dirname()) == f"gitpython-{repo_name}-{gh_cm_hash}"
+        assert str(repo2.get_cache_dirname()) == f"gitpython-{repo_name}-{gh_cm_hash}"

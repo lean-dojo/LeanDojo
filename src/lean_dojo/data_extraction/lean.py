@@ -587,7 +587,7 @@ class LeanGitRepo:
     def commit_url(self) -> str:
         return f"{self.url}/tree/{self.commit}"
 
-    def format_dirname(self) -> Path:
+    def get_cache_dirname(self) -> Path:
         """Return the formatted cache directory name"""
         assert is_commit_hash(self.commit), f"Invalid commit hash: {self.commit}"
         return Path(_format_cache_dirname(self.url, self.commit))
