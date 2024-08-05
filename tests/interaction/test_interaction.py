@@ -1,15 +1,17 @@
-from lean_dojo import LeanGitRepo, Dojo, ProofFinished, ProofGivenUp, Theorem
-from lean_dojo.utils import working_directory
-from git import Repo
 import os
+from git import Repo
+from lean_dojo.utils import working_directory
+from lean_dojo.data_extraction.lean import RepoType
+from lean_dojo import LeanGitRepo, Dojo, ProofFinished, ProofGivenUp, Theorem
+
 
 # Avoid using remote cache
-os.environ["DISABLE_REMOTE_CACHE"] = "true"
+os.environ["DISABLE_REMOTE_CACHE"] = "1"
 
 
 def test_github_interact(lean4_example_url):
     repo = LeanGitRepo(url=lean4_example_url, commit="main")
-    assert repo.repo_type == "github"
+    assert repo.repo_type == RepoType.GITHUB
     theorem = Theorem(repo, "Lean4Example.lean", "hello_world")
     # initial state
     dojo, state_0 = Dojo(theorem).__enter__()
@@ -26,7 +28,7 @@ def test_github_interact(lean4_example_url):
 
 def test_remote_interact(remote_example_url):
     repo = LeanGitRepo(url=remote_example_url, commit="main")
-    assert repo.repo_type == "remote"
+    assert repo.repo_type == RepoType.REMOTE
     theorem = Theorem(repo, "Lean4Example.lean", "hello_world")
     # initial state
     dojo, state_0 = Dojo(theorem).__enter__()
@@ -49,7 +51,7 @@ def test_local_interact(lean4_example_url):
 
         local_dir = str((tmp_dir / "lean4-example"))
         repo = LeanGitRepo(local_dir, commit="main")
-        assert repo.repo_type == "local"
+        assert repo.repo_type == RepoType.LOCAL
         theorem = Theorem(repo, "Lean4Example.lean", "hello_world")
         # initial state
         dojo, state_0 = Dojo(theorem).__enter__()
