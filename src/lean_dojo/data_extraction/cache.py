@@ -21,18 +21,6 @@ from ..constants import (
     REMOTE_CACHE_URL,
 )
 
-
-def _split_git_url(url: str) -> Tuple[str, str]:
-    """Split a Git URL into user name and repo name."""
-    if url.endswith("/"):
-        url = url[:-1]
-        assert not url.endswith("/"), f"Unexpected URL: {url}"
-    fields = url.split("/")
-    user_name = fields[-2]
-    repo_name = fields[-1]
-    return user_name, repo_name
-
-
 _CACHE_CORRPUTION_MSG = "The cache may have been corrputed!"
 
 

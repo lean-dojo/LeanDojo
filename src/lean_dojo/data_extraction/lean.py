@@ -25,7 +25,6 @@ import uuid
 import shutil
 from urllib.parse import urlparse
 from .cache import cache as repo_cache
-from .cache import _split_git_url
 from ..utils import (
     read_url,
     url_exists,
@@ -92,6 +91,17 @@ def repo_type_of_url(url: str) -> Union[str, None]:
         return "local"
     logger.warning(f"{url} is not a valid URL")
     return None
+
+
+def _split_git_url(url: str) -> Tuple[str, str]:
+    """Split a Git URL into user name and repo name."""
+    if url.endswith("/"):
+        url = url[:-1]
+        assert not url.endswith("/"), f"Unexpected URL: {url}"
+    fields = url.split("/")
+    user_name = fields[-2]
+    repo_name = fields[-1]
+    return user_name, repo_name
 
 
 def _format_dirname(url: str, commit: str) -> str:
