@@ -539,7 +539,7 @@ class TracedFile:
     def _from_lean4_traced_file(
         cls, root_dir: Path, json_path: Path, repo: LeanGitRepo
     ) -> "TracedFile":
-        lean_path = to_lean_path(root_dir, json_path, repo)
+        lean_path = to_lean_path(root_dir, json_path)
         lean_file = LeanFile(root_dir, lean_path)
 
         data = json.load(json_path.open())
@@ -922,7 +922,7 @@ class TracedFile:
         root_dir = Path(root_dir)
         path = Path(path)
         assert path.suffixes == [".trace", ".xml"]
-        lean_path = to_lean_path(root_dir, path, repo)
+        lean_path = to_lean_path(root_dir, path)
         lean_file = LeanFile(root_dir, lean_path)
 
         tree = etree.parse(path).getroot()
