@@ -15,4 +15,4 @@ jobs:
       - name: Install dependencies
         run: pip install ".[all]"
       - name: Type Check (mypy)
-        run: mypy src/lean_dojo/interaction 
+        run: mypy src/lean_dojo

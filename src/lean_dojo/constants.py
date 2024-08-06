@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-__version__ = "2.0.3"
+__version__ = "2.1.0"
 
 logger.remove()
 if "VERBOSE" in os.environ or "DEBUG" in os.environ:
@@ -71,15 +71,16 @@ TACTIC_MEMORY_LIMIT = os.getenv("TACTIC_MEMORY_LIMIT", "32g")
 assert re.fullmatch(r"\d+g", TACTIC_MEMORY_LIMIT)
 
 
-def check_git_version(min_version: Tuple[int, int, int]) -> Tuple[int, int, int]:
+def check_git_version(min_version: Tuple[int, int, int]) -> None:
     """Check the version of Git installed on the system."""
     res = subprocess.run("git --version", shell=True, capture_output=True, check=True)
-    output = res.stdout.decode()
+    output = res.stdout.decode().strip()
     error = res.stderr.decode()
     assert error == "", error
-    m = re.match(r"git version (?P<version>[0-9.]+)", output)
-    version = tuple(int(_) for _ in m["version"].split("."))
-
+    m = re.search(r"git version (\d+\.\d+\.\d+)", output)
+    assert m, f"Could not parse Git version from: {output}"
+    # Convert version number string to tuple of integers
+    version = tuple(int(_) for _ in m.group(1).split("."))
     version_str = ".".join(str(_) for _ in version)
     min_version_str = ".".join(str(_) for _ in min_version)
     assert (

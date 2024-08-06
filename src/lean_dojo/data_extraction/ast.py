@@ -27,7 +27,7 @@ class Node:
         return subcls.from_data(node_data, lean_file)
 
     @classmethod
-    def _kind_to_node_type(cls, kind: str) -> type:
+    def _kind_to_node_type(cls, kind: str) -> type["Node"]:
         prefix = "Lean.Parser."
         if kind.startswith(prefix):
             kind = kind[len(prefix) :]
@@ -83,7 +83,7 @@ class Node:
         start = Pos.from_str(tree.attrib["start"]) if "start" in tree.attrib else None
         end = Pos.from_str(tree.attrib["end"]) if "end" in tree.attrib else None
         children = [Node.from_xml(subtree, lean_file) for subtree in tree]
-        kwargs = {}
+        kwargs: Dict[str, Any] = {}
 
         for field in subcls.__dataclass_fields__.values():
             if field.name in ("lean_file", "start", "end", "children"):
@@ -113,11 +113,13 @@ class Node:
 
         return subcls(lean_file, start, end, children, **kwargs)  # type: ignore
 
-    def get_closure(self) -> Tuple[Pos, Pos]:
+    def get_closure(self) -> Tuple[Optional[Pos], Optional[Pos]]:
         return self.start, self.end
 
 
-def _parse_pos(info: Dict[str, Any], lean_file: LeanFile) -> Pos:
+def _parse_pos(
+    info: Dict[str, Any], lean_file: LeanFile
+) -> Optional[Tuple[Optional[Pos], Optional[Pos]]]:
     if "synthetic" in info and not info["synthetic"]["canonical"]:
         return None
 

@@ -37,10 +37,10 @@ def test_example_append_subset(batteries_repo: LeanGitRepo) -> None:
     thm = Theorem(
         batteries_repo,
         "Batteries/Data/List/Lemmas.lean",
-        "List.append_subset",
+        "List.disjoint_append_left",
     )
     with Dojo(thm) as (dojo, s0):
-        s1 = dojo.run_tac(s0, "simp [subset_def, or_imp, forall_and]")
+        s1 = dojo.run_tac(s0, "simp [Disjoint, or_imp, forall_and]")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_successful
 
@@ -130,10 +130,10 @@ def test_example_length_le(batteries_repo: LeanGitRepo) -> None:
     thm = Theorem(
         batteries_repo,
         "Batteries/Data/List/Lemmas.lean",
-        "List.IsSuffix.length_le",
+        "List.disjoint_of_disjoint_append_right_right",
     )
     with Dojo(thm) as (dojo, s0):
-        s1 = dojo.run_tac(s0, "exact h.sublist.length_le")
+        s1 = dojo.run_tac(s0, "exact (disjoint_append_right.1 d).2")
         assert isinstance(s1, ProofFinished)
         assert dojo.is_successful
 

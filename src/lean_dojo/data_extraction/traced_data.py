@@ -25,7 +25,29 @@ from ..utils import (
     to_json_path,
     to_xml_path,
 )
-from .ast import *
+from .ast import (
+    Node,
+    FileNode,
+    OtherNode,
+    LemmaNode,
+    IdentNode,
+    CommandEndNode,
+    ModuleImportNode,
+    ModulePreludeNode,
+    CommandSectionNode,
+    CommandTheoremNode,
+    CommandModuledocNode,
+    CommandNamespaceNode,
+    CommandDoccommentNode,
+    CommandDeclarationNode,
+    MathlibTacticLemmaNode,
+    TacticTacticseqbracketedNode,
+    TacticTacticseq1IndentedNode,
+    CommandNoncomputablesectionNode,
+    is_leaf,
+    is_mutual_lean4,
+    is_potential_premise_lean4,
+)
 from .lean import LeanFile, LeanGitRepo, Theorem, Pos
 from ..constants import NUM_WORKERS, LOAD_USED_PACKAGES_ONLY, LEAN4_PACKAGES_DIR
 
@@ -184,7 +206,10 @@ class TracedTactic:
         Returns:
             Tuple[str, List[Dict[str, Any]]]: The first return value is the tactic string marked by ``<a> ... </a>``. The second return value is a list of provenances.
         """
-        assert self.traced_theorem != None
+        assert (
+            self.traced_theorem is not None
+            and self.traced_theorem.traced_file is not None
+        )
         lean_file = self.traced_theorem.traced_file.lean_file
         annot_tac = []
         provenances = []
@@ -243,7 +268,9 @@ class TracedTheorem:
 
     def __post_init__(self) -> None:
         assert (
-            self.root_dir.is_absolute() and self.root_dir == self.traced_file.root_dir
+            self.root_dir.is_absolute()
+            and self.traced_file is not None
+            and self.root_dir == self.traced_file.root_dir
         )
 
     def __getstate__(self) -> Dict[str, Any]:
@@ -272,7 +299,7 @@ class TracedTheorem:
         return self.theorem.file_path
 
     @property
-    def traced_repo(self) -> "TracedRepo":
+    def traced_repo(self) -> Optional["TracedRepo"]:
         """The traced repo this theorem belongs to."""
         if self.traced_file is None:
             return None
@@ -325,24 +352,10 @@ class TracedTheorem:
     def get_theorem_statement(self) -> str:
         """Return the theorem statement."""
         proof_start, _ = self.locate_proof()
+        assert self.traced_file is not None
         return get_code_without_comments(
             self.traced_file.lean_file, self.ast.start, proof_start, self.comments
         )
-
-    def get_single_tactic_proof(self) -> Optional[str]:
-        """Wrap the proof into a single (potentially very long) tactic."""
-        if not self.has_tactic_proof():
-            return None
-        node = self.get_proof_node()
-        start, end = node.get_closure()
-        proof = get_code_without_comments(node.lean_file, start, end, self.comments)
-
-        raise NotImplementedError
-        assert isinstance(node.children[0], AtomNode) and node.children[0].val == "by"
-        assert proof.startswith("by")
-        proof = proof[len("by") :].strip()
-
-        return proof
 
     def get_premise_full_names(self) -> List[str]:
         """Return the fully qualified names of all premises used in the proof."""
@@ -526,7 +539,7 @@ class TracedFile:
     def _from_lean4_traced_file(
         cls, root_dir: Path, json_path: Path, repo: LeanGitRepo
     ) -> "TracedFile":
-        lean_path = to_lean_path(root_dir, json_path, repo)
+        lean_path = to_lean_path(root_dir, json_path)
         lean_file = LeanFile(root_dir, lean_path)
 
         data = json.load(json_path.open())
@@ -712,6 +725,7 @@ class TracedFile:
 
     def _get_repo_and_relative_path(self) -> Tuple[LeanGitRepo, Path]:
         """Return the repo this file belongs to, as well as the file's path relative to it."""
+        assert self.traced_repo is not None
         if self.path.is_relative_to(LEAN4_PACKAGES_DIR):
             # The theorem belongs to one of the dependencies.
             p = self.path.relative_to(LEAN4_PACKAGES_DIR)
@@ -737,24 +751,26 @@ class TracedFile:
 
         def _callback(
             node: Union[CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode], _
-        ) -> None:
+        ) -> bool:
             nonlocal result, private_result
-            if not isinstance(
-                node,
-                (
-                    CommandTheoremNode,
-                    LemmaNode,
-                    MathlibTacticLemmaNode,
-                ),
+            if (
+                isinstance(
+                    node,
+                    (
+                        CommandTheoremNode,
+                        LemmaNode,
+                        MathlibTacticLemmaNode,
+                    ),
+                )
+                and node.full_name == thm.full_name
             ):
-                return False
-            if node.full_name == thm.full_name:
                 comments = self._filter_comments(node.start, node.end)
                 t = TracedTheorem(self.root_dir, thm, node, comments, self)
                 if t.is_private:
                     private_result = t
                 else:
                     result = t
+            return False
 
         self.ast.traverse_preorder(_callback, node_cls=None)
 
@@ -769,7 +785,7 @@ class TracedFile:
 
         def _callback(
             node: Union[CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode], _
-        ) -> None:
+        ) -> bool:
             if not isinstance(
                 node,
                 (
@@ -906,7 +922,7 @@ class TracedFile:
         root_dir = Path(root_dir)
         path = Path(path)
         assert path.suffixes == [".trace", ".xml"]
-        lean_path = to_lean_path(root_dir, path, repo)
+        lean_path = to_lean_path(root_dir, path)
         lean_file = LeanFile(root_dir, lean_path)
 
         tree = etree.parse(path).getroot()
@@ -1128,6 +1144,7 @@ class TracedRepo:
 
     def get_traced_file(self, path: Union[str, Path]) -> TracedFile:
         """Return a traced file by its path."""
+        assert self.traced_files_graph is not None
         return self.traced_files_graph.nodes[str(path)]["traced_file"]
 
     def _update_traced_files(self) -> None:

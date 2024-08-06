@@ -71,7 +71,7 @@ def ray_actor_pool(
     """
     assert not ray.is_initialized()
     ray.init()
-    pool = ActorPool([actor_cls.remote(*args, **kwargs) for _ in range(NUM_WORKERS)])
+    pool = ActorPool([actor_cls.remote(*args, **kwargs) for _ in range(NUM_WORKERS)])  # type: ignore
     try:
         yield pool
     finally:
@@ -144,33 +144,6 @@ def camel_case(s: str) -> str:
     return _CAMEL_CASE_REGEX.sub(" ", s).title().replace(" ", "")
 
 
-@cache
-def get_repo_info(path: Path) -> Tuple[str, str]:
-    """Get the URL and commit hash of the Git repo at ``path``.
-
-    Args:
-        path (Path): Path to the Git repo.
-
-    Returns:
-        Tuple[str, str]: URL and (most recent) hash commit
-    """
-    with working_directory(path):
-        # Get the URL.
-        url_msg, _ = execute(f"git remote get-url origin", capture_output=True)
-        url = url_msg.strip()
-        # Get the commit.
-        commit_msg, _ = execute(f"git log -n 1", capture_output=True)
-        m = re.search(r"(?<=^commit )[a-z0-9]+", commit_msg)
-        assert m is not None
-        commit = m.group()
-
-    if url.startswith("git@"):
-        assert url.endswith(".git")
-        url = url[: -len(".git")].replace(":", "/").replace("git@", "https://")
-
-    return url, commit
-
-
 def is_optional_type(tp: type) -> bool:
     """Test if ``tp`` is Optional[X]."""
     if typing.get_origin(tp) != Union:
@@ -181,8 +154,7 @@ def is_optional_type(tp: type) -> bool:
 
 def remove_optional_type(tp: type) -> type:
     """Given Optional[X], return X."""
-    if typing.get_origin(tp) != Union:
-        return False
+    assert typing.get_origin(tp) == Union
     args = typing.get_args(tp)
     if len(args) == 2 and args[1] == type(None):
         return args[0]
@@ -196,7 +168,11 @@ def read_url(url: str, num_retries: int = 2) -> str:
     backoff = 1
     while True:
         try:
-            with urllib.request.urlopen(url) as f:
+            request = urllib.request.Request(url)  # type: ignore
+            gh_token = os.getenv("GITHUB_ACCESS_TOKEN")
+            if gh_token is not None:
+                request.add_header("Authorization", f"token {gh_token}")
+            with urllib.request.urlopen(request) as f:  # type: ignore
                 return f.read().decode()
         except Exception as ex:
             if num_retries <= 0:
@@ -209,11 +185,15 @@ def read_url(url: str, num_retries: int = 2) -> str:
 
 @cache
 def url_exists(url: str) -> bool:
-    """Return True if the URL ``url`` exists."""
+    """Return True if the URL ``url`` exists, using the GITHUB_ACCESS_TOKEN for authentication if provided."""
     try:
-        with urllib.request.urlopen(url) as _:
+        request = urllib.request.Request(url)  # type: ignore
+        gh_token = os.getenv("GITHUB_ACCESS_TOKEN")
+        if gh_token is not None:
+            request.add_header("Authorization", f"token {gh_token}")
+        with urllib.request.urlopen(request) as _:  # type: ignore
             return True
-    except urllib.error.HTTPError:
+    except urllib.error.HTTPError:  # type: ignore
         return False
 
 
@@ -279,7 +259,7 @@ def to_json_path(root_dir: Path, path: Path, repo) -> Path:
     return _from_lean_path(root_dir, path, repo, ext=".ast.json")
 
 
-def to_lean_path(root_dir: Path, path: Path, repo) -> bool:
+def to_lean_path(root_dir: Path, path: Path) -> Path:
     if path.is_absolute():
         path = path.relative_to(root_dir)
 
