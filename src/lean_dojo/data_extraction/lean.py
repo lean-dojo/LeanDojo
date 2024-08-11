@@ -736,15 +736,23 @@ class LeanGitRepo:
 
     def get_license(self) -> Optional[str]:
         """Return the content of the ``LICENSE`` file."""
-        assert "github.com" in self.url, f"Unsupported URL: {self.url}"
-        url = self.url.replace("github.com", "raw.githubusercontent.com")
-        license_url = f"{url}/{self.commit}/LICENSE"
-        try:
-            return read_url(license_url)
-        except urllib.error.HTTPError:  # type: ignore
-            return None
+        if self.repo_type == RepoType.GITHUB:
+            assert "github.com" in self.url, f"Unsupported URL: {self.url}"
+            url = self.url.replace("github.com", "raw.githubusercontent.com")
+            license_url = f"{url}/{self.commit}/LICENSE"
+            try:
+                return read_url(license_url)
+            except urllib.error.HTTPError:  # type: ignore
+                return None
+        else:
+            license_path = Path(self.repo.working_dir) / "LICENSE"
+            if license_path.exists():
+                return license_path.open("r").read()
+            else:
+                return None
 
     def _get_config_url(self, filename: str) -> str:
+        assert self.repo_type == RepoType.GITHUB
         assert "github.com" in self.url, f"Unsupported URL: {self.url}"
         url = self.url.replace("github.com", "raw.githubusercontent.com")
         return f"{url}/{self.commit}/{filename}"
@@ -767,13 +775,21 @@ class LeanGitRepo:
 
     def uses_lakefile_lean(self) -> bool:
         """Check if the repo uses a ``lakefile.lean``."""
-        url = self._get_config_url("lakefile.lean")
-        return url_exists(url)
+        if self.repo_type == RepoType.GITHUB:
+            url = self._get_config_url("lakefile.lean")
+            return url_exists(url)
+        else:
+            lakefile_path = Path(self.repo.working_dir) / "lakefile.lean"
+            return lakefile_path.exists()
 
     def uses_lakefile_toml(self) -> bool:
         """Check if the repo uses a ``lakefile.toml``."""
-        url = self._get_config_url("lakefile.toml")
-        return url_exists(url)
+        if self.repo_type == RepoType.GITHUB:
+            url = self._get_config_url("lakefile.toml")
+            return url_exists(url)
+        else:
+            lakefile_path = Path(self.repo.working_dir) / "lakefile.toml"
+            return lakefile_path.exists()
 
 
 @dataclass(frozen=True)
