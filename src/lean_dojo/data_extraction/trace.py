@@ -189,7 +189,8 @@ def _trace(repo: LeanGitRepo, build_deps: bool) -> None:
 
 def is_available_in_cache(repo: LeanGitRepo) -> bool:
     """Check if ``repo`` has a traced repo available in the cache (including the remote cache)."""
-    return cache.get(repo.url, repo.commit) is not None
+    rel_cache_dir = repo.get_cache_dirname() / repo.name
+    return cache.get(rel_cache_dir) is not None
 
 
 def get_traced_repo_path(repo: LeanGitRepo, build_deps: bool = True) -> Path:
