@@ -364,7 +364,7 @@ class TracedTheorem:
         """Return the fully qualified names of all premises used in the proof."""
         names = []
 
-        def _callback(node: "IdentNode", _: List[Node]):
+        def _callback(node: IdentNode, _: List[Node]):
             if node.full_name is not None:
                 names.append(node.full_name)
 
