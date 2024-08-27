@@ -2,9 +2,7 @@ from lxml import etree
 from pathlib import Path
 from dataclasses import dataclass, field
 from xml.sax.saxutils import escape, unescape
-from typing import List, Dict, Any, Optional, Callable, Tuple, Generator, TypeVar, Union, cast, Protocol, Type, Generic, \
-    TypeGuard
-from typing_extensions import Self
+from typing import List, Dict, Any, Optional, Callable, Tuple, Generator, TypeVar, Union, cast, Protocol, Type
 
 from ..utils import (
     camel_case,
