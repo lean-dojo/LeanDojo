@@ -562,7 +562,7 @@ class CommandDeclmodifiersNode(Node):
     def is_private(self) -> bool:
         result = False
 
-        def _callback(node: "CommandDeclmodifiersNode", _) -> bool:
+        def _callback(node: "CommandPrivateNode", _) -> bool:
             nonlocal result
             result = True
             return True
