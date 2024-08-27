@@ -2,7 +2,9 @@ from lxml import etree
 from pathlib import Path
 from dataclasses import dataclass, field
 from xml.sax.saxutils import escape, unescape
-from typing import List, Dict, Any, Optional, Callable, Tuple, Generator
+from typing import List, Dict, Any, Optional, Callable, Tuple, Generator, TypeVar, Union, cast, Protocol, Type, Generic, \
+    TypeGuard
+from typing_extensions import Self
 
 from ..utils import (
     camel_case,
@@ -13,6 +15,8 @@ from ..utils import (
 )
 from .lean import Pos, LeanFile
 
+T = TypeVar("T", bound="Node")
+
 
 @dataclass(frozen=True)
 class Node:
@@ -22,7 +26,7 @@ class Node:
     children: List["Node"] = field(repr=False)
 
     @classmethod
-    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "Node":
+    def from_data(cls: Type[T], node_data: Dict[str, Any], lean_file: LeanFile) -> T:
         subcls = cls._kind_to_node_type(node_data["kind"])
         return subcls.from_data(node_data, lean_file)
 
@@ -78,7 +82,7 @@ class Node:
             child.to_xml(tree)
 
     @classmethod
-    def from_xml(cls, tree: etree.Element, lean_file: LeanFile) -> "Node":
+    def from_xml(cls: Type[T], tree: etree.Element, lean_file: LeanFile) -> T:
         subcls = globals()[tree.tag]
         start = Pos.from_str(tree.attrib["start"]) if "start" in tree.attrib else None
         end = Pos.from_str(tree.attrib["end"]) if "end" in tree.attrib else None
@@ -148,10 +152,12 @@ class AtomNode(Node):
     @classmethod
     def from_data(
         cls, atom_data: Dict[str, Any], lean_file: LeanFile
-    ) -> Optional["AtomNode"]:
+    ) -> "AtomNode":
         info = atom_data["info"]
-        start, end = _parse_pos(info, lean_file)
-
+        pos_pair = _parse_pos(info, lean_file)
+        if pos_pair is None:
+            raise ValueError("Synthetic atom nodes are not supported")
+        start, end = pos_pair
         if "original" in info:
             leading = info["original"]["leading"]
             trailing = info["original"]["trailing"]
@@ -179,9 +185,12 @@ class IdentNode(Node):
     @classmethod
     def from_data(
         cls, ident_data: Dict[str, Any], lean_file: LeanFile
-    ) -> Optional["IdentNode"]:
+    ) -> "IdentNode":
         info = ident_data["info"]
-        start, end = _parse_pos(info, lean_file)
+        pos_pair = _parse_pos(info, lean_file)
+        if pos_pair is None:
+            raise ValueError("Synthetic ident nodes are not supported")
+        start, end = pos_pair
         assert ident_data["preresolved"] == []
 
         if "original" in info:
@@ -212,10 +221,14 @@ def is_leaf(node: Node) -> bool:
     return isinstance(node, AtomNode) or isinstance(node, IdentNode)
 
 
+def filter_leaf(nodes: List[Node]) -> List[Union[AtomNode | IdentNode]]:
+    return [node for node in nodes if isinstance(node, (AtomNode, IdentNode))]
+
+
 @dataclass(frozen=True)
 class FileNode(Node):
     @classmethod
-    def from_data(cls, data: Dict[str, Any], lean_file: LeanFile) -> "FileNode":
+    def from_data(cls: Type[T], data: Dict[str, Any], lean_file: LeanFile) -> T:
         children = []
 
         def _get_closure(node: Node, child_spans: List[Tuple[Pos, Pos]]):
@@ -316,7 +329,7 @@ class IdentAntiquotNode(Node):
         return cls(lean_file, start, end, children)
 
     def get_ident(self) -> str:
-        return "".join(gc.val for gc in self.children if is_leaf(gc))
+        return "".join(gc.val for gc in filter_leaf(self.children))
 
 
 @dataclass(frozen=True)
@@ -363,7 +376,9 @@ class GroupNode(Node):
 class MathlibTacticLemmaNode(Node):
     name: str
     full_name: Optional[str] = None
-    _is_private_decl: Optional[bool] = (
+    # If the Private usage state is False, the user will not explicitly use the parameter None.
+    # And False and None are handled in the same way, so there is no need to use Optional.
+    _is_private_decl: bool = (
         False  # `_is_private` doesn't play well with lxml.
     )
 
@@ -412,9 +427,11 @@ class MathlibTacticLemmaNode(Node):
 
 @dataclass(frozen=True)
 class LemmaNode(Node):
-    name: str
+    name: Optional[str]
     full_name: Optional[str] = None
-    _is_private_decl: Optional[bool] = (
+    # If the Private usage state is False, the user will not explicitly use the parameter None.
+    # And False and None are handled in the same way, so there is no need to use Optional.
+    _is_private_decl: bool = (
         False  # `_is_private` doesn't play well with lxml.
     )
 
@@ -468,7 +485,7 @@ class LemmaNode(Node):
 
 @dataclass(frozen=True)
 class CommandDeclarationNode(Node):
-    name: str
+    name: Optional[str]
     full_name: Optional[str] = None
 
     @classmethod
@@ -514,7 +531,7 @@ class CommandDeclarationNode(Node):
 
     def get_theorem_node(self) -> "CommandTheoremNode":
         assert self.is_theorem
-        return self.children[1]
+        return cast(CommandTheoremNode, self.children[1])
 
     @property
     def is_example(self) -> bool:
@@ -547,7 +564,7 @@ class CommandDeclmodifiersNode(Node):
     def is_private(self) -> bool:
         result = False
 
-        def _callback(node: CommandPrivateNode, _) -> bool:
+        def _callback(node: "CommandDeclmodifiersNode", _) -> bool:
             nonlocal result
             result = True
             return True
@@ -630,7 +647,7 @@ class CommandClasstkNode(Node):
 
 @dataclass(frozen=True)
 class CommandStructureNode(Node):
-    name: str
+    name: Optional[str]
 
     @classmethod
     def from_data(
@@ -682,7 +699,7 @@ class CommandInductiveNode(Node):
 
 @dataclass(frozen=True)
 class CommandClassinductiveNode(Node):
-    name: str
+    name: Optional[str]
 
     @classmethod
     def from_data(
@@ -776,7 +793,7 @@ class LeanBinderidentAntiquotNode(Node):
 
 @dataclass(frozen=True)
 class StdTacticAliasAliasNode(Node):
-    name: str
+    name: Optional[str]
     full_name: Optional[str] = None
 
     @classmethod
@@ -826,9 +843,13 @@ class StdTacticAliasAliaslrNode(Node):
             children[5], (LeanBinderidentNode, LeanBinderidentAntiquotNode)
         )
         name.append(children[5].get_ident())
-        name = [n for n in name if n is not None]
 
-        return cls(lean_file, start, end, children, name)
+        def _filter_names(name_lst: List[str | None]) -> List[str]:
+            return [n for n in name_lst if n is not None]
+
+        names = _filter_names(name)
+
+        return cls(lean_file, start, end, children, names)
 
     @property
     def is_mutual(self) -> bool:
@@ -837,7 +858,7 @@ class StdTacticAliasAliaslrNode(Node):
 
 @dataclass(frozen=True)
 class CommandAbbrevNode(Node):
-    name: str
+    name: Optional[str]
 
     @classmethod
     def from_data(
@@ -862,7 +883,7 @@ class CommandAbbrevNode(Node):
 
 @dataclass(frozen=True)
 class CommandOpaqueNode(Node):
-    name: str
+    name: Optional[str]
 
     @classmethod
     def from_data(
@@ -887,7 +908,7 @@ class CommandOpaqueNode(Node):
 
 @dataclass(frozen=True)
 class CommandAxiomNode(Node):
-    name: str
+    name: Optional[str]
 
     @classmethod
     def from_data(
@@ -912,7 +933,7 @@ class CommandAxiomNode(Node):
 
 @dataclass(frozen=True)
 class CommandExampleNode(Node):
-    name: str
+    name: Optional[str]
 
     @classmethod
     def from_data(
@@ -928,7 +949,7 @@ class CommandExampleNode(Node):
 
 @dataclass(frozen=True)
 class CommandInstanceNode(Node):
-    name: str
+    name: Optional[str]
 
     @classmethod
     def from_data(
@@ -957,7 +978,7 @@ class CommandInstanceNode(Node):
 
 @dataclass(frozen=True)
 class CommandDefNode(Node):
-    name: str
+    name: Optional[str]
 
     @classmethod
     def from_data(
@@ -988,7 +1009,7 @@ class CommandDefNode(Node):
 
 @dataclass(frozen=True)
 class CommandDefinitionNode(Node):
-    name: str
+    name: Optional[str]
 
     @classmethod
     def from_data(
@@ -1127,9 +1148,11 @@ class TermTypespecNode(Node):
 
 @dataclass(frozen=True)
 class CommandTheoremNode(Node):
-    name: str
+    name: Optional[str]
     full_name: Optional[str] = None
-    _is_private_decl: Optional[bool] = (
+    # If the Private usage state is False, the user will not explicitly use the parameter None.
+    # And False and None are handled in the same way, so there is no need to use Optional.
+    _is_private_decl: bool = (
         False  # `_is_private` doesn't play well with lxml.
     )
 
@@ -1216,6 +1239,15 @@ class TermBytacticNode(Node):
         return cls(lean_file, start, end, children)
 
 
+class TacticProtocol(Protocol):
+    def get_tactic_nodes(self, atomic_only: bool = False) -> Generator[Node, None, None]:
+        ...
+
+
+class TacticNode(Node, TacticProtocol):
+    ...
+
+
 @dataclass(frozen=True)
 class TacticTacticseq1IndentedAntiquotNode(Node):
     @classmethod
@@ -1229,7 +1261,7 @@ class TacticTacticseq1IndentedAntiquotNode(Node):
 
     def get_tactic_nodes(
         self, atomic_only: bool = False
-    ) -> Generator[Node, None, None]:
+    ) -> None:
         return
 
 
@@ -1255,7 +1287,8 @@ class TacticTacticseqNode(Node):
     def get_tactic_nodes(
         self, atomic_only: bool = False
     ) -> Generator[Node, None, None]:
-        yield from self.children[0].get_tactic_nodes(atomic_only)
+        child = cast(TacticNode, self.children[0])
+        yield from child.get_tactic_nodes(atomic_only)
 
 
 @dataclass(frozen=True)
@@ -1344,6 +1377,7 @@ def contains_tactic(node: Node) -> bool:
             nonlocal result
             result = True
             return True
+        return False
 
     node.traverse_preorder(_callback, node_cls=None)
     return result
@@ -1355,18 +1389,6 @@ class ModuleHeaderNode(Node):
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
     ) -> "ModuleHeaderNode":
-        assert node_data["info"] == "none"
-        start, end = None, None
-        children = _parse_children(node_data, lean_file)
-        return cls(lean_file, start, end, children)
-
-
-@dataclass(frozen=True)
-class ModulePreludeNode(Node):
-    @classmethod
-    def from_data(
-        cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "ModulePreludeNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)
@@ -1419,8 +1441,9 @@ class CommandModuledocNode(Node):
         start, end = None, None
         children = _parse_children(node_data, lean_file)
         assert len(children) == 2 and all(isinstance(_, AtomNode) for _ in children)
-        assert children[0].val == "/-!"
-        comment = children[1].val
+        cast_children = cast(List[AtomNode], children)
+        assert cast_children[0].val == "/-!"
+        comment = cast_children[1].val
         return cls(lean_file, start, end, children, comment)
 
 
@@ -1436,14 +1459,15 @@ class CommandDoccommentNode(Node):
         start, end = None, None
         children = _parse_children(node_data, lean_file)
         assert len(children) == 2 and all(isinstance(_, AtomNode) for _ in children)
-        assert children[0].val == "/--"
-        comment = children[1].val
+        cast_children = cast(List[AtomNode], children)
+        assert cast_children[0].val == "/--"
+        comment = cast_children[1].val
         return cls(lean_file, start, end, children, comment)
 
 
 @dataclass(frozen=True)
 class CommandNamespaceNode(Node):
-    name: str
+    name: Optional[str]
 
     @classmethod
     def from_data(
@@ -1470,7 +1494,7 @@ class CommandSectionNode(Node):
     @classmethod
     def from_data(
         cls, node_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "CommandNamespaceNode":
+    ) -> "CommandSectionNode":
         assert node_data["info"] == "none"
         start, end = None, None
         children = _parse_children(node_data, lean_file)

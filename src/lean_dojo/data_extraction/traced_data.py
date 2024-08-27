@@ -126,7 +126,7 @@ def get_code_without_comments(
 
     for c in comments:
         if base <= c.start and c.end <= end:
-            code_segs.append(lean_file[base : c.start])
+            code_segs.append(lean_file[base: c.start])
             base = c.end
 
     code_segs.append(lean_file[base:end])
@@ -144,7 +144,8 @@ class TracedTactic:
     its AST and the states before/after the tactic.
     """
 
-    ast: Node = field(repr=False)
+    # ast: Node = field(repr=False)
+    ast: OtherNode | TacticTacticseqbracketedNode = field(repr=False)
     """AST of the tactic.
     """
 
@@ -160,7 +161,7 @@ class TracedTactic:
         return d
 
     @property
-    def tactic(self) -> str:
+    def tactic(self) -> Optional[str]:
         """The raw tactic string."""
         return self.ast.tactic
 
@@ -212,7 +213,7 @@ class TracedTactic:
         )
         lean_file = self.traced_theorem.traced_file.lean_file
         annot_tac = []
-        provenances = []
+        provenances: List[Dict[str,Any]] = []
         cur = self.start
 
         def _callback4(node: IdentNode, _):
@@ -225,12 +226,14 @@ class TracedTactic:
                 and node.def_end is not None
             ):
                 if cur <= node.start:
-                    annot_tac.append(lean_file[cur : node.start])
-                    annot_tac.append("<a>" + lean_file[node.start : node.end] + "</a>")
-                    prov = {"full_name": node.full_name}
-                    prov["def_path"] = node.def_path
-                    prov["def_pos"] = list(node.def_start)
-                    prov["def_end_pos"] = list(node.def_end)
+                    annot_tac.append(lean_file[cur: node.start])
+                    annot_tac.append("<a>" + lean_file[node.start: node.end] + "</a>")
+                    prov = {
+                        "full_name": node.full_name,
+                        "def_path": node.def_path,
+                        "def_pos": list(node.def_start),
+                        "def_end_pos": list(node.def_end),
+                        }
                     provenances.append(prov)
                     cur = node.end
 
@@ -361,7 +364,7 @@ class TracedTheorem:
         """Return the fully qualified names of all premises used in the proof."""
         names = []
 
-        def _callback(node: IdentNode, _: List[Node]):
+        def _callback(node: "IdentNode", _: List[Node]):
             if node.full_name is not None:
                 names.append(node.full_name)
 
@@ -625,11 +628,12 @@ class TracedFile:
                     for ns in inside_sections_namespaces
                     if isinstance(ns, CommandNamespaceNode)
                 )
-                full_name = (
-                    [_qualify_name(name, prefix) for name in node.name]
-                    if is_mutual_lean4(node)
-                    else _qualify_name(node.name, prefix)
-                )
+
+                if is_mutual_lean4(node):
+                    full_name = [_qualify_name(name, prefix) for name in node.name]
+                else:
+                    full_name = _qualify_name(node.name, prefix)
+
                 object.__setattr__(node, "full_name", full_name)
                 if isinstance(node, CommandDeclarationNode) and node.is_theorem:
                     object.__setattr__(node.get_theorem_node(), "full_name", full_name)
