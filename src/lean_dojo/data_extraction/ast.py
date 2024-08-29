@@ -1,8 +1,12 @@
+from typing_extensions import TypeGuard
+
 from lxml import etree
 from pathlib import Path
 from dataclasses import dataclass, field
 from xml.sax.saxutils import escape, unescape
-from typing import List, Dict, Any, Optional, Callable, Tuple, Generator, TypeVar, Union, cast, Protocol, Type
+from typing import List, Dict, Any, Optional, Callable, Tuple, Generator, TypeVar, Union, cast, Protocol, Type, \
+    Sequence, Literal
+from typing_extensions import Annotated
 
 from ..utils import (
     camel_case,
@@ -13,7 +17,13 @@ from ..utils import (
 )
 from .lean import Pos, LeanFile
 
-T = TypeVar("T", bound="Node")
+N = TypeVar("N", bound="Node", covariant=True)
+T = TypeVar("T")
+
+
+def cast_away_optional(x: Optional[T]) -> T:
+    assert x is not None
+    return x
 
 
 @dataclass(frozen=True)
@@ -21,15 +31,15 @@ class Node:
     lean_file: LeanFile
     start: Optional[Pos]
     end: Optional[Pos]
-    children: List["Node"] = field(repr=False)
+    children: Sequence["Node"] = field(repr=False)
 
     @classmethod
-    def from_data(cls: Type[T], node_data: Dict[str, Any], lean_file: LeanFile) -> T:
+    def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "Node":
         subcls = cls._kind_to_node_type(node_data["kind"])
         return subcls.from_data(node_data, lean_file)
 
     @classmethod
-    def _kind_to_node_type(cls, kind: str) -> type["Node"]:
+    def _kind_to_node_type(cls: Type[N], kind: str) -> Type["Node"]:
         prefix = "Lean.Parser."
         if kind.startswith(prefix):
             kind = kind[len(prefix) :]
@@ -48,9 +58,9 @@ class Node:
     def traverse_preorder(
         self,
         callback: Callable[["Node", List["Node"]], Any],
-        node_cls: Optional[type],
+        node_cls: Optional[type["Node"]],
         parents: List["Node"] = [],
-    ) -> None:
+    ):
         if node_cls is None or isinstance(self, node_cls):
             if callback(self, parents):
                 return
@@ -80,7 +90,7 @@ class Node:
             child.to_xml(tree)
 
     @classmethod
-    def from_xml(cls: Type[T], tree: etree.Element, lean_file: LeanFile) -> T:
+    def from_xml(cls: Type[N], tree: etree.Element, lean_file: LeanFile) -> N:
         subcls = globals()[tree.tag]
         start = Pos.from_str(tree.attrib["start"]) if "start" in tree.attrib else None
         end = Pos.from_str(tree.attrib["end"]) if "end" in tree.attrib else None
@@ -219,14 +229,14 @@ def is_leaf(node: Node) -> bool:
     return isinstance(node, AtomNode) or isinstance(node, IdentNode)
 
 
-def filter_leaf(nodes: List[Node]) -> List[Union[AtomNode | IdentNode]]:
+def filter_leaf(nodes: Sequence[Node]) -> Sequence[Union[AtomNode | IdentNode]]:
     return [node for node in nodes if isinstance(node, (AtomNode, IdentNode))]
 
 
 @dataclass(frozen=True)
 class FileNode(Node):
     @classmethod
-    def from_data(cls: Type[T], data: Dict[str, Any], lean_file: LeanFile) -> T:
+    def from_data(cls: Type[N], data: Dict[str, Any], lean_file: LeanFile) -> N:
         children = []
 
         def _get_closure(node: Node, child_spans: List[Tuple[Pos, Pos]]):
@@ -562,7 +572,7 @@ class CommandDeclmodifiersNode(Node):
     def is_private(self) -> bool:
         result = False
 
-        def _callback(node: "CommandPrivateNode", _) -> bool:
+        def _callback(node: CommandDeclmodifiersNode, _) -> bool:
             nonlocal result
             result = True
             return True
@@ -1579,7 +1589,8 @@ class OtherNode(Node):
         return cls(lean_file, start, end, children, node_data["kind"])
 
 
-def is_potential_premise_lean4(node: Node) -> bool:
+def is_potential_premise_lean4(node: Node) -> TypeGuard[Union[
+    CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode, LeanElabCommandCommandIrreducibleDefNode, StdTacticAliasAliasNode, StdTacticAliasAliaslrNode,]]:
     """Check if ``node`` is a theorem/definition that can be used as a premise."""
     if (isinstance(node, CommandDeclarationNode) and not node.is_example) or isinstance(
         node,
@@ -1596,7 +1607,7 @@ def is_potential_premise_lean4(node: Node) -> bool:
         return False
 
 
-def is_mutual_lean4(node: Node) -> bool:
+def is_mutual_lean4(node: Node) -> TypeGuard[Union[IdentNode,CommandTheoremNode, StdTacticAliasAliaslrNode]]:
     return (
         isinstance(node, (IdentNode, CommandTheoremNode, StdTacticAliasAliaslrNode))
         and node.is_mutual

@@ -25,29 +25,11 @@ from ..utils import (
     to_json_path,
     to_xml_path,
 )
-from .ast import (
-    Node,
-    FileNode,
-    OtherNode,
-    LemmaNode,
-    IdentNode,
-    CommandEndNode,
-    ModuleImportNode,
-    ModulePreludeNode,
-    CommandSectionNode,
-    CommandTheoremNode,
-    CommandModuledocNode,
-    CommandNamespaceNode,
-    CommandDoccommentNode,
-    CommandDeclarationNode,
-    MathlibTacticLemmaNode,
-    TacticTacticseqbracketedNode,
-    TacticTacticseq1IndentedNode,
-    CommandNoncomputablesectionNode,
-    is_leaf,
-    is_mutual_lean4,
-    is_potential_premise_lean4,
-)
+from .ast import (Node, FileNode, OtherNode, LemmaNode, IdentNode, CommandEndNode, ModuleImportNode, ModulePreludeNode,
+                  CommandSectionNode, CommandTheoremNode, CommandModuledocNode, CommandNamespaceNode,
+                  CommandDoccommentNode, CommandDeclarationNode, MathlibTacticLemmaNode, TacticTacticseqbracketedNode,
+                  TacticTacticseq1IndentedNode, CommandNoncomputablesectionNode, is_leaf, is_mutual_lean4,
+                  is_potential_premise_lean4, cast_away_optional)
 from .lean import LeanFile, LeanGitRepo, Theorem, Pos
 from ..constants import NUM_WORKERS, LOAD_USED_PACKAGES_ONLY, LEAN4_PACKAGES_DIR
 
@@ -336,8 +318,11 @@ class TracedTheorem:
     def locate_proof(self) -> Tuple[Pos, Pos]:
         """Return the start/end positions of the proof."""
         start, end = self.get_proof_node().get_closure()
-        if end < self.end:
-            end = self.end
+        start = cast_away_optional(start)
+        self_end = cast_away_optional(self.end)
+        end = cast_away_optional(end)
+        if end < self_end:
+            end = self_end
         return start, end
 
     def get_tactic_proof(self) -> Optional[str]:
@@ -346,6 +331,8 @@ class TracedTheorem:
             return None
         node = self.get_proof_node()
         start, end = node.get_closure()
+        start = cast_away_optional(start)
+        end = cast_away_optional(end)
         proof = get_code_without_comments(node.lean_file, start, end, self.comments)
         if not re.match(r"^(by|begin)\s", proof):
             return None
@@ -356,8 +343,9 @@ class TracedTheorem:
         """Return the theorem statement."""
         proof_start, _ = self.locate_proof()
         assert self.traced_file is not None
+        start = cast_away_optional(self.ast.start)
         return get_code_without_comments(
-            self.traced_file.lean_file, self.ast.start, proof_start, self.comments
+            self.traced_file.lean_file, start, proof_start, self.comments
         )
 
     def get_premise_full_names(self) -> List[str]:
@@ -506,7 +494,7 @@ class TracedFile:
         """
         result = False
 
-        def _callback(node: ModulePreludeNode, _: List[Node]):
+        def _callback(node: Node, _: List[Node]):
             nonlocal result
             result = True
             return True  # Stop traversing.
@@ -650,11 +638,16 @@ class TracedFile:
                     )
                     if (tac_node.start, tac_node.end) not in pos2tactics:
                         continue
-                    t = pos2tactics[(tac_node.start, tac_node.end)]
+                    tac_node_start = cast_away_optional(tac_node.start)
+                    tac_node_end = cast_away_optional(tac_node.end)
+                    t = pos2tactics[(tac_node_start, tac_node_end)]
+                    tac_start = cast_away_optional(tac_node.start)
+                    tac_end = cast_away_optional(tac_node.end)
                     tac = get_code_without_comments(
-                        lean_file, tac_node.start, tac_node.end, comments
+                        lean_file, tac_start, tac_end, comments
                     )
-                    tac = _fix_indentation(tac, tac_node.start.column_nb - 1)
+                    tac_start = cast_away_optional(tac_node.start)
+                    tac = _fix_indentation(tac, tac_start.column_nb - 1)
                     object.__setattr__(tac_node, "state_before", t["stateBefore"])
                     object.__setattr__(tac_node, "state_after", t["stateAfter"])
                     object.__setattr__(tac_node, "tactic", tac)
@@ -768,7 +761,9 @@ class TracedFile:
                 )
                 and node.full_name == thm.full_name
             ):
-                comments = self._filter_comments(node.start, node.end)
+                start = cast_away_optional(node.start)
+                end = cast_away_optional(node.end)
+                comments = self._filter_comments(start, end)
                 t = TracedTheorem(self.root_dir, thm, node, comments, self)
                 if t.is_private:
                     private_result = t
@@ -800,8 +795,11 @@ class TracedFile:
             ):
                 return False
             repo, path = self._get_repo_and_relative_path()
-            thm = Theorem(repo, path, node.full_name)
-            comments = self._filter_comments(node.start, node.end)
+            full_name = cast_away_optional(node.full_name)
+            thm = Theorem(repo, path, full_name)
+            start = cast_away_optional(node.start)
+            end = cast_away_optional(node.end)
+            comments = self._filter_comments(start, end)
             traced_theorems.append(
                 TracedTheorem(self.root_dir, thm, node, comments, self)
             )
@@ -858,12 +856,16 @@ class TracedFile:
                     proof_start, _ = (
                         node.get_theorem_node().get_proof_node().get_closure()
                     )
+                    start = cast_away_optional(start)
+                    proof_start = cast_away_optional(proof_start)
                     code = get_code_without_comments(
                         self.lean_file, start, proof_start, self.comments
                     )
                     if code.endswith(":="):
                         code = code[:-2].strip()
                 else:
+                    start = cast_away_optional(start)
+                    end = cast_away_optional(end)
                     code = get_code_without_comments(
                         self.lean_file, start, end, self.comments
                     )
@@ -874,8 +876,8 @@ class TracedFile:
                             {
                                 "full_name": s,
                                 "code": code,
-                                "start": list(start),
-                                "end": list(end),
+                                "start": list(start) if start is not None else [],
+                                "end": list(end) if end is not None else [],
                                 "kind": node.kind(),
                             }
                         )
@@ -884,8 +886,8 @@ class TracedFile:
                         {
                             "full_name": node.full_name,
                             "code": code,
-                            "start": list(start),
-                            "end": list(end),
+                            "start": list(start) if start is not None else [],
+                            "end": list(end) if end is not None else [],
                             "kind": node.kind(),
                         }
                     )
