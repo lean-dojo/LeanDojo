@@ -4,9 +4,7 @@ from lxml import etree
 from pathlib import Path
 from dataclasses import dataclass, field
 from xml.sax.saxutils import escape, unescape
-from typing import List, Dict, Any, Optional, Callable, Tuple, Generator, TypeVar, Union, cast, Protocol, Type, \
-    Sequence, Literal
-from typing_extensions import Annotated
+from typing import List, Dict, Any, Optional, Callable, Tuple, Generator, TypeVar, Union, cast, Protocol, Type,Sequence
 
 from ..utils import (
     camel_case,
@@ -39,7 +37,7 @@ class Node:
         return subcls.from_data(node_data, lean_file)
 
     @classmethod
-    def _kind_to_node_type(cls: Type[N], kind: str) -> Type["Node"]:
+    def _kind_to_node_type(cls, kind: str) -> Type["Node"]:
         prefix = "Lean.Parser."
         if kind.startswith(prefix):
             kind = kind[len(prefix) :]
