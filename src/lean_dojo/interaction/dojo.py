@@ -200,7 +200,6 @@ class Dojo:
 
         assert res["error"] is None
 
-        # logger.debug(f"Response: {res}")
         if self.uses_tactics:
             assert res["tacticState"] != "no goals"
             init_state: State = TacticState(
@@ -388,6 +387,7 @@ class Dojo:
             raise DojoCrashError(f"Invalid JSON: {res}")
 
         result["message"] = msg
+        logger.debug(result)
         return result
 
     def _check_alive(self) -> None:
