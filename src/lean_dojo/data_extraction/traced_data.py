@@ -47,6 +47,7 @@ from .ast import (
     is_leaf,
     is_mutual_lean4,
     is_potential_premise_lean4,
+    cast_away_optional
 )
 from .lean import LeanFile, LeanGitRepo, Theorem, Pos
 from ..constants import NUM_WORKERS, LOAD_USED_PACKAGES_ONLY, LEAN4_PACKAGES_DIR
