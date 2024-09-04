@@ -839,7 +839,7 @@ class TracedFile:
     def get_premise_definitions(self) -> List[Dict[str, Any]]:
         """Return all theorems and definitions defined in the current file that
         can be potentially used as premises, including the premises in the theorem
-        statement and premises in the tactics used to prove the theorem. 
+        statement and premises in the tactics used to prove the theorem.
 
         Returns:
             List[Dict[str, Any]]: _description_
