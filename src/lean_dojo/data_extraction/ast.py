@@ -4,7 +4,21 @@ from lxml import etree
 from pathlib import Path
 from dataclasses import dataclass, field
 from xml.sax.saxutils import escape, unescape
-from typing import List, Dict, Any, Optional, Callable, Tuple, Generator, TypeVar, Union, cast, Protocol, Type,Sequence
+from typing import (
+    List,
+    Dict,
+    Any,
+    Optional,
+    Callable,
+    Tuple,
+    Generator,
+    TypeVar,
+    Union,
+    cast,
+    Protocol,
+    Type,
+    Sequence,
+)
 
 from ..utils import (
     camel_case,
@@ -156,9 +170,7 @@ class AtomNode(Node):
     val: str
 
     @classmethod
-    def from_data(
-        cls, atom_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "AtomNode":
+    def from_data(cls, atom_data: Dict[str, Any], lean_file: LeanFile) -> "AtomNode":
         info = atom_data["info"]
         pos_pair = _parse_pos(info, lean_file)
         if pos_pair is None:
@@ -189,9 +201,7 @@ class IdentNode(Node):
     def_end: Optional[Pos] = None
 
     @classmethod
-    def from_data(
-        cls, ident_data: Dict[str, Any], lean_file: LeanFile
-    ) -> "IdentNode":
+    def from_data(cls, ident_data: Dict[str, Any], lean_file: LeanFile) -> "IdentNode":
         info = ident_data["info"]
         pos_pair = _parse_pos(info, lean_file)
         if pos_pair is None:
@@ -384,9 +394,7 @@ class MathlibTacticLemmaNode(Node):
     full_name: Optional[str] = None
     # If the Private usage state is False, the user will not explicitly use the parameter None.
     # And False and None are handled in the same way, so there is no need to use Optional.
-    _is_private_decl: bool = (
-        False  # `_is_private` doesn't play well with lxml.
-    )
+    _is_private_decl: bool = False  # `_is_private` doesn't play well with lxml.
 
     @classmethod
     def from_data(
@@ -437,9 +445,7 @@ class LemmaNode(Node):
     full_name: Optional[str] = None
     # If the Private usage state is False, the user will not explicitly use the parameter None.
     # And False and None are handled in the same way, so there is no need to use Optional.
-    _is_private_decl: bool = (
-        False  # `_is_private` doesn't play well with lxml.
-    )
+    _is_private_decl: bool = False  # `_is_private` doesn't play well with lxml.
 
     @classmethod
     def from_data(cls, node_data: Dict[str, Any], lean_file: LeanFile) -> "LemmaNode":
@@ -1158,9 +1164,7 @@ class CommandTheoremNode(Node):
     full_name: Optional[str] = None
     # If the Private usage state is False, the user will not explicitly use the parameter None.
     # And False and None are handled in the same way, so there is no need to use Optional.
-    _is_private_decl: bool = (
-        False  # `_is_private` doesn't play well with lxml.
-    )
+    _is_private_decl: bool = False  # `_is_private` doesn't play well with lxml.
 
     @classmethod
     def from_data(
@@ -1246,12 +1250,12 @@ class TermBytacticNode(Node):
 
 
 class TacticProtocol(Protocol):
-    def get_tactic_nodes(self, atomic_only: bool = False) -> Generator[Node, None, None]:
-        ...
+    def get_tactic_nodes(
+        self, atomic_only: bool = False
+    ) -> Generator[Node, None, None]: ...
 
 
-class TacticNode(Node, TacticProtocol):
-    ...
+class TacticNode(Node, TacticProtocol): ...
 
 
 @dataclass(frozen=True)
@@ -1265,9 +1269,7 @@ class TacticTacticseq1IndentedAntiquotNode(Node):
         children = _parse_children(node_data, lean_file)
         return cls(lean_file, start, end, children)
 
-    def get_tactic_nodes(
-        self, atomic_only: bool = False
-    ) -> None:
+    def get_tactic_nodes(self, atomic_only: bool = False) -> None:
         return
 
 
@@ -1587,8 +1589,16 @@ class OtherNode(Node):
         return cls(lean_file, start, end, children, node_data["kind"])
 
 
-def is_potential_premise_lean4(node: Node) -> TypeGuard[Union[
-    CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode, LeanElabCommandCommandIrreducibleDefNode, StdTacticAliasAliasNode, StdTacticAliasAliaslrNode,]]:
+def is_potential_premise_lean4(node: Node) -> TypeGuard[
+    Union[
+        CommandTheoremNode,
+        LemmaNode,
+        MathlibTacticLemmaNode,
+        LeanElabCommandCommandIrreducibleDefNode,
+        StdTacticAliasAliasNode,
+        StdTacticAliasAliaslrNode,
+    ]
+]:
     """Check if ``node`` is a theorem/definition that can be used as a premise."""
     if (isinstance(node, CommandDeclarationNode) and not node.is_example) or isinstance(
         node,
@@ -1605,7 +1615,9 @@ def is_potential_premise_lean4(node: Node) -> TypeGuard[Union[
         return False
 
 
-def is_mutual_lean4(node: Node) -> TypeGuard[Union[IdentNode,CommandTheoremNode, StdTacticAliasAliaslrNode]]:
+def is_mutual_lean4(
+    node: Node,
+) -> TypeGuard[Union[IdentNode, CommandTheoremNode, StdTacticAliasAliaslrNode]]:
     return (
         isinstance(node, (IdentNode, CommandTheoremNode, StdTacticAliasAliaslrNode))
         and node.is_mutual

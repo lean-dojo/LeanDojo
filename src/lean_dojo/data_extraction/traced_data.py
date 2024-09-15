@@ -47,7 +47,7 @@ from .ast import (
     is_leaf,
     is_mutual_lean4,
     is_potential_premise_lean4,
-    cast_away_optional
+    cast_away_optional,
 )
 from .lean import LeanFile, LeanGitRepo, Theorem, Pos
 from ..constants import NUM_WORKERS, LOAD_USED_PACKAGES_ONLY, LEAN4_PACKAGES_DIR
@@ -127,7 +127,7 @@ def get_code_without_comments(
 
     for c in comments:
         if base <= c.start and c.end <= end:
-            code_segs.append(lean_file[base: c.start])
+            code_segs.append(lean_file[base : c.start])
             base = c.end
 
     code_segs.append(lean_file[base:end])
@@ -214,7 +214,7 @@ class TracedTactic:
         )
         lean_file = self.traced_theorem.traced_file.lean_file
         annot_tac = []
-        provenances: List[Dict[str,Any]] = []
+        provenances: List[Dict[str, Any]] = []
         cur = self.start
 
         def _callback4(node: IdentNode, _):
@@ -227,14 +227,14 @@ class TracedTactic:
                 and node.def_end is not None
             ):
                 if cur <= node.start:
-                    annot_tac.append(lean_file[cur: node.start])
-                    annot_tac.append("<a>" + lean_file[node.start: node.end] + "</a>")
+                    annot_tac.append(lean_file[cur : node.start])
+                    annot_tac.append("<a>" + lean_file[node.start : node.end] + "</a>")
                     prov = {
                         "full_name": node.full_name,
                         "def_path": node.def_path,
                         "def_pos": list(node.def_start),
                         "def_end_pos": list(node.def_end),
-                        }
+                    }
                     provenances.append(prov)
                     cur = node.end
 
