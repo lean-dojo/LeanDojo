@@ -50,6 +50,9 @@ else:
 LEAN4_REPO = None
 """The GitHub Repo for Lean 4 itself."""
 
+LEAN4_NIGHTLY_REPO = None
+"""The GitHub Repo for Lean 4 nightly releases."""
+
 _URL_REGEX = re.compile(r"(?P<url>.*?)/*")
 
 _SSH_TO_HTTPS_REGEX = re.compile(r"^git@github\.com:(.+)/(.+)(?:\.git)?$")
@@ -330,16 +333,18 @@ class LeanFile:
     def end_pos(self) -> Pos:
         """Return the end position of a source file.
 
-        Args:
-            zero_indexed (bool, optional): Whether to use 0-index instead of 1-index. Defaults to False.
-
         Returns:
             Pos: A :class:`Pos` object representing the end of this file.
         """
         # Line and column numbers are 1-indexed by default.
+        if self.is_empty():
+            return self.start_pos
         line_nb = self.num_lines
         column_nb = 1 + len(self.code[-1])
         return Pos(line_nb, column_nb)
+
+    def is_empty(self) -> bool:
+        return len(self.code) == 0
 
     def convert_pos(self, byte_idx: int) -> Pos:
         """Convert a byte index (:code:`String.Pos` in Lean 4) to a :class:`Pos` object."""
@@ -445,7 +450,13 @@ def get_lean4_commit_from_config(config_dict: Dict[str, Any]) -> str:
     prefix = "leanprover/lean4:"
     assert config.startswith(prefix), f"Invalid Lean 4 version: {config}"
     version = config[len(prefix) :]
-    return _to_commit_hash(LEAN4_REPO, version)
+    if version.startswith("nightly-"):
+        global LEAN4_NIGHTLY_REPO
+        if LEAN4_NIGHTLY_REPO is None:
+            LEAN4_NIGHTLY_REPO = GITHUB.get_repo("leanprover/lean4-nightly")
+        return _to_commit_hash(LEAN4_NIGHTLY_REPO, version)
+    else:
+        return _to_commit_hash(LEAN4_REPO, version)
 
 
 URL = str

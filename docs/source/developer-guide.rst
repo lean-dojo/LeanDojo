@@ -21,8 +21,8 @@ We use `pytest <https://docs.pytest.org/>`_ for testing. You can run tests by:
 
 .. code-block:: bash
 
-   VERBOSE=1 CACHE_DIR=~/.cache/lean_dojo_testing DISABLE_REMOTE_CACHE=1 pytest -s tests
    rm -rf ~/.cache/lean_dojo_testing 
+   VERBOSE=1 CACHE_DIR=~/.cache/lean_dojo_testing DISABLE_REMOTE_CACHE=1 pytest -s tests
 
 The environment variable :code:`CACHE_DIR` makes sure the testing uses a temporary cache directory that 
 does not interfere with the deployed code. The temporary cache directory is deleted after the testing completes. 

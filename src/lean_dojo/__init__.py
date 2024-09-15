@@ -16,7 +16,6 @@ from .interaction.dojo import (
     CommandState,
     TacticState,
     LeanError,
-    TimeoutError,
     TacticResult,
     DojoCrashError,
     DojoTacticTimeoutError,

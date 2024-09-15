@@ -57,20 +57,14 @@ class LeanError:
     error: str
 
 
-@dataclass(frozen=True)
-class TimeoutError:
-    error: str
-
-
 TacticResult = Union[
     TacticState,
     ProofFinished,
     LeanError,
-    TimeoutError,
     ProofGivenUp,
 ]
 
-CommandResult = Union[CommandState, LeanError, TimeoutError]
+CommandResult = Union[CommandState, LeanError]
 
 State = Union[CommandState, TacticState]
 
