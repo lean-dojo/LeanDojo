@@ -435,8 +435,7 @@ def get_lean4_version_from_config(toolchain: str) -> str:
     m = _LEAN4_VERSION_REGEX.fullmatch(toolchain.strip())
     assert m is not None, "Invalid config."
     v = m["version"]
-    if not v.startswith("v"):
-        assert v[0].isnumeric()
+    if not v.startswith("v") and v[0].isnumeric():
         v = "v" + v
     return v
 
