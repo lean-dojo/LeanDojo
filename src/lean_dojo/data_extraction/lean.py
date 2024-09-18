@@ -434,7 +434,11 @@ def get_lean4_version_from_config(toolchain: str) -> str:
     """Return the required Lean version given a ``lean-toolchain`` config."""
     m = _LEAN4_VERSION_REGEX.fullmatch(toolchain.strip())
     assert m is not None, "Invalid config."
-    return m["version"]
+    v = m["version"]
+    if not v.startswith("v"):
+        assert v[0].isnumeric()
+        v = "v" + v
+    return v
 
 
 def get_lean4_commit_from_config(config_dict: Dict[str, Any]) -> str:
