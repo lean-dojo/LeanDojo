@@ -447,10 +447,7 @@ def get_lean4_commit_from_config(config_dict: Dict[str, Any]) -> str:
     if LEAN4_REPO is None:
         LEAN4_REPO = GITHUB.get_repo("leanprover/lean4")
     assert "content" in config_dict, "config_dict must have a 'content' field"
-    config = config_dict["content"].strip()
-    prefix = "leanprover/lean4:"
-    assert config.startswith(prefix), f"Invalid Lean 4 version: {config}"
-    version = config[len(prefix) :]
+    version = get_lean4_version_from_config(config_dict["content"].strip())
     if version.startswith("nightly-"):
         global LEAN4_NIGHTLY_REPO
         if LEAN4_NIGHTLY_REPO is None:
