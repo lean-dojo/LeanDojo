@@ -217,7 +217,9 @@ class TracedTactic:
         provenances: List[Dict[str, Any]] = []
         cur = self.start
 
-        def _callback4(node: IdentNode, _):
+        def _callback4(node: Node, _):
+            if not isinstance(node, IdentNode):
+                raise TypeError("Excepted IdentNode")
             nonlocal cur
 
             if (
@@ -371,7 +373,9 @@ class TracedTheorem:
         """Return the fully qualified names of all premises used in the proof."""
         names = []
 
-        def _callback(node: IdentNode, _: List[Node]):
+        def _callback(node: Node, _: List[Node]):
+            if not isinstance(node, IdentNode):
+                raise TypeError("Excepted IdentNode")
             if node.full_name is not None:
                 names.append(node.full_name)
 
@@ -770,28 +774,21 @@ class TracedFile:
         private_result = None
 
         def _callback(
-            node: Union[CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode], _
+            node: Node, _
         ) -> bool:
             nonlocal result, private_result
-            if (
-                isinstance(
-                    node,
-                    (
-                        CommandTheoremNode,
-                        LemmaNode,
-                        MathlibTacticLemmaNode,
-                    ),
-                )
-                and node.full_name == thm.full_name
-            ):
-                start = cast_away_optional(node.start)
-                end = cast_away_optional(node.end)
-                comments = self._filter_comments(start, end)
-                t = TracedTheorem(self.root_dir, thm, node, comments, self)
-                if t.is_private:
-                    private_result = t
-                else:
-                    result = t
+            if not isinstance(node, (CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode)):
+                raise TypeError("Except CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode")
+            if not node.full_name == thm.full_name:
+                return False
+            start = cast_away_optional(node.start)
+            end = cast_away_optional(node.end)
+            comments = self._filter_comments(start, end)
+            t = TracedTheorem(self.root_dir, thm, node, comments, self)
+            if t.is_private:
+                private_result = t
+            else:
+                result = t
             return False
 
         self.ast.traverse_preorder(_callback, node_cls=None)

@@ -576,7 +576,9 @@ class CommandDeclmodifiersNode(Node):
     def is_private(self) -> bool:
         result = False
 
-        def _callback(node: CommandDeclmodifiersNode, _) -> bool:
+        def _callback(node: Node, _) -> bool:
+            if not isinstance(node, CommandDeclmodifiersNode):
+                raise TypeError("Excepted CommandDeclmodifiersNode")
             nonlocal result
             result = True
             return True
@@ -1589,16 +1591,7 @@ class OtherNode(Node):
         return cls(lean_file, start, end, children, node_data["kind"])
 
 
-def is_potential_premise_lean4(node: Node) -> TypeGuard[
-    Union[
-        CommandTheoremNode,
-        LemmaNode,
-        MathlibTacticLemmaNode,
-        LeanElabCommandCommandIrreducibleDefNode,
-        StdTacticAliasAliasNode,
-        StdTacticAliasAliaslrNode,
-    ]
-]:
+def is_potential_premise_lean4(node: Node) -> bool:
     """Check if ``node`` is a theorem/definition that can be used as a premise."""
     if (isinstance(node, CommandDeclarationNode) and not node.is_example) or isinstance(
         node,
