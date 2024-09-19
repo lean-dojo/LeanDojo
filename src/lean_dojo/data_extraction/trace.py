@@ -158,7 +158,6 @@ def _trace(repo: LeanGitRepo, build_deps: bool) -> None:
             cmd = f"lake env lean --threads {NUM_PROCS} --run ExtractData.lean"
             if not build_deps:
                 cmd += " noDeps"
-            logger.debug(cmd)
             execute(cmd, capture_output=True)
 
         check_files(packages_path, not build_deps)
