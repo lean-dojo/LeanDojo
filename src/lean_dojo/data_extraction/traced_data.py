@@ -773,12 +773,14 @@ class TracedFile:
         result = None
         private_result = None
 
-        def _callback(
-            node: Node, _
-        ) -> bool:
+        def _callback(node: Node, _) -> bool:
             nonlocal result, private_result
-            if not isinstance(node, (CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode)):
-                raise TypeError("Except CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode")
+            if not isinstance(
+                node, (CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode)
+            ):
+                raise TypeError(
+                    "Except CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode"
+                )
             if not node.full_name == thm.full_name:
                 return False
             start = cast_away_optional(node.start)
