@@ -38,6 +38,18 @@ def cast_away_optional(x: Optional[T]) -> T:
     return x
 
 
+def cast_list_str(x: Union[None, str, List[str]]) -> List[str]:
+    if isinstance(x, list) and all(isinstance(i, str) for i in x):
+        return x  # Return the list if all elements are strings
+    raise TypeError(f"Expected None, str, or List[str], but got {type(x).__name__}")
+
+
+def cast_str(x: Union[None, str, List[str]]) -> str:
+    if isinstance(x, str):
+        return x
+    raise TypeError(f"Expected str, but got {type(x).__name__}")
+
+
 @dataclass(frozen=True)
 class Node:
     lean_file: LeanFile
@@ -1591,7 +1603,16 @@ class OtherNode(Node):
         return cls(lean_file, start, end, children, node_data["kind"])
 
 
-def is_potential_premise_lean4(node: Node) -> bool:
+def is_potential_premise_lean4(node: Node) -> TypeGuard[
+    Union[
+        CommandDeclarationNode,
+        LemmaNode,
+        MathlibTacticLemmaNode,
+        LeanElabCommandCommandIrreducibleDefNode,
+        StdTacticAliasAliasNode,
+        StdTacticAliasAliaslrNode,
+    ]
+]:
     """Check if ``node`` is a theorem/definition that can be used as a premise."""
     if (isinstance(node, CommandDeclarationNode) and not node.is_example) or isinstance(
         node,

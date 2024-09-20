@@ -14,7 +14,7 @@ from lxml import etree
 from pathlib import Path
 from loguru import logger
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any, Tuple, Union
+from typing import List, Optional, Dict, Any, Tuple, Union, cast
 
 from ..utils import (
     is_git_repo,
@@ -48,6 +48,11 @@ from .ast import (
     is_mutual_lean4,
     is_potential_premise_lean4,
     cast_away_optional,
+    StdTacticAliasAliaslrNode,
+    LeanElabCommandCommandIrreducibleDefNode,
+    StdTacticAliasAliasNode,
+    cast_list_str,
+    cast_str,
 )
 from .lean import LeanFile, LeanGitRepo, Theorem, Pos
 from ..constants import NUM_WORKERS, LOAD_USED_PACKAGES_ONLY, LEAN4_PACKAGES_DIR
@@ -225,7 +230,9 @@ class TracedTactic:
             if not isinstance(node, IdentNode):
                 raise TypeError("Excepted IdentNode")
             if node.start is None or node.end is None:
-                raise TypeError("start/end expected to be Pos, Unsupported left operand type for <= ('None')")
+                raise TypeError(
+                    "start/end expected to be Pos, Unsupported left operand type for <= ('None')"
+                )
             nonlocal cur
 
             if (
@@ -648,6 +655,7 @@ class TracedFile:
             ):
                 inside_sections_namespaces.pop()
             elif is_potential_premise_lean4(node):
+                assert node.name is not None
                 names = []
                 for ns in inside_sections_namespaces:
                     if isinstance(ns, CommandNamespaceNode):
@@ -656,14 +664,26 @@ class TracedFile:
                         names.append(ns.name)
                 prefix = ".".join(names)
 
-                if is_mutual_lean4(node):
+                full_name: Union[str, List[str]]
+                if isinstance(node, StdTacticAliasAliaslrNode) and node.is_mutual:
                     full_name = [_qualify_name(name, prefix) for name in node.name]
-                else:
+                    object.__setattr__(node, "full_name", full_name)
+                elif isinstance(
+                    node,
+                    (
+                        CommandDeclarationNode,
+                        LemmaNode,
+                        MathlibTacticLemmaNode,
+                        LeanElabCommandCommandIrreducibleDefNode,
+                        StdTacticAliasAliasNode,
+                    ),
+                ):
                     full_name = _qualify_name(node.name, prefix)
-
-                object.__setattr__(node, "full_name", full_name)
-                if isinstance(node, CommandDeclarationNode) and node.is_theorem:
-                    object.__setattr__(node.get_theorem_node(), "full_name", full_name)
+                    object.__setattr__(node, "full_name", full_name)
+                    if isinstance(node, CommandDeclarationNode) and node.is_theorem:
+                        object.__setattr__(
+                            node.get_theorem_node(), "full_name", full_name
+                        )
             elif isinstance(
                 node,
                 (
@@ -905,8 +925,10 @@ class TracedFile:
                         self.lean_file, start, end, self.comments
                     )
                 # TODO: For alias, restate_axiom, etc., the code is not very informative.
+                full_name: Union[None, str, List[str]]
                 if is_mutual_lean4(node):
-                    for s in node.full_name:
+                    full_name = cast_list_str(node.full_name)
+                    for s in full_name:
                         results.append(
                             {
                                 "full_name": s,
@@ -917,9 +939,10 @@ class TracedFile:
                             }
                         )
                 else:
+                    full_name = cast_str(node.full_name)
                     results.append(
                         {
-                            "full_name": node.full_name,
+                            "full_name": full_name,
                             "code": code,
                             "start": list(start) if start is not None else [],
                             "end": list(end) if end is not None else [],
