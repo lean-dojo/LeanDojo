@@ -181,11 +181,15 @@ class TracedTactic:
     @property
     def start(self) -> Pos:
         """Start position in :file:`*.lean` file."""
+        if not isinstance(self.ast.start, Pos):
+            raise TypeError("start expected to be Pos")
         return self.ast.start
 
     @property
     def end(self) -> Pos:
         """End position in :file:`*.lean` file."""
+        if not isinstance(self.ast.end, Pos):
+            raise TypeError("end expected to be Pos")
         return self.ast.end
 
     def to_string(self) -> str:
@@ -220,6 +224,8 @@ class TracedTactic:
         def _callback4(node: Node, _):
             if not isinstance(node, IdentNode):
                 raise TypeError("Excepted IdentNode")
+            if node.start is None or node.end is None:
+                raise TypeError("start/end expected to be Pos, Unsupported left operand type for <= ('None')")
             nonlocal cur
 
             if (
@@ -287,11 +293,15 @@ class TracedTheorem:
     @property
     def start(self) -> Pos:
         """Start position in :file:`*.lean` file."""
+        if not isinstance(self.ast.start, Pos):
+            raise TypeError("start expected to be Pos")
         return self.ast.start
 
     @property
     def end(self) -> Pos:
         """End position in :file:`*.lean` file."""
+        if not isinstance(self.ast.end, Pos):
+            raise TypeError("end expected to be Pos")
         return self.ast.end
 
     @property
