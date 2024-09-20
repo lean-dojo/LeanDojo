@@ -648,11 +648,13 @@ class TracedFile:
             ):
                 inside_sections_namespaces.pop()
             elif is_potential_premise_lean4(node):
-                prefix = ".".join(
-                    ns.name
-                    for ns in inside_sections_namespaces
-                    if isinstance(ns, CommandNamespaceNode)
-                )
+                names = []
+                for ns in inside_sections_namespaces:
+                    if isinstance(ns, CommandNamespaceNode):
+                        if ns.name is None:
+                            raise TypeError("Expected ns.name to be str")
+                        names.append(ns.name)
+                prefix = ".".join(names)
 
                 if is_mutual_lean4(node):
                     full_name = [_qualify_name(name, prefix) for name in node.name]
