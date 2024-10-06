@@ -546,10 +546,6 @@ class TracedFile:
 
         data["module_paths"] = []
         deps_path = json_path.with_suffix("").with_suffix("").with_suffix(".dep_paths")
-        if not deps_path.exists():
-            import pdb
-
-            pdb.set_trace()
 
         for line in deps_path.open():
             line = line.strip()

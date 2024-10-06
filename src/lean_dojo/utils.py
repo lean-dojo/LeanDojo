@@ -272,6 +272,8 @@ def to_lean_path(root_dir: Path, path: Path) -> Path:
     assert root_dir.name != "lean4"
     if path == LEAN4_PACKAGES_DIR / "lean4/lib/lean/Lake.lean":
         return LEAN4_PACKAGES_DIR / "lean4/src/lean/lake/Lake.lean"
+    elif path == LEAN4_PACKAGES_DIR / "lean4/lib/lean/LakeMain.lean":
+        return LEAN4_PACKAGES_DIR / "lean4/src/lean/lake/LakeMain.lean"
     elif path.is_relative_to(LEAN4_PACKAGES_DIR / "lean4/lib/lean/Lake"):
         # E.g., "lake-packages/lean4/lib/lean/Lake/Util/List.lean"
         p = path.relative_to(LEAN4_PACKAGES_DIR / "lean4/lib/lean/Lake")
