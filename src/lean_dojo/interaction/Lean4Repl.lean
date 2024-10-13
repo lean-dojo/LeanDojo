@@ -248,9 +248,9 @@ end TacticRepl
 
 
 private def loop (m : Type → Type) [Monad m] [MonadLift IO m] [MonadError m] (handler : Request → m Response) : m Unit := do
-  while true do
-    let line ← (← IO.getStdin).getLine
-    if line.trim == "exit" then
+ while true do
+    let line := (← (← IO.getStdin).getLine).trim
+    if line == "exit" then
       break
     match (Json.parse line) with
     | .error err => throwError s!"[fatal] failed to parse JSON {err}"
