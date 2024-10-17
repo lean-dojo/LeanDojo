@@ -69,7 +69,10 @@ def launch_progressbar(paths: List[Path]) -> Generator[None, None, None]:
 
 def get_lean_version() -> str:
     """Get the version of Lean."""
-    output = execute("lean --version", capture_output=True)[0].strip()
+    res = execute("lean --version", capture_output=True)
+    if res is None:
+        raise CalledProcessError(1, "lean --version")
+    output = res[0].strip()
     m = re.match(r"Lean \(version (?P<version>\S+?),", output)
     return m["version"]  # type: ignore
 
@@ -140,7 +143,10 @@ def _trace(repo: LeanGitRepo, build_deps: bool) -> None:
         execute("lake build")
 
         # Copy the Lean 4 stdlib into the path of packages.
-        lean_prefix = execute(f"lean --print-prefix", capture_output=True)[0].strip()
+        lean_prefix_output = execute("lean --print-prefix", capture_output=True)
+        if lean_prefix_output is None:
+            raise CalledProcessError(1, "lean --print-prefix")
+        lean_prefix = Path(lean_prefix_output[0].strip())
         if is_new_version(get_lean_version()):
             packages_path = Path(".lake/packages")
             build_path = Path(".lake/build")

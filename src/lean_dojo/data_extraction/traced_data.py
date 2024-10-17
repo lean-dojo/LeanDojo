@@ -14,7 +14,7 @@ from lxml import etree
 from pathlib import Path
 from loguru import logger
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any, Tuple, Union
+from typing import List, Optional, Dict, Any, Tuple, Union, cast
 
 from ..utils import (
     is_git_repo,
@@ -47,6 +47,12 @@ from .ast import (
     is_leaf,
     is_mutual_lean4,
     is_potential_premise_lean4,
+    cast_away_optional,
+    StdTacticAliasAliaslrNode,
+    LeanElabCommandCommandIrreducibleDefNode,
+    StdTacticAliasAliasNode,
+    cast_list_str,
+    cast_str,
 )
 from .lean import LeanFile, LeanGitRepo, Theorem, Pos
 from ..constants import NUM_WORKERS, LOAD_USED_PACKAGES_ONLY, LEAN4_PACKAGES_DIR
@@ -144,7 +150,8 @@ class TracedTactic:
     its AST and the states before/after the tactic.
     """
 
-    ast: Node = field(repr=False)
+    # ast: Node = field(repr=False)
+    ast: OtherNode | TacticTacticseqbracketedNode = field(repr=False)
     """AST of the tactic.
     """
 
@@ -160,7 +167,7 @@ class TracedTactic:
         return d
 
     @property
-    def tactic(self) -> str:
+    def tactic(self) -> Optional[str]:
         """The raw tactic string."""
         return self.ast.tactic
 
@@ -179,11 +186,15 @@ class TracedTactic:
     @property
     def start(self) -> Pos:
         """Start position in :file:`*.lean` file."""
+        if not isinstance(self.ast.start, Pos):
+            raise TypeError("start expected to be Pos")
         return self.ast.start
 
     @property
     def end(self) -> Pos:
         """End position in :file:`*.lean` file."""
+        if not isinstance(self.ast.end, Pos):
+            raise TypeError("end expected to be Pos")
         return self.ast.end
 
     def to_string(self) -> str:
@@ -212,10 +223,16 @@ class TracedTactic:
         )
         lean_file = self.traced_theorem.traced_file.lean_file
         annot_tac = []
-        provenances = []
+        provenances: List[Dict[str, Any]] = []
         cur = self.start
 
-        def _callback4(node: IdentNode, _):
+        def _callback4(node: Node, _):
+            if not isinstance(node, IdentNode):
+                raise TypeError("Excepted IdentNode")
+            if node.start is None or node.end is None:
+                raise TypeError(
+                    "start/end expected to be Pos, Unsupported left operand type for <= ('None')"
+                )
             nonlocal cur
 
             if (
@@ -227,10 +244,12 @@ class TracedTactic:
                 if cur <= node.start:
                     annot_tac.append(lean_file[cur : node.start])
                     annot_tac.append("<a>" + lean_file[node.start : node.end] + "</a>")
-                    prov = {"full_name": node.full_name}
-                    prov["def_path"] = node.def_path
-                    prov["def_pos"] = list(node.def_start)
-                    prov["def_end_pos"] = list(node.def_end)
+                    prov = {
+                        "full_name": node.full_name,
+                        "def_path": node.def_path,
+                        "def_pos": list(node.def_start),
+                        "def_end_pos": list(node.def_end),
+                    }
                     provenances.append(prov)
                     cur = node.end
 
@@ -281,11 +300,15 @@ class TracedTheorem:
     @property
     def start(self) -> Pos:
         """Start position in :file:`*.lean` file."""
+        if not isinstance(self.ast.start, Pos):
+            raise TypeError("start expected to be Pos")
         return self.ast.start
 
     @property
     def end(self) -> Pos:
         """End position in :file:`*.lean` file."""
+        if not isinstance(self.ast.end, Pos):
+            raise TypeError("end expected to be Pos")
         return self.ast.end
 
     @property
@@ -333,8 +356,11 @@ class TracedTheorem:
     def locate_proof(self) -> Tuple[Pos, Pos]:
         """Return the start/end positions of the proof."""
         start, end = self.get_proof_node().get_closure()
-        if end < self.end:
-            end = self.end
+        start = cast_away_optional(start)
+        self_end = cast_away_optional(self.end)
+        end = cast_away_optional(end)
+        if end < self_end:
+            end = self_end
         return start, end
 
     def get_tactic_proof(self) -> Optional[str]:
@@ -343,6 +369,8 @@ class TracedTheorem:
             return None
         node = self.get_proof_node()
         start, end = node.get_closure()
+        start = cast_away_optional(start)
+        end = cast_away_optional(end)
         proof = get_code_without_comments(node.lean_file, start, end, self.comments)
         if not re.match(r"^(by|begin)\s", proof):
             return None
@@ -353,15 +381,18 @@ class TracedTheorem:
         """Return the theorem statement."""
         proof_start, _ = self.locate_proof()
         assert self.traced_file is not None
+        start = cast_away_optional(self.ast.start)
         return get_code_without_comments(
-            self.traced_file.lean_file, self.ast.start, proof_start, self.comments
+            self.traced_file.lean_file, start, proof_start, self.comments
         )
 
     def get_premise_full_names(self) -> List[str]:
         """Return the fully qualified names of all premises used in the proof."""
         names = []
 
-        def _callback(node: IdentNode, _: List[Node]):
+        def _callback(node: Node, _: List[Node]):
+            if not isinstance(node, IdentNode):
+                raise TypeError("Excepted IdentNode")
             if node.full_name is not None:
                 names.append(node.full_name)
 
@@ -503,7 +534,7 @@ class TracedFile:
         """
         result = False
 
-        def _callback(node: ModulePreludeNode, _: List[Node]):
+        def _callback(node: Node, _: List[Node]):
             nonlocal result
             result = True
             return True  # Stop traversing.
@@ -620,19 +651,35 @@ class TracedFile:
             ):
                 inside_sections_namespaces.pop()
             elif is_potential_premise_lean4(node):
-                prefix = ".".join(
-                    ns.name
-                    for ns in inside_sections_namespaces
-                    if isinstance(ns, CommandNamespaceNode)
-                )
-                full_name = (
-                    [_qualify_name(name, prefix) for name in node.name]
-                    if is_mutual_lean4(node)
-                    else _qualify_name(node.name, prefix)
-                )
-                object.__setattr__(node, "full_name", full_name)
-                if isinstance(node, CommandDeclarationNode) and node.is_theorem:
-                    object.__setattr__(node.get_theorem_node(), "full_name", full_name)
+                assert node.name is not None
+                names = []
+                for ns in inside_sections_namespaces:
+                    if isinstance(ns, CommandNamespaceNode):
+                        if ns.name is None:
+                            raise TypeError("Expected ns.name to be str")
+                        names.append(ns.name)
+                prefix = ".".join(names)
+
+                full_name: Union[str, List[str]]
+                if isinstance(node, StdTacticAliasAliaslrNode) and node.is_mutual:
+                    full_name = [_qualify_name(name, prefix) for name in node.name]
+                    object.__setattr__(node, "full_name", full_name)
+                elif isinstance(
+                    node,
+                    (
+                        CommandDeclarationNode,
+                        LemmaNode,
+                        MathlibTacticLemmaNode,
+                        LeanElabCommandCommandIrreducibleDefNode,
+                        StdTacticAliasAliasNode,
+                    ),
+                ):
+                    full_name = _qualify_name(node.name, prefix)
+                    object.__setattr__(node, "full_name", full_name)
+                    if isinstance(node, CommandDeclarationNode) and node.is_theorem:
+                        object.__setattr__(
+                            node.get_theorem_node(), "full_name", full_name
+                        )
             elif isinstance(
                 node,
                 (
@@ -646,11 +693,16 @@ class TracedFile:
                     )
                     if (tac_node.start, tac_node.end) not in pos2tactics:
                         continue
-                    t = pos2tactics[(tac_node.start, tac_node.end)]
+                    tac_node_start = cast_away_optional(tac_node.start)
+                    tac_node_end = cast_away_optional(tac_node.end)
+                    t = pos2tactics[(tac_node_start, tac_node_end)]
+                    tac_start = cast_away_optional(tac_node.start)
+                    tac_end = cast_away_optional(tac_node.end)
                     tac = get_code_without_comments(
-                        lean_file, tac_node.start, tac_node.end, comments
+                        lean_file, tac_start, tac_end, comments
                     )
-                    tac = _fix_indentation(tac, tac_node.start.column_nb - 1)
+                    tac_start = cast_away_optional(tac_node.start)
+                    tac = _fix_indentation(tac, tac_start.column_nb - 1)
                     object.__setattr__(tac_node, "state_before", t["stateBefore"])
                     object.__setattr__(tac_node, "state_after", t["stateAfter"])
                     object.__setattr__(tac_node, "tactic", tac)
@@ -749,27 +801,24 @@ class TracedFile:
         result = None
         private_result = None
 
-        def _callback(
-            node: Union[CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode], _
-        ) -> bool:
+        def _callback(node: Node, _) -> bool:
             nonlocal result, private_result
-            if (
-                isinstance(
-                    node,
-                    (
-                        CommandTheoremNode,
-                        LemmaNode,
-                        MathlibTacticLemmaNode,
-                    ),
-                )
-                and node.full_name == thm.full_name
+            if not isinstance(
+                node, (CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode)
             ):
-                comments = self._filter_comments(node.start, node.end)
-                t = TracedTheorem(self.root_dir, thm, node, comments, self)
-                if t.is_private:
-                    private_result = t
-                else:
-                    result = t
+                raise TypeError(
+                    "Except CommandTheoremNode, LemmaNode, MathlibTacticLemmaNode"
+                )
+            if not node.full_name == thm.full_name:
+                return False
+            start = cast_away_optional(node.start)
+            end = cast_away_optional(node.end)
+            comments = self._filter_comments(start, end)
+            t = TracedTheorem(self.root_dir, thm, node, comments, self)
+            if t.is_private:
+                private_result = t
+            else:
+                result = t
             return False
 
         self.ast.traverse_preorder(_callback, node_cls=None)
@@ -796,8 +845,11 @@ class TracedFile:
             ):
                 return False
             repo, path = self._get_repo_and_relative_path()
-            thm = Theorem(repo, path, node.full_name)
-            comments = self._filter_comments(node.start, node.end)
+            full_name = cast_away_optional(node.full_name)
+            thm = Theorem(repo, path, full_name)
+            start = cast_away_optional(node.start)
+            end = cast_away_optional(node.end)
+            comments = self._filter_comments(start, end)
             traced_theorems.append(
                 TracedTheorem(self.root_dir, thm, node, comments, self)
             )
@@ -855,34 +907,41 @@ class TracedFile:
                     proof_start, _ = (
                         node.get_theorem_node().get_proof_node().get_closure()
                     )
+                    start = cast_away_optional(start)
+                    proof_start = cast_away_optional(proof_start)
                     code = get_code_without_comments(
                         self.lean_file, start, proof_start, self.comments
                     )
                     if code.endswith(":="):
                         code = code[:-2].strip()
                 else:
+                    start = cast_away_optional(start)
+                    end = cast_away_optional(end)
                     code = get_code_without_comments(
                         self.lean_file, start, end, self.comments
                     )
                 # TODO: For alias, restate_axiom, etc., the code is not very informative.
+                full_name: Union[None, str, List[str]]
                 if is_mutual_lean4(node):
-                    for s in node.full_name:
+                    full_name = cast_list_str(node.full_name)
+                    for s in full_name:
                         results.append(
                             {
                                 "full_name": s,
                                 "code": code,
-                                "start": list(start),
-                                "end": list(end),
+                                "start": list(start) if start is not None else [],
+                                "end": list(end) if end is not None else [],
                                 "kind": node.kind(),
                             }
                         )
                 else:
+                    full_name = cast_str(node.full_name)
                     results.append(
                         {
-                            "full_name": node.full_name,
+                            "full_name": full_name,
                             "code": code,
-                            "start": list(start),
-                            "end": list(end),
+                            "start": list(start) if start is not None else [],
+                            "end": list(end) if end is not None else [],
                             "kind": node.kind(),
                         }
                     )
