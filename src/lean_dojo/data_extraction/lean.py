@@ -55,7 +55,7 @@ LEAN4_NIGHTLY_REPO = None
 
 _URL_REGEX = re.compile(r"(?P<url>.*?)/*")
 
-_SSH_TO_HTTPS_REGEX = re.compile(r"^git@github\.com:(.+)/(.+)(?:\.git)?$")
+_SSH_TO_HTTPS_REGEX = re.compile(r"git@github\.com:(?P<user>.+)/(?P<repo>.+)\.git")
 
 REPO_CACHE_PREFIX = "repos"
 
@@ -70,7 +70,13 @@ def normalize_url(url: str, repo_type: RepoType = RepoType.GITHUB) -> str:
     if repo_type == RepoType.LOCAL:  # Convert to absolute path if local.
         return os.path.abspath(url)
     # Remove trailing `/`.
-    return _URL_REGEX.fullmatch(url)["url"]  # type: ignore
+    url = _URL_REGEX.fullmatch(url)["url"]  # type: ignore
+    return ssh_to_https(url)
+
+
+def ssh_to_https(url: str) -> str:
+    m = _SSH_TO_HTTPS_REGEX.fullmatch(url)
+    return f"https://github.com/{m.group('user')}/{m.group('repo')}" if m else url
 
 
 def get_repo_type(url: str) -> Optional[RepoType]:
@@ -81,8 +87,7 @@ def get_repo_type(url: str) -> Optional[RepoType]:
     Returns:
         Optional[str]: The type of the repository (None if the repo cannot be found).
     """
-    m = _SSH_TO_HTTPS_REGEX.match(url)
-    url = f"https://github.com/{m.group(1)}/{m.group(2)}" if m else url
+    url = ssh_to_https(url)
     parsed_url = urllib.parse.urlparse(url)  # type: ignore
     if parsed_url.scheme in ["http", "https"]:
         # Case 1 - GitHub URL.

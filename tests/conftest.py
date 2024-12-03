@@ -3,6 +3,7 @@ import pytest
 from lean_dojo import *
 
 
+MINIF2F_URL = "git@github.com:yangky11/miniF2F-lean4.git"
 BATTERIES_URL = "https://github.com/leanprover-community/batteries"
 AESOP_URL = "https://github.com/leanprover-community/aesop"
 MATHLIB4_URL = "https://github.com/leanprover-community/mathlib4"
@@ -10,6 +11,7 @@ LEAN4_EXAMPLE_URL = "https://github.com/yangky11/lean4-example"
 EXAMPLE_COMMIT_HASH = "3f8c5eb303a225cdef609498b8d87262e5ef344b"
 REMOTE_EXAMPLE_URL = "https://gitee.com/rexzong/lean4-example"
 URLS = [
+    MINIF2F_URL,
     BATTERIES_URL,
     AESOP_URL,
     MATHLIB4_URL,
