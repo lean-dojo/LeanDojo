@@ -392,7 +392,7 @@ class Dojo:
         if exit_code == 137:
             raise DojoCrashError("OOM")
         else:
-            raise DojoCrashError(f"Unknown exit code: {exit_code}")
+            raise DojoCrashError(f"Unexpected exit code: {exit_code}")
 
     def _read_next_line(self) -> Tuple[str, str]:
         """Read the next line from `self.proc`.
