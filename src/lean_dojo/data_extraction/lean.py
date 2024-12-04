@@ -55,7 +55,7 @@ LEAN4_NIGHTLY_REPO = None
 
 _URL_REGEX = re.compile(r"(?P<url>.*?)/*")
 
-_SSH_TO_HTTPS_REGEX = re.compile(r"git@github\.com:(?P<user>.+)/(?P<repo>.+)\.git")
+_SSH_TO_HTTPS_REGEX = re.compile(r"git@github\.com:(?P<user>.+)/(?P<repo>.+?)(\.git)?")
 
 REPO_CACHE_PREFIX = "repos"
 
