@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 from loguru import logger
 from dataclasses import dataclass, field
-from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
+from typing import Union, Tuple, List, Dict, Any, Optional, TextIO, cast
 
 from .parse_goals import parse_goals, Goal
 from ..utils import to_json_path, working_directory
@@ -260,6 +260,7 @@ class Dojo:
         else:
             # Interaction through commands (via CommandElabM).
             lean_file = traced_file.lean_file
+            self.entry = cast(Tuple[LeanGitRepo, Path, int], self.entry)
             pos = Pos(line_nb=self.entry[2], column_nb=1)
             code_before = get_code_without_comments(
                 lean_file, lean_file.start_pos, pos, traced_file.comments

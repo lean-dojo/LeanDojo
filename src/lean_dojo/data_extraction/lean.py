@@ -250,6 +250,9 @@ class Pos:
     def __le__(self, other):
         return self < other or self == other
 
+    def __index__(self):
+        return self.line_nb, self.column_nb
+
 
 @dataclass(frozen=True)
 class LeanFile:
