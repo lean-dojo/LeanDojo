@@ -353,6 +353,8 @@ class LeanFile:
         n = 0
         for i, num_bytes in enumerate(self.num_bytes, start=1):
             n += num_bytes
+            if n == byte_idx and i == self.num_lines:
+                byte_idx -= 1
             if n > byte_idx:
                 line_byte_idx = byte_idx - (n - num_bytes)
                 if line_byte_idx == 0:

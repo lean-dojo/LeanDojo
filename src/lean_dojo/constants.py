@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-__version__ = "2.1.3"
+__version__ = "2.2.0"
 
 logger.remove()
 if "VERBOSE" in os.environ or "DEBUG" in os.environ:
@@ -44,7 +44,7 @@ TMP_DIR = Path(os.environ["TMP_DIR"]).absolute() if "TMP_DIR" in os.environ else
 MAX_NUM_PROCS = 32
 
 NUM_PROCS = int(os.getenv("NUM_PROCS", min(multiprocessing.cpu_count(), MAX_NUM_PROCS)))
-"""Number of threads to use
+"""Number of processes to use
 """
 
 NUM_WORKERS = NUM_PROCS - 1
