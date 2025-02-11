@@ -23,6 +23,7 @@ from .interaction.dojo import (
     Dojo,
     ProofFinished,
     ProofGivenUp,
+    check_proof,
 )
 from .interaction.parse_goals import Declaration, Goal, parse_goals
 from .data_extraction.lean import get_latest_commit, LeanGitRepo, LeanFile, Theorem, Pos
