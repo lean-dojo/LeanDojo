@@ -100,6 +100,11 @@ def _kill_descendants(proc: psutil.Process) -> None:
         pass
 
 
+_SORRY_WARNING_REGEX = re.compile(
+    r"(?P<line>\d+)\:\d+\:\s+warning\:\s+declaration uses \'sorry\'"
+)
+
+
 def check_proof(thm: Theorem, proof: str) -> bool:
     """Check if a proof is correct.
 
@@ -153,9 +158,11 @@ def check_proof(thm: Theorem, proof: str) -> bool:
         + code_before_theorem
         + "\n\nset_option maxHeartbeats 0 in\n"
         + code_thereom
-        + f"{proof}\n"
-        + lean_file[proof_end:]
     )
+    start_line = modified_code.count("\n") + 1
+    modified_code += f"{proof}\n"
+    end_line = modified_code.count("\n") + 1
+    modified_code += lean_file[proof_end:]
 
     modified_file.write(modified_code)
     modified_file.flush()
@@ -171,7 +178,11 @@ def check_proof(thm: Theorem, proof: str) -> bool:
         modified_path = Path(modified_file.name).relative_to(traced_repo_path)
         cmd = f"lake env lean --threads={TACTIC_CPU_LIMIT} --memory={memory_limit} {modified_path}"
         try:
-            execute(cmd, capture_output=True)
+            oup, _ = execute(cmd, capture_output=True)
+            for m in _SORRY_WARNING_REGEX.finditer(oup):
+                line = int(m.group("line"))
+                if start_line <= line <= end_line:
+                    return False
         except CalledProcessError:
             return False
         return True
