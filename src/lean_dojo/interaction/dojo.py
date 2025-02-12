@@ -157,10 +157,9 @@ def check_proof(thm: Theorem, proof: str) -> bool:
         "import Lean4Repl\n"
         + code_before_theorem
         + "\n\nset_option maxHeartbeats 0 in\n"
-        + code_thereom
     )
     start_line = modified_code.count("\n") + 1
-    modified_code += f"{proof}\n"
+    modified_code += code_thereom + f"{proof}\n"
     end_line = modified_code.count("\n") + 1
     modified_code += lean_file[proof_end:]
 
