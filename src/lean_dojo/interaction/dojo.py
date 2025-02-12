@@ -274,9 +274,6 @@ class Dojo:
                     "Currently LeanDojo does not support interacting with proofs in prelude files."
                 )
             elif isinstance(ex, EOFError):
-                import pdb
-
-                pdb.set_trace()
                 raise DojoInitError("Unexpected EOF")
             elif isinstance(ex, DojoTacticTimeoutError):
                 raise DojoInitError("Timeout during initialization")
