@@ -8,11 +8,12 @@ import tempfile
 from pathlib import Path
 from loguru import logger
 from dataclasses import dataclass, field
+from subprocess import CalledProcessError
 from typing import Union, Tuple, List, Dict, Any, Optional, TextIO
 
 from .parse_goals import parse_goals, Goal
-from ..utils import to_json_path, working_directory
 from ..data_extraction.trace import get_traced_repo_path
+from ..utils import to_json_path, working_directory, execute
 from ..data_extraction.lean import Theorem, LeanGitRepo, Pos
 from ..constants import TACTIC_CPU_LIMIT, TACTIC_MEMORY_LIMIT
 from ..data_extraction.traced_data import TracedFile, get_code_without_comments
@@ -99,6 +100,93 @@ def _kill_descendants(proc: psutil.Process) -> None:
         pass
 
 
+_SORRY_WARNING_REGEX = re.compile(
+    r"(?P<line>\d+)\:\d+\:\s+warning\:\s+declaration uses \'sorry\'"
+)
+
+
+def check_proof(thm: Theorem, proof: str) -> bool:
+    """Check if a proof is correct.
+
+    Args:
+        thm (Theorem): The theorem statement.
+        proof (str): The proof to check.
+    """
+    # Replace the original human-written proof.
+    traced_repo_path = get_traced_repo_path(thm.repo)
+    repl_path = traced_repo_path / "Lean4Repl.lean"
+    assert (
+        repl_path.exists()
+    ), "Unable to find Lean4Repl.lean in the traced repo. The traced repo was likely produced by an outdated version of LeanDojo. See https://github.com/lean-dojo/LeanDojo/releases/tag/v2.0.0."
+    try:
+        json_path = to_json_path(traced_repo_path, thm.file_path, thm.repo)
+        traced_file = TracedFile.from_traced_file(traced_repo_path, json_path, thm.repo)
+    except FileNotFoundError:
+        raise DojoInitError(
+            f"Cannot find the *.ast.json file for {thm} in {traced_repo_path}."
+        )
+    traced_theorem = traced_file.get_traced_theorem(thm)
+    if traced_theorem is None:
+        raise DojoInitError(
+            f"Failed to locate the theorem with `{thm.full_name}` as its fully qualified name."
+        )
+
+    # Modify the code and write it to a temporary file.
+    modified_file = tempfile.NamedTemporaryFile(  # type: ignore
+        "wt",
+        prefix=thm.file_path.stem,
+        suffix=thm.file_path.suffix,
+        dir=traced_file.abs_path.parent,
+        delete=True,
+    ).__enter__()
+    logger.debug(f"Modifying `{thm.file_path}` into `{modified_file.name}`")
+    proof_start, proof_end = traced_theorem.locate_proof()
+    lean_file = traced_file.lean_file
+
+    code_before_theorem = get_code_without_comments(
+        lean_file, lean_file.start_pos, traced_theorem.start, traced_file.comments
+    )
+    code_thereom = get_code_without_comments(
+        lean_file, traced_theorem.start, proof_start, traced_file.comments
+    ).strip()
+    if code_thereom.endswith(" where"):
+        raise DojoInitError("Cannot interact with theorems with the `where` keyword.")
+    if not code_thereom.endswith(":="):
+        code_thereom += " := "
+    modified_code = (
+        "import Lean4Repl\n"
+        + code_before_theorem
+        + "\n\nset_option maxHeartbeats 0 in\n"
+    )
+    start_line = modified_code.count("\n") + 1
+    modified_code += code_thereom + f"{proof}\n"
+    end_line = modified_code.count("\n") + 1
+    modified_code += lean_file[proof_end:]
+
+    modified_file.write(modified_code)
+    modified_file.flush()
+
+    if os.path.exists("lakefile.olean"):
+        os.remove("lakefile.olean")
+    if os.path.exists(".lake/lakefile.olean"):
+        os.remove(".lake/lakefile.olean")
+
+    # Run the modified file.
+    with working_directory(traced_repo_path):
+        memory_limit = 1024 * int(TACTIC_MEMORY_LIMIT[:-1])
+        modified_path = Path(modified_file.name).relative_to(traced_repo_path)
+        cmd = f"lake env lean --threads={TACTIC_CPU_LIMIT} --memory={memory_limit} {modified_path}"
+        try:
+            oup, _ = execute(cmd, capture_output=True)
+            for m in _SORRY_WARNING_REGEX.finditer(oup):
+                line = int(m.group("line"))
+                if start_line <= line <= end_line:
+                    return False
+        except CalledProcessError:
+            return False
+        return True
+
+
 class Dojo:
     """Gym-like environment for programmatic interaction with Lean through tactics or commands."""
 
@@ -168,7 +256,7 @@ class Dojo:
 
         self._modify_file(traced_file)
 
-        # Run the modified file in a container.
+        # Run the modified file.
         with working_directory(traced_repo_path):
             memory_limit = 1024 * int(TACTIC_MEMORY_LIMIT[:-1])
             modified_path = Path(self.modified_file.name).relative_to(traced_repo_path)
