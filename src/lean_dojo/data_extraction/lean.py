@@ -527,6 +527,11 @@ class LeanGitRepo:
     You can also use tags such as ``v3.5.0``. They will be converted to commit hashes.
     """
 
+    subdir: str = field(default="")
+    """The subdirectory of the repo containing the Lean project. Default is the repo's root directory.
+    This cannot start with a ``/``.
+    """
+
     repo: Union[Repository, Repo] = field(init=False, repr=False)
     """A :class:`github.Repository` object for GitHub repos or
     a :class:`git.Repo` object for local or remote Git repos.
@@ -773,7 +778,7 @@ class LeanGitRepo:
         assert self.repo_type == RepoType.GITHUB
         assert "github.com" in self.url, f"Unsupported URL: {self.url}"
         url = self.url.replace("github.com", "raw.githubusercontent.com")
-        return f"{url}/{self.commit}/{filename}"
+        return f"{url}/{self.commit}/{self.subdir}/{filename}"
 
     def get_config(self, filename: str, num_retries: int = 2) -> Dict[str, Any]:
         """Return the repo's files."""
@@ -782,7 +787,7 @@ class LeanGitRepo:
             content = read_url(config_url, num_retries)
         else:
             working_dir = self.repo.working_dir
-            with open(os.path.join(working_dir, filename), "r") as f:
+            with open(os.path.join(working_dir, self.subdir, filename), "r") as f:
                 content = f.read()
         if filename.endswith(".toml"):
             return toml.loads(content)
@@ -797,7 +802,7 @@ class LeanGitRepo:
             url = self._get_config_url("lakefile.lean")
             return url_exists(url)
         else:
-            lakefile_path = Path(self.repo.working_dir) / "lakefile.lean"
+            lakefile_path = Path(self.repo.working_dir) / self.subdir / "lakefile.lean"
             return lakefile_path.exists()
 
     def uses_lakefile_toml(self) -> bool:
@@ -806,7 +811,7 @@ class LeanGitRepo:
             url = self._get_config_url("lakefile.toml")
             return url_exists(url)
         else:
-            lakefile_path = Path(self.repo.working_dir) / "lakefile.toml"
+            lakefile_path = Path(self.repo.working_dir) / self.subdir / "lakefile.toml"
             return lakefile_path.exists()
 
 
