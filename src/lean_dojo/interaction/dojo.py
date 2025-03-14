@@ -204,6 +204,7 @@ class Dojo:
         entry: Union[Theorem, Tuple[LeanGitRepo, Path, int]],
         timeout: int = 600,
         additional_imports: List[str] = [],
+        build_deps: bool = True,
     ):
         """Initialize Dojo.
 
@@ -217,6 +218,7 @@ class Dojo:
         self.entry = entry
         self.timeout = timeout
         self.additional_imports = additional_imports
+        self.build_deps = build_deps
 
         if self.uses_tactics:
             assert isinstance(entry, Theorem)
@@ -241,7 +243,7 @@ class Dojo:
         logger.debug(f"Initializing Dojo for {self.entry}")
 
         # Replace the human-written proof with a `repl` tactic.
-        traced_repo_path = get_traced_repo_path(self.repo)
+        traced_repo_path = get_traced_repo_path(self.repo, self.build_deps)
         repl_path = traced_repo_path / "Lean4Repl.lean"
         assert (
             repl_path.exists()
