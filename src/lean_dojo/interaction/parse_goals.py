@@ -1,5 +1,4 @@
-"""Utilities for parsing Lean's pretty-printed proof goals.
-"""
+"""Utilities for parsing Lean's pretty-printed proof goals."""
 
 import re
 from typing import List

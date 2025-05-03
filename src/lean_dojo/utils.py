@@ -1,5 +1,4 @@
-"""Utility functions used internally by LeanDojo.
-"""
+"""Utility functions used internally by LeanDojo."""
 
 import re
 import os
@@ -22,7 +21,7 @@ from .constants import NUM_WORKERS, TMP_DIR, LEAN4_PACKAGES_DIR, LEAN4_BUILD_DIR
 
 @contextmanager
 def working_directory(
-    path: Optional[Union[str, Path]] = None
+    path: Optional[Union[str, Path]] = None,
 ) -> Generator[Path, None, None]:
     """Context manager setting the current working directory (CWD) to ``path`` (or a temporary directory if ``path`` is None).
 
@@ -70,7 +69,7 @@ def ray_actor_pool(
         Generator[ActorPool, None, None]: A :class:`ray.util.actor_pool.ActorPool` object.
     """
     assert not ray.is_initialized()
-    ray.init()
+    ray.init(address="local")
     pool = ActorPool([actor_cls.remote(*args, **kwargs) for _ in range(NUM_WORKERS)])  # type: ignore
     try:
         yield pool

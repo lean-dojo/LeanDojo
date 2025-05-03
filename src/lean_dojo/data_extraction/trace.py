@@ -94,7 +94,7 @@ def is_new_version(v: str) -> bool:
 
 
 def check_files(packages_path: Path, no_deps: bool) -> None:
-    """Check if all \*.lean files have been processed to produce \*.ast.json and \*.dep_paths files."""
+    """Check if all *.lean files have been processed to produce *.ast.json and *.dep_paths files."""
     cwd = Path.cwd()
     packages_path = cwd / packages_path
     jsons = {
@@ -108,8 +108,8 @@ def check_files(packages_path: Path, no_deps: bool) -> None:
         if not no_deps or not p.is_relative_to(packages_path)
     }
     oleans = {
-        Path(str(p.with_suffix("")).replace("/build/lib/", "/build/ir/"))
-        for p in cwd.glob("**/build/lib/**/*.olean")
+        Path(str(p.with_suffix("")).replace("/build/lib/lean/", "/build/ir/"))
+        for p in cwd.glob("**/build/lib/lean/**/*.olean")
         if not no_deps or not p.is_relative_to(packages_path)
     }
     assert len(jsons) <= len(oleans) and len(deps) <= len(oleans)

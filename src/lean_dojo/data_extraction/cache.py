@@ -1,5 +1,4 @@
-"""Cache manager of traced repos.
-"""
+"""Cache manager of traced repos."""
 
 import os
 import shutil

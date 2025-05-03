@@ -1,5 +1,4 @@
-"""This module defines traced repos/files/theorems.
-"""
+"""This module defines traced repos/files/theorems."""
 
 import re
 import os

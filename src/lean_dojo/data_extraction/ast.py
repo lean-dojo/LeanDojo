@@ -946,8 +946,11 @@ class CommandInstanceNode(Node):
                 declid_node = children[3].children[0]
                 if isinstance(declid_node, CommandDeclidNode):
                     ident_node = declid_node.children[0]
-                    assert isinstance(ident_node, IdentNode)
-                    name = ident_node.val
+                    if isinstance(ident_node, IdentNode):
+                        name = ident_node.val
+                    else:
+                        assert isinstance(ident_node, IdentAntiquotNode)
+                        name = ident_node.get_ident()
                 else:
                     name = None
             else:

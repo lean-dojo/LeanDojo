@@ -194,7 +194,7 @@ def buildDir : FilePath :=
    "build"
 
 
-def libDir : FilePath := buildDir / "lib"
+def libDir : FilePath := buildDir / "lib" / "lean"
 
 
 /--
@@ -227,12 +227,12 @@ def toSrcDir! (path : FilePath) (ext : String) : FilePath :=
     packagesDir / "lean4/src" / p
   | none =>
     match relativeTo path' packagesDir with
-    | some p =>  -- E.g., `.lake/packages/aesop/.lake/build/lib/Aesop.olean`-> `.lake/packages/aesop/Aesop.lean`
+    | some p =>  -- E.g., `.lake/packages/aesop/.lake/build/lib/lean/Aesop.olean`-> `.lake/packages/aesop/Aesop.lean`
       let pkgName := p.components.head!
-      let sep := "build/lib/"
+      let sep := "build/lib/lean/"
       packagesDir / pkgName / (p.toString.splitOn sep |>.tail!.head!)
     | none =>
-      -- E.g., `.lake/build/lib/Mathlib/LinearAlgebra/Basic.olean` -> `Mathlib/LinearAlgebra/Basic.lean`
+      -- E.g., `.lake/build/lib/lean/Mathlib/LinearAlgebra/Basic.olean` -> `Mathlib/LinearAlgebra/Basic.lean`
       relativeTo path' libDir |>.get!
 
 
@@ -254,9 +254,9 @@ def findLean (mod : Name) : IO FilePath := do
   if modStr.startsWith "«.lake»." then
     return FilePath.mk (modStr.replace "«.lake»" ".lake" |>.replace "." "/") |>.withExtension "lean"
   let olean ← findOLean mod
-  -- Remove a "build/lib/" substring from the path.
-  let lean := olean.toString.replace ".lake/build/lib/" ""
-    |>.replace "build/lib/" "" |>.replace "lib/lean/Lake/" "lib/lean/lake/Lake/"
+  -- Remove a "build/lib/lean/" substring from the path.
+  let lean := olean.toString.replace ".lake/build/lib/lean/" ""
+    |>.replace "build/lib/lean/" "" |>.replace "lib/lean/Lake/" "lib/lean/lake/Lake/"
   let mut path := FilePath.mk lean |>.withExtension "lean"
   let leanLib ← getLibDir (← getBuildDir)
   if let some p := relativeTo path leanLib then
@@ -336,7 +336,7 @@ private def visitTermInfo (ti : TermInfo) (env : Environment) : TraceM Unit := d
   let defEndPos := decRanges >>= fun (decR : DeclarationRanges) => decR.selectionRange.endPos
 
   let modName :=
-  if let some modIdx := env.const2ModIdx.find? fullName then
+  if let some modIdx := env.const2ModIdx.get? fullName then
     env.header.moduleNames[modIdx.toNat]!
   else
     env.header.mainModule
@@ -492,7 +492,7 @@ def shouldProcess (path : FilePath) (noDeps : Bool) : IO Bool := do
   if noDeps ∧ Path.isRelativeTo relativePath Path.packagesDir then
     return false
 
-  let some oleanPath := Path.toBuildDir "lib" relativePath "olean" |
+  let some oleanPath := Path.toBuildDir "lib/lean" relativePath "olean" |
     throw $ IO.userError s!"Invalid path: {path}"
   return ← oleanPath.pathExists
 
@@ -508,7 +508,6 @@ def processAllFiles (noDeps : Bool) : IO Unit := do
     let mut tasks := #[]
     for path in ← System.FilePath.walkDir cwd do
       if ← shouldProcess path noDeps then
-        println! path
         let t ← IO.asTask $ IO.Process.run
           {cmd := "lake", args := #["env", "lean", "--run", "ExtractData.lean", path.toString]}
         tasks := tasks.push (t, path)
