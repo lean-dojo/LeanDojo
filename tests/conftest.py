@@ -8,7 +8,7 @@ BATTERIES_URL = "https://github.com/leanprover-community/batteries"
 AESOP_URL = "https://github.com/leanprover-community/aesop"
 MATHLIB4_URL = "https://github.com/leanprover-community/mathlib4"
 LEAN4_EXAMPLE_URL = "https://github.com/yangky11/lean4-example"
-EXAMPLE_COMMIT_HASH = "3f8c5eb303a225cdef609498b8d87262e5ef344b"
+EXAMPLE_COMMIT_HASH = "e2602e8d4b1d9cf9240f1a20160a47cfc35165b8"
 REMOTE_EXAMPLE_URL = "https://gitee.com/rexzong/lean4-example"
 URLS = [
     MINIF2F_URL,
@@ -54,12 +54,6 @@ def batteries_repo():
 
 @pytest.fixture(scope="session")
 def mathlib4_repo():
-    commit = "29dcec074de168ac2bf835a77ef68bbe069194c5"
-    return LeanGitRepo(MATHLIB4_URL, commit)
-
-
-@pytest.fixture(scope="session")
-def latest_mathlib4_repo():
     commit = get_latest_commit(MATHLIB4_URL)
     return LeanGitRepo(MATHLIB4_URL, commit)
 
