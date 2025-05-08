@@ -1,4 +1,4 @@
-"""This module define classes for repos, files, and theorems in Lean.
+"""This module define classes for repos, files, and theorems in Lean. 
 Objects of these classes contain only surface information, without extracting any trace.
 """
 
@@ -709,8 +709,10 @@ class LeanGitRepo:
                 url = url[:-4]
             if url.startswith("git@"):
                 url = "https://" + url[4:].replace(":", "/")
-
-            rev = m["rev"]  # type: ignore
+            try:
+                rev = m["rev"]  # type: ignore
+            except KeyError:
+                rev = None
             if rev is None:
                 commit = get_latest_commit(url)
             elif len(rev) == 40 and _COMMIT_REGEX.fullmatch(rev):
@@ -730,25 +732,27 @@ class LeanGitRepo:
         self, path: Union[str, Path, None]
     ) -> List[Tuple[str, "LeanGitRepo"]]:
         lakefile = (
-            self.get_config("lakefile.toml")["content"]
+            self.get_config("lakefile.toml")
             if path is None
             else (Path(path) / "lakefile.toml").open().read()
         )
-        matches = dict()
-
-        for req in _LAKEFILE_TOML_REQUIREMENT_REGEX.finditer(lakefile):
-            for line in req.group().strip().splitlines():
-                key, value = line.split("=")
-                key = key.strip()
-                value = value.strip()
-                if key == "path":
-                    raise ValueError("Local dependencies are not supported.")
-                if key == "git":
-                    matches["url"] = value
-                if key == "rev":
-                    matches["rev"] = value
-                if key == "name":
-                    matches["name"] = value
+        if "content" in lakefile:
+            matches = []
+            for req in _LAKEFILE_TOML_REQUIREMENT_REGEX.finditer(lakefile):
+                match = {}
+                for line in req.group().strip().splitlines():
+                    key, value = line.split("=")
+                    match[key.strip()] = value.strip()
+                matches.append(match)
+        # Parsing worked
+        else:
+            matches = lakefile["require"]
+        for match in matches:
+            if "path" in match:
+                raise ValueError("Local dependencies are not supported.")
+            if "git" in match:
+                match["url"] = match["git"]
+                del match["git"]
 
         return self._parse_deps(matches)
 
