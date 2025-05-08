@@ -1,4 +1,4 @@
-"""This module define classes for repos, files, and theorems in Lean. 
+"""This module define classes for repos, files, and theorems in Lean.
 Objects of these classes contain only surface information, without extracting any trace.
 """
 
@@ -736,7 +736,12 @@ class LeanGitRepo:
             if path is None
             else (Path(path) / "lakefile.toml").open().read()
         )
-        if "content" in lakefile:
+        # Parsing worked
+        if "require" in lakefile:
+            matches = lakefile["require"]
+        else:
+            if "content" in lakefile:
+                lakefile = lakefile["content"]
             matches = []
             for req in _LAKEFILE_TOML_REQUIREMENT_REGEX.finditer(lakefile):
                 match = {}
@@ -744,9 +749,6 @@ class LeanGitRepo:
                     key, value = line.split("=")
                     match[key.strip()] = value.strip()
                 matches.append(match)
-        # Parsing worked
-        else:
-            matches = lakefile["require"]
         for match in matches:
             if "path" in match:
                 raise ValueError("Local dependencies are not supported.")
