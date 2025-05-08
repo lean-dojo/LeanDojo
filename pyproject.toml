@@ -12,11 +12,7 @@ exclude = [
 
 [project]
 name = "lean-dojo"
-<<<<<<< HEAD
 version = "4.19.0"
-=======
-version = "2.1.3"
->>>>>>> 9f4d398c17fe6cb46ebc9906c8a06e7eff643ea0
 authors = [
   { name="Kaiyu Yang", email="kaiyuy@meta.com" },
 ]
