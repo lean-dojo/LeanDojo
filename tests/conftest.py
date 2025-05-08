@@ -9,7 +9,6 @@ AESOP_URL = "https://github.com/leanprover-community/aesop"
 MATHLIB4_URL = "https://github.com/leanprover-community/mathlib4"
 LEAN4_EXAMPLE_URL = "https://github.com/yangky11/lean4-example"
 EXAMPLE_COMMIT_HASH = "e2602e8d4b1d9cf9240f1a20160a47cfc35165b8"
-REMOTE_EXAMPLE_URL = "https://gitee.com/rexzong/lean4-example"
 URLS = [
     MINIF2F_URL,
     BATTERIES_URL,
@@ -17,11 +16,6 @@ URLS = [
     MATHLIB4_URL,
     LEAN4_EXAMPLE_URL,
 ]
-
-
-@pytest.fixture(scope="session")
-def remote_example_url():
-    return REMOTE_EXAMPLE_URL
 
 
 @pytest.fixture(scope="session")
@@ -48,26 +42,22 @@ def lean4_example_repo():
 
 @pytest.fixture(scope="session")
 def batteries_repo():
-    commit = get_latest_commit(BATTERIES_URL)
-    return LeanGitRepo(BATTERIES_URL, commit)
+    return LeanGitRepo(BATTERIES_URL, "stable")
 
 
 @pytest.fixture(scope="session")
 def mathlib4_repo():
-    commit = get_latest_commit(MATHLIB4_URL)
-    return LeanGitRepo(MATHLIB4_URL, commit)
+    return LeanGitRepo(MATHLIB4_URL, "stable")
 
 
 @pytest.fixture(scope="session")
 def aesop_repo():
-    commit = get_latest_commit(AESOP_URL)
-    return LeanGitRepo(AESOP_URL, commit)
+    return LeanGitRepo(AESOP_URL, "stable")
 
 
 @pytest.fixture(scope="session", params=URLS)
 def traced_repo(request):
     url = request.param
-    commit = get_latest_commit(url)
-    repo = LeanGitRepo(url, commit)
+    repo = LeanGitRepo(url, "stable")
     traced_repo = trace(repo)
     yield traced_repo
