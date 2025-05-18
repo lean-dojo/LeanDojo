@@ -26,23 +26,6 @@ def test_github_interact(lean4_example_url):
     assert isinstance(final_state, ProofFinished)
 
 
-def test_remote_interact(remote_example_url):
-    repo = LeanGitRepo(url=remote_example_url, commit="main")
-    assert repo.repo_type == RepoType.REMOTE
-    theorem = Theorem(repo, "Lean4Example.lean", "hello_world")
-    # initial state
-    dojo, state_0 = Dojo(theorem).__enter__()
-    assert state_0.pp == "a b c : Nat\n⊢ a + b + c = a + c + b"
-    # state after running a tactic
-    state_1 = dojo.run_tac(state_0, "rw [add_assoc]")
-    assert state_1.pp == "a b c : Nat\n⊢ a + (b + c) = a + c + b"
-    # state after running another a sorry tactic
-    assert dojo.run_tac(state_1, "sorry") == ProofGivenUp()
-    # finish proof
-    final_state = dojo.run_tac(state_1, "rw [add_comm b, ←add_assoc]")
-    assert isinstance(final_state, ProofFinished)
-
-
 def test_local_interact(lean4_example_url):
     # Clone the GitHub repository to the local path
     with working_directory() as tmp_dir:

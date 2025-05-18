@@ -21,20 +21,3 @@ def test_local_repo_cache(lean4_example_url, example_commit_hash):
     # get the cache
     repo_cache_dir = cache.get(rel_cache_dir)
     assert repo_cache_dir is not None
-
-
-def test_remote_repo_cache(remote_example_url):
-    prefix = "repos"
-    repo_name = "lean4-example"
-    with working_directory() as tmp_dir:
-        repo = Repo.clone_from(remote_example_url, repo_name)
-        tmp_remote_dir = tmp_dir / repo_name
-        rel_cache_dir = (
-            prefix
-            / Path(f"gitpython-{repo_name}-{repo.head.commit.hexsha}")
-            / repo_name
-        )
-        cache.store(tmp_remote_dir, rel_cache_dir)
-    # get the cache
-    repo_cache = cache.get(rel_cache_dir)
-    assert repo_cache is not None

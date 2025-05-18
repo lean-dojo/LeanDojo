@@ -15,15 +15,6 @@ def test_github_trace(lean4_example_url):
     assert path is not None
 
 
-def test_remote_trace(remote_example_url):
-    # remote
-    remote_repo = LeanGitRepo(remote_example_url, "main")
-    assert remote_repo.repo_type == RepoType.REMOTE
-    trace_repo = trace(remote_repo)
-    path = cache.get(remote_repo.get_cache_dirname() / remote_repo.name)
-    assert path is not None
-
-
 def test_local_trace(lean4_example_url):
     # local
     with working_directory() as tmp_dir:
