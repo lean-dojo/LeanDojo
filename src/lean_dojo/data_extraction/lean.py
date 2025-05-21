@@ -8,7 +8,6 @@ import json
 import toml
 import time
 import urllib
-import shutil
 import tempfile
 import webbrowser
 from enum import Enum
@@ -160,10 +159,8 @@ def url_to_repo(
                 repo_name = os.path.basename(url)
                 if repo_type == RepoType.LOCAL:
                     assert is_git_repo(url), f"Local path {url} is not a git repo"
-                    shutil.copytree(url, repo_name)
-                    return Repo(repo_name)
-                else:
-                    return Repo.clone_from(url, repo_name)
+                # clone from local path or remote url
+                return Repo.clone_from(url, repo_name)
         except Exception as ex:
             if num_retries <= 0:
                 raise ex
