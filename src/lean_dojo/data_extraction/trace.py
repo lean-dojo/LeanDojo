@@ -130,7 +130,7 @@ def _trace(repo: LeanGitRepo, build_deps: bool) -> None:
     repo.clone_and_checkout()
     logger.debug(f"Tracing {repo}")
 
-    with working_directory(repo.name):
+    with working_directory(os.path.join(repo.name, repo.subdir)):
         # Build the repo using lake.
         if not build_deps:
             try:
@@ -204,14 +204,14 @@ def get_traced_repo_path(repo: LeanGitRepo, build_deps: bool = True) -> Path:
     Returns:
         Path: The path of the traced repo in the cache, e.g. :file:`/home/kaiyu/.cache/lean_dojo/leanprover-community-mathlib-2196ab363eb097c008d4497125e0dde23fb36db2`
     """
-    rel_cache_dir = repo.get_cache_dirname() / repo.name
+    rel_cache_dir = repo.get_cache_dirname() / repo.name / repo.subdir
     path = cache.get(rel_cache_dir)
     if path is None:
         logger.info(f"Tracing {repo}")
         with working_directory() as tmp_dir:
             logger.debug(f"Working in the temporary directory {tmp_dir}")
             _trace(repo, build_deps)
-            src_dir = tmp_dir / repo.name
+            src_dir = tmp_dir / repo.name / repo.subdir
             traced_repo = TracedRepo.from_traced_files(src_dir, build_deps)
             traced_repo.save_to_disk()
             path = cache.store(src_dir, rel_cache_dir)
