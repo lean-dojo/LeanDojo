@@ -406,7 +406,7 @@ end Traversal
 open Traversal
 
 
-def getImports (header: Syntax) : IO String := do
+def getImports (header: TSyntax `Lean.Parser.Module.header) : IO String := do
   -- Similar to `lean --deps` in Lean 3.
   let mut s := ""
 
