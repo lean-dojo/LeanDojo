@@ -1401,11 +1401,10 @@ class ModuleImportNode(Node):
         start, end = None, None
         children = _parse_children(node_data, lean_file)
 
-        assert isinstance(children[0], AtomNode) and children[0].val == "import"
-        if isinstance(children[2], IdentNode):
-            module = children[2].val
-        else:
-            module = None
+        module = None
+        for child in children:
+            if isinstance(child, IdentNode):
+                module = child.val
 
         return cls(lean_file, start, end, children, module)
 

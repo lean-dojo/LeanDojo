@@ -253,6 +253,8 @@ def findLean (mod : Name) : IO FilePath := do
     return FilePath.mk (modStr.replace "«lake-packages»" "lake-packages" |>.replace "." "/") |>.withExtension "lean"
   if modStr.startsWith "«.lake»." then
     return FilePath.mk (modStr.replace "«.lake»" ".lake" |>.replace "." "/") |>.withExtension "lean"
+  if modStr == "Lake" then
+    return packagesDir / "lean4/src/lean/lake/Lake.lean"
   let olean ← findOLean mod
   -- Remove a "build/lib/lean/" substring from the path.
   let lean := olean.toString.replace ".lake/build/lib/lean/" ""
@@ -411,7 +413,10 @@ def getImports (header: TSyntax `Lean.Parser.Module.header) : IO String := do
   let mut s := ""
 
   for dep in headerToImports header do
-    let oleanPath ← findOLean dep.module
+    -- let oleanPath ← findOLean dep.module
+    let leanPath ← Path.findLean dep.module
+    s := s ++ "\n" ++ leanPath.toString
+    /-
     if oleanPath.isRelative then
       let leanPath := Path.toSrcDir! oleanPath "lean"
       assert! ← leanPath.pathExists
@@ -429,6 +434,7 @@ def getImports (header: TSyntax `Lean.Parser.Module.header) : IO String := do
       p := p.replace "/lean4/src/lean/Lake" "/lean4/src/lean/lake/Lake"
       assert! ← FilePath.mk p |>.pathExists
       s := s ++ "\n" ++ p
+  -/
 
   return s.trim
 

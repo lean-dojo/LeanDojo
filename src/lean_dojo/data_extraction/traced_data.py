@@ -692,7 +692,10 @@ class TracedFile:
                         if import_line.endswith(
                             suffix + ".lean"
                         ) or import_line.endswith(suffix + "/default.lean"):
-                            object.__setattr__(node, "path", Path(import_line))
+                            path = Path(import_line)
+                            if path.is_absolute():
+                                path = path.relative_to(lean_file.root_dir)
+                            object.__setattr__(node, "path", path)
 
         ast.traverse_preorder(_callback, node_cls=None)
 
