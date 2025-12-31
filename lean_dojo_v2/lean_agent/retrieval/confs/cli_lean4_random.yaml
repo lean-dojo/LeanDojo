@@ -1,0 +1,40 @@
+seed_everything: 3407  # https://arxiv.org/abs/2109.08203
+trainer:
+  accelerator: gpu
+  devices: 1
+  precision: bf16-mixed
+  gradient_clip_val: 1.0
+  max_steps: 800000
+  callbacks:
+    - class_path: pytorch_lightning.callbacks.LearningRateMonitor
+      init_args: 
+        logging_interval: step
+    - class_path: pytorch_lightning.callbacks.ModelCheckpoint
+      init_args:
+        verbose: true
+        save_top_k: 1
+        save_last: true
+        monitor: Recall@10_val
+        mode: max
+    - class_path: pytorch_lightning.callbacks.EarlyStopping
+      init_args:
+        monitor: Recall@10_val
+        patience: 5
+        mode: max
+        verbose: true
+
+model:
+  model_name: google/byt5-small
+  lr: 1e-4
+  warmup_steps: 2000
+  num_retrieved: 100
+
+data:
+  data_path: new_version_test2_benchmark/random5percent/
+  corpus_path: new_version_test2_benchmark/corpus.jsonl
+  num_negatives: 3
+  num_in_file_negatives: 1
+  batch_size: 8
+  eval_batch_size: 64
+  max_seq_len: 1024
+  num_workers: 4

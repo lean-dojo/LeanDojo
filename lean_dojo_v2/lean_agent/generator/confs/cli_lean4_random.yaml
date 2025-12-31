@@ -1,0 +1,57 @@
+seed_everything: 3407  # https://arxiv.org/abs/2109.08203
+trainer:
+  accelerator: gpu
+  devices: 1
+  precision: bf16-mixed
+  strategy:
+    class_path: pytorch_lightning.strategies.DeepSpeedStrategy
+    init_args:
+      stage: 2
+      offload_optimizer: false
+      cpu_checkpointing: false
+  gradient_clip_val: 1.0
+  max_steps: 500000
+  check_val_every_n_epoch: 1
+  num_sanity_val_steps: 0
+  callbacks:
+    - class_path: pytorch_lightning.callbacks.LearningRateMonitor
+      init_args: 
+        logging_interval: step
+    - class_path: pytorch_lightning.callbacks.ModelCheckpoint
+      init_args:
+        verbose: true
+        save_top_k: 1
+        save_last: true
+        monitor: Pass@1_val
+        mode: max
+    - class_path: pytorch_lightning.callbacks.EarlyStopping
+      init_args:
+        monitor: Pass@1_val
+        patience: 2
+        mode: max
+        verbose: true
+
+model:
+  model_name: google/byt5-small
+  lr: 5e-4
+  warmup_steps: 2000
+  num_beams: 1
+  length_penalty: 0.0
+  ret_ckpt_path: null
+  eval_num_retrieved: 100
+  eval_num_workers: 5  # Lower this number if you don't have 80GB GPU memory.
+  eval_num_gpus: 1
+  eval_num_theorems: 250  # Lower this number will make validation faster (but noiser).
+
+data:
+  data_path: leandojo_benchmark_4/random/
+  corpus_path: leandojo_benchmark_4/corpus.jsonl
+  keep_marks: true
+  preds_path: null
+  batch_size: 8  # effective_batch_size == batch_size * accumulate_grad_batches * devices
+  eval_batch_size: 64
+  max_inp_seq_len: 2300
+  max_oup_seq_len: 512
+  p_drop: 0.5
+  normalize_tactics: true
+  num_workers: 2

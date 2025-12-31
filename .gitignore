@@ -1,8 +1,13 @@
-leanpkg.path
+.lake
+.vscode
 *.olean
+**/__pycache__
+*/.DS_Store
+
+*.pkl
+retrieval/bm25
 
 # Byte-compiled / optimized / DLL files
-__pycache__/
 *.py[cod]
 *$py.class
 
@@ -59,7 +64,6 @@ coverage.xml
 *.pot
 
 # Django stuff:
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -131,5 +135,37 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# vscode debug config
-.vscode/
+# Jupyter notebooks
+.ipynb_checkpoints/
+
+# Python-related
+__pycache__/
+.pytest_cache
+.mypy_cache/
+.coverage*
+.venv
+dist/
+
+# Lean dependencies
+mathlib4/
+repl/
+
+# Environment variables
+.env
+
+# PostgreSQL data
+.data/
+
+.*
+!.gitignore
+!.github
+
+
+dynamic_database.json
+*.jsonl
+*.ckpt
+*.json
+
+raid/
+
+outputs-*

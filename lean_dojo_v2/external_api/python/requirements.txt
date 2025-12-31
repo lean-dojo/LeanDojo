@@ -1,0 +1,7 @@
+vllm
+transformers
+loguru
+torch
+numpy
+fastapi
+requests

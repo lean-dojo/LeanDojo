@@ -1,82 +1,99 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.sdist]
-exclude = [
-  "/.github",
-  "/docs",
-  "/images",
-  "/scripts",
-]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
-name = "lean-dojo"
-version = "4.20.0"
-authors = [
-  { name="Kaiyu Yang", email="kaiyuy@meta.com" },
-]
-description = "LeanDojo: Machine Learning for Theorem Proving in Lean"
-keywords = ["theorem proving", "machine learning", "Lean"]
+name = "lean-dojo-v2"
+version = "1.0.4"
+description = "A comprehensive library for AI-assisted theorem proving in Lean"
 readme = "README.md"
-license = { file = "LICENSE" }
-requires-python = ">=3.9,<3.13"  # https://docs.ray.io/en/latest/ray-overview/installation.html#daily-releases-nightlies
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: MIT License",
-    "Operating System :: MacOS",
-    "Operating System :: POSIX :: Linux",
+license = {text = "MIT"}
+authors = [
+    {name = "LeanDojo-v2 Contributors"}
 ]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.11"
 dependencies = [
-  "python-dotenv",
-  "loguru",
-  "filelock",
-  "gitpython",
-  "psutil",
-  "pexpect",
-  "types-psutil",
-  "tqdm",
-  "toml",
-  "types-toml",
-  "networkx",
-  "lxml",
-  "PyGithub",
-  "ray[default] >= 2.8",
+    "torch>=1.12.0",
+    "pytorch-lightning[extra]>=1.9.0",
+    "transformers>=4.20.0",
+    "numpy>=1.21.0",
+    "deepspeed>=0.7.0",
+    "loguru>=0.6.0",
+    "networkx>=2.8.0",
+    "ray>=2.0.0",
+    "requests>=2.28.0",
+    "tqdm>=4.64.0",
+    "openai>=0.27.0",
+    "python-dotenv>=0.19.0",
+    "rank-bm25>=0.2.2",
+    "torchmetrics>=0.9.0",
+    "gitpython>=3.1.0",
+    "pexpect>=4.8.0",
+    "toml>=0.10.0",
+    "PyGithub>=1.58.0",
+    "lxml>=4.9.0",
+    "filelock>=3.8.0",
+    "psutil>=5.9.0",
+    "datasets>=4.0.0",
+    "trl>=0.25.1",
+    "peft>=0.17.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "ipython",
-  "notebook",
-  "hatch"
-]
-test = [
-  "pytest",
-]
-docs = [
-  "sphinx",
-  "sphinx-rtd-theme",
-]
-lint = [
-  "mypy",
-  "black[jupyter]",
-]
-all = [
-  "ipython",
-  "notebook",
-  "hatch",
-  "pytest",
-  "sphinx",
-  "sphinx-rtd-theme",
-  "mypy",
-  "black[jupyter]",
+    "pytest>=8.4.0",
+    "pytest-cov>=6.2.1",
+    "black>=22.0.0",
+    "isort>=5.10.0",
+    "flake8>=5.0.0",
+    "mypy>=0.991",
 ]
 
 [project.urls]
-"Homepage" = "https://leandojo.org/"
-"Bug Tracker" = "https://github.com/lean-dojo/LeanDojo/issues"
+Homepage = "https://github.com/lean-dojo/LeanDojo-v2"
+Repository = "https://github.com/lean-dojo/LeanDojo-v2"
+Documentation = "https://github.com/lean-dojo/LeanDojo-v2"
+"Bug Tracker" = "https://github.com/lean-dojo/LeanDojo-v2/issues"
 
-[tool.pytest.ini_options]
-addopts = [
-    "--import-mode=importlib",
-]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lean_dojo_v2*"]
+
+[tool.setuptools.package-data]
+"lean_dojo_v2" = ["**/*.lean", "**/*.yaml"] 
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["lean_dojo_v2", "utils"]
+
+[tool.uv.sources]
+pantograph = { git = "https://github.com/stanford-centaur/PyPantograph" }
