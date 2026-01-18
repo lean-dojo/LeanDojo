@@ -1,6 +1,8 @@
 LeanDojo: Machine Learning for Theorem Proving in Lean
 ======================================================
 
+### Note: This original LeanDojo library is deprecated. Please use [LeanDojo-v2](https://github.com/lean-dojo/LeanDojo-v2) for all new projects. The information below is kept for historical reference. We will soon be moving LeanDojo-v2 here.
+
 ![LeanDojo](https://github.com/lean-dojo/LeanDojo/blob/main/images/LeanDojo.jpg)
 
 [LeanDojo](https://leandojo.org/) is a Python library for learning–based theorem provers in Lean, providing two main features:
